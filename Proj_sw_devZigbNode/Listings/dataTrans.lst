@@ -1,0 +1,1990 @@
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DATATRANS
+OBJECT MODULE PLACED IN .\Output\dataTrans.obj
+COMPILER INVOKED BY: E:\KEIL\MDK_5.18&C51_v9.54a\Software\C51\BIN\C51.EXE dataTrans\dataTrans.c OMF2 ROM(COMPACT) OPTIMI
+                    -ZE(8,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\d
+                    -ataTrans.lst) OBJECT(.\Output\dataTrans.obj)
+
+line level    source
+
+   1          #include "dataTrans.h"
+   2          
+   3          #include "string.h"
+   4          #include "stdio.h"
+   5          
+   6          #include "eeprom.h"
+   7          #include "USART.h"
+   8          #include "delay.h"
+   9          #include "Relay.h"
+  10          
+  11          #include "timerAct.h"
+  12          #include "pars_Method.h"
+  13          #include "dataManage.h"
+  14          #include "Tips.h"
+  15          
+  16          /**********************±¾µØÎÄ¼þ±äÁ¿¶¨ÒåÇø************************/
+  17          datsAttr_datsTrans xdata datsSend_request;//Ô¶¶ËÊý¾Ý´«ÊäÇëÇó»º´æ
+  18          datsAttr_datsTrans xdata datsRcv_respond;//Ô¶¶ËÊý¾Ý´«ÊäÇëÇóµÈ´ýÏìÓ¦»º´æ»º´æ
+  19          
+  20          //zigbeeÔËÐÐ×´Ì¬ÇÐ»»±êÖ¾
+  21          stt_statusChange devStatus_switch = {0, status_NULL};
+  22          //Êý¾ÝÇëÇóÍê³ÉºóÊÇ·ñÐèÒªÖØÆôÍøÂç
+  23          bit reConnectAfterDatsReq_IF = 0; //ÓÃÓÚ»¥¿ØÍ¨Ñ¶´Ø¼´¿Ì×¢²áÌØÊâÇé¿öÏÂÊ¹ÓÃ
+  24          
+  25          bit coordinatorOnline_IF = 0; //Ð­µ÷Æ÷ÔÚÏß±êÖ¾
+  26          
+  27          //zigbÍøÂçÖØÁ¬×¨ÓÃ¶¯×÷Ê±¼ä¼ÆÊý
+  28          u16 xdata zigbNwkAction_counter = 0;
+  29          
+  30          //ÐÄÌø
+  31          bit heartBeatCycle_FLG = 0;     //ÐÄÌøÖÜÆÚ´¥·¢
+  32          u8      heartBeatCount     = 0; //ÐÄÌøÖÜÆÚ¼ÆÊý
+  33          
+  34          //´®¿Ú½ÓÊÕ³¬Ê±±êÖ¾
+  35          bit uartRX_toutFLG      = 0;
+  36          //´®¿Ú½ÓÊÕ³¬Ê±¼ÆÊý
+  37          bit rxTout_count_EN = 0;
+  38          u8  rxTout_count        = 0;
+  39          //´®¿ÚÊý¾Ý»º´æ
+  40          u8      datsRcv_length  = 0;
+  41          uartTout_datsRcv xdata datsRcv_ZIGB = {{0}, 0};
+  42          
+  43          //zigbeeÍ¨ÐÅÏß³Ìµ±Ç°ÔËÐÐ×´Ì¬±êÖ¾
+  44          threadRunning_Status devRunning_Status = status_NULL;
+  45          
+  46          void zigbUart_pinInit(void){
+  47   1      
+  48   1              //TXÍÆÍìÊä³ö
+  49   1              P3M1 &= 0xFD;   
+  50   1              P3M0 |= 0x02;   
+  51   1              
+  52   1              //RX¸ß×èÊäÈë
+  53   1              P3M1 |= 0x01;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 2   
+
+  54   1              P3M0 &= 0xFE;
+  55   1              
+  56   1              //TXÍÆÍìÊä³ö
+  57   1              P2M1 &= ~0x08;
+  58   1              P2M0 |= 0x08;
+  59   1      }
+  60                  
+  61          /*--------------------------------------------------------------*/
+  62          void uartObjZigb_Init(void){
+  63   1      
+  64   1              EA = 0;
+  65   1      
+  66   1              PS = 1;
+  67   1              SCON = (SCON & 0x3f) | UART_8bit_BRTx;
+  68   1      
+  69   1      {
+  70   2              u32 j = (MAIN_Fosc / 4) / ZIGB_BAUND;   //°´1T¼ÆËã
+  71   2                      j = 65536UL - j;
+  72   2              
+  73   2              TH2 = (u8)(j>>8);
+  74   2              TL2 = (u8)j;
+  75   2      }
+  76   1              AUXR &= ~(1<<4);        //Timer stop
+  77   1              AUXR |= 0x01;           //S1 BRT Use Timer2;
+  78   1              AUXR &= ~(1<<3);        //Timer2 set As Timer
+  79   1              AUXR |=  (1<<2);        //Timer2 set as 1T mode
+  80   1      
+  81   1              IE2  &= ~(1<<2);        //½ûÖ¹ÖÐ¶Ï
+  82   1              AUXR &= ~(1<<3);        //¶¨Ê±
+  83   1              AUXR |=  (1<<4);        //Timer run enable
+  84   1      
+  85   1              ES        = 1;
+  86   1              REN   = 1;
+  87   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
+  88   1              
+  89   1              memset(TX1_Buffer, 0, sizeof(char) * COM_TX1_Lenth);
+  90   1      
+  91   1              EA = 1;
+  92   1      
+  93   1              PrintString1("i'm UART1 for wifi data translate !!!\n");
+  94   1              PrintString1_logOut("i'm UART1 for datsLog !!!\n");
+  95   1      }
+  96          
+  97          ///*----------------------------
+  98          //·¢ËÍ´®¿ÚÊý¾Ý
+  99          //----------------------------*/
+ 100          //void uartObjWIFI_Send_Byte(u8 dat)    //´®¿Ú1
+ 101          //{
+ 102          //      TX1_write2buff(dat);
+ 103          //}
+ 104          
+ 105          //void uartObjWIFI_Send_String(char *s,unsigned char ucLength){  //´®¿Ú1
+ 106          //      
+ 107          //      uart1_datsSend(s, ucLength);
+ 108          //}
+ 109          
+ 110          //void rxBuff_WIFI_Clr(void){
+ 111          
+ 112          //      memset(rxBuff_WIFI, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 113          //      COM1.RX_Cnt = 0;
+ 114          //}
+ 115          
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 3   
+
+ 116          /********************* UART1(WIIF)ÖÐ¶Ïº¯Êý_×Ô¶¨ÒåÖØ¹¹************************/
+ 117          void UART1_Rountine (void) interrupt UART1_VECTOR
+ 118          {
+ 119   1              
+ 120   1              if(RI)
+ 121   1              {
+ 122   2                      RI = 0;
+ 123   2                      if(COM1.B_RX_OK == 0)
+ 124   2                      {
+ 125   3                              
+ 126   3      //                      if(COM1.RX_Cnt >= COM_RX1_Lenth)        COM1.RX_Cnt = 0;
+ 127   3      //                      RX1_Buffer[COM1.RX_Cnt++] = SBUF;
+ 128   3      //                      COM1.RX_TimeOut = TimeOutSet1;
+ 129   3                              
+ 130   3                              if(!rxTout_count_EN){
+ 131   4                              
+ 132   4                                      rxTout_count_EN = 1;
+ 133   4                                      rxTout_count    = 0;
+ 134   4                                      datsRcv_length  = 0;
+ 135   4                                      
+ 136   4                                      memset(RX1_Buffer, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 137   4                              }
+ 138   3                              
+ 139   3                              
+ 140   3                              RX1_Buffer[datsRcv_length ++]   = SBUF;
+ 141   3                              rxTout_count = 0;
+ 142   3                      }
+ 143   2              }
+ 144   1      
+ 145   1              if(TI)
+ 146   1              {
+ 147   2                      TI = 0;
+ 148   2                      if(COM1.TX_read != COM1.TX_write)
+ 149   2                      {
+ 150   3                              SBUF = TX1_Buffer[COM1.TX_read];
+ 151   3                              if(++COM1.TX_read >= COM_TX1_Lenth)             COM1.TX_read = 0;
+ 152   3                      }
+ 153   2                      else    COM1.B_TX_busy = 0;
+ 154   2              }
+ 155   1      }
+ 156          
+ 157          /* ×Ô¶¨ÒåÐ£Ñé*///×Ô¼Ò²úÆ·Ð­Òé²ã
+ 158          static 
+ 159          unsigned char frame_Check(unsigned char frame_temp[], u8 check_num){
+ 160   1        
+ 161   1              unsigned char loop              = 0;
+ 162   1              unsigned char val_Check = 0;
+ 163   1              
+ 164   1              for(loop = 0; loop < check_num; loop ++){
+ 165   2              
+ 166   2                      val_Check += frame_temp[loop];
+ 167   2              }
+ 168   1              
+ 169   1              val_Check  = ~val_Check;
+ 170   1              val_Check ^= 0xa7;
+ 171   1              
+ 172   1              return val_Check;
+ 173   1      }
+ 174          
+ 175          /*´ËÊý¾Ý·â×°±ØÐëÔÚÊý¾Ý°ü·¢ËÍÇ°×îºóµ÷ÓÃ£¬×Ô¶¨Òå¶ÔÏó½øÐÐÊý¾Ý·â×°*///±ÜÃâÐ£Ñé±»ÌáÇ°¶ø³ö´í
+ 176          static 
+ 177          u8 dtasTX_loadBasic_CUST(bit ifRemoteDats,
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 4   
+
+ 178                                                       u8 dats_Tx[],
+ 179                                                       u8 datsLen_TX,
+ 180                                                       u8 frame_Type,
+ 181                                                       u8 frame_CMD,
+ 182                                                       bit ifSpecial_CMD){
+ 183   1                                                         
+ 184   1              dats_Tx[2]      = frame_Type;
+ 185   1              dats_Tx[3]      = frame_CMD;
+ 186   1              
+ 187   1              if(!ifSpecial_CMD)dats_Tx[10] = SWITCH_TYPE;    //¿ª¹ØÀàÐÍÌî³ä
+ 188   1              
+ 189   1              memcpy(&dats_Tx[5], &MAC_ID[1], 5);     //MACÌî³ä
+ 190   1                                                        
+ 191   1              dats_Tx[4]      = frame_Check(&dats_Tx[5], 28);
+ 192   1                                                                 
+ 193   1              if(ifRemoteDats){
+ 194   2                      
+ 195   2                      u8 xdata dats_Temp[64] = {0};
+ 196   2              
+ 197   2                      dats_Tx[0] = ZIGB_FRAMEHEAD_CTRLREMOTE;
+ 198   2                      dats_Tx[1]      = datsLen_TX + 12;
+ 199   2                      
+ 200   2                      memcpy(dats_Temp, &dats_Tx[1], datsLen_TX - 13);
+ 201   2                      memset(&dats_Tx[1], 0, datsLen_TX - 1);
+ 202   2                      memcpy(&dats_Tx[13], dats_Temp, datsLen_TX - 13);
+ 203   2                      memcpy(&dats_Tx[1], MAC_ID_DST, 6);
+ 204   2                      memcpy(&dats_Tx[8], &MAC_ID[1], 5);
+ 205   2                      
+ 206   2                      return 45;
+ 207   2                      
+ 208   2              }else{
+ 209   2              
+ 210   2                      dats_Tx[0]      = ZIGB_FRAMEHEAD_CTRLLOCAL;
+ 211   2                      dats_Tx[1]      = datsLen_TX;
+ 212   2                      
+ 213   2                      return 33;
+ 214   2              }
+ 215   1      }
+ 216          
+ 217          /*Êý¾ÝÒì»òÐ£Ñé*///ZNPÐ­Òé²ã
+ 218          static 
+ 219          u8 XORNUM_CHECK(u8 buf[], u8 length){
+ 220   1      
+ 221   1              u8 loop = 0;
+ 222   1              u8 valXOR = buf[0];
+ 223   1              
+ 224   1              for(loop = 1;loop < length;loop ++)valXOR ^= buf[loop];
+ 225   1              
+ 226   1              return valXOR;
+ 227   1      }
+ 228          
+ 229          /*zigbeeÊý¾ÝÖ¡¼ÓÔØ*/
+ 230          static 
+ 231          u8 ZigB_TXFrameLoad(u8 frame[],u8 cmd[],u8 cmdLen,u8 dats[],u8 datsLen){                
+ 232   1      
+ 233   1              const u8 frameHead = ZIGB_FRAME_HEAD;   //ZNP,SOFÖ¡Í·
+ 234   1              u8 xor_check = datsLen;                                 //Òì»òÐ£Ñé£¬Ö¡Î²
+ 235   1              u8 loop = 0;
+ 236   1              u8 ptr = 0;
+ 237   1              
+ 238   1              frame[ptr ++] = frameHead;
+ 239   1              frame[ptr ++] = datsLen;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 5   
+
+ 240   1              
+ 241   1              memcpy(&frame[ptr],cmd,cmdLen);
+ 242   1              ptr += cmdLen;
+ 243   1              for(loop = 0;loop < cmdLen;loop ++)xor_check ^= cmd[loop];
+ 244   1      
+ 245   1              memcpy(&frame[ptr],dats,datsLen);
+ 246   1              ptr += datsLen;
+ 247   1              for(loop = 0;loop < datsLen;loop ++)xor_check ^= dats[loop];    
+ 248   1              
+ 249   1              frame[ptr ++] = xor_check;
+ 250   1              
+ 251   1              return ptr;
+ 252   1      }
+ 253          
+ 254          /*zigbeeµ¥Ö¸ÁîÊý¾ÝÇëÇó£¬·µ»ØÓ¦´ðÊý¾Ý³¤¶È*/
+ 255          static 
+ 256          u8 zigb_datsRequest( u8 frameREQ[],             //ÇëÇóÖ¡
+ 257                                                   u8 frameREQ_Len,       //ÇëÇóÖ¡³¤
+ 258                                                   u8 resp_cmd[2],        //ËùÐèÓ¦´ðÖ¸Áî
+ 259                                                   u8 resp_dats[],        //Ó¦´ðÊý¾Ý»º´æ
+ 260                                                   u8 loopReapt,u16 timeWait){    //Ñ­»·´ÎÊý£¬µ¥´ÎµÈ´ýÊ±¼ä
+ 261   1                                                
+ 262   1              u16 Local_Delay = timeWait;             
+ 263   1              u8      loop = 0;
+ 264   1                                                       
+ 265   1              for(loop = 0;loop < loopReapt;loop ++){
+ 266   2              
+ 267   2                      uartRX_toutFLG = 0;
+ 268   2                      zigbNwkAction_counter = timeWait;       
+ 269   2                  uartZigB_datsSend(frameREQ, frameREQ_Len);
+ 270   2                      
+ 271   2                      while(zigbNwkAction_counter --){
+ 272   3                              
+ 273   3                              delayMs(2);
+ 274   3      
+ 275   3                              if(uartRX_toutFLG){
+ 276   4                              
+ 277   4                                      uartRX_toutFLG = 0;
+ 278   4                                      
+ 279   4                                      if(!memcmp(&(datsRcv_ZIGB.rcvDats[2]), resp_cmd, 2)){
+ 280   5                                      
+ 281   5                                              memcpy(resp_dats, datsRcv_ZIGB.rcvDats, datsRcv_ZIGB.rcvDatsLen);
+ 282   5                                              return datsRcv_ZIGB.rcvDatsLen;
+ 283   5                                              
+ 284   5                                      }
+ 285   4                              }
+ 286   3                      }
+ 287   2              }       
+ 288   1      
+ 289   1              return 0;
+ 290   1      }
+ 291          
+ 292          /*zigbeeµ¥Ö¸ÁîÏÂ·¢¼°ÏìÓ¦ÑéÖ¤*///×èÈû
+ 293          bit zigb_VALIDA_INPUT(u8 REQ_CMD[2],            //Ö¸Áî
+ 294                                                    u8 REQ_DATS[],                //Êý¾Ý
+ 295                                                    u8 REQdatsLen,                //Êý¾Ý³¤¶È
+ 296                                                    u8 ANSR_frame[],              //ÏìÓ¦Ö¡
+ 297                                                    u8 ANSRdatsLen,               //ÏìÓ¦Ö¡³¤¶È
+ 298                                                    u8 times,u16 timeDelay){      //Ñ­»·´ÎÊý£¬µ¥´ÎµÈ´ýÊ±¼ä
+ 299   1                                                 
+ 300   1      #define dataLen_validaInput     96
+ 301   1              u8 xdata dataTXBUF[dataLen_validaInput] = {0};
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 6   
+
+ 302   1              u8      loop = 0;
+ 303   1              u8      datsTX_Len;
+ 304   1      
+ 305   1              datsTX_Len = ZigB_TXFrameLoad(dataTXBUF,REQ_CMD, 2, REQ_DATS, REQdatsLen);
+ 306   1      
+ 307   1              for(loop = 0;loop < times;loop ++){
+ 308   2              
+ 309   2                      uartRX_toutFLG = 0;
+ 310   2                      zigbNwkAction_counter = timeDelay;
+ 311   2                      uartZigB_datsSend(dataTXBUF, datsTX_Len);
+ 312   2                      
+ 313   2                      while(zigbNwkAction_counter --){
+ 314   3                              
+ 315   3                              delayMs(2);
+ 316   3      
+ 317   3                              if(uartRX_toutFLG){
+ 318   4                              
+ 319   4                                      uartRX_toutFLG = 0;
+ 320   4                                      
+ 321   4                                      if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, ANSR_frame, ANSRdatsLen)){
+ 322   5                                      
+ 323   5                                              delayMs(2);
+ 324   5                                              return 1;
+ 325   5                                      }
+ 326   4                              }
+ 327   3                      }
+ 328   2              }
+ 329   1              
+ 330   1              return 0;
+ 331   1      }
+ 332          
+ 333          ///*zigbeeÍ¨ÐÅ´ØÉèÖÃ*///×èÈû
+ 334          //bit zigb_clusterSet(u16 deviveID, u8 endPoint){
+ 335          
+ 336          //      datsAttr_ZigbInit code default_param = {{0x24,0x00},{0x0E,0x0D,0x00,0x0D,0x00,0x0D,0x00,0x01,0x00,0x00,
+             -0x01,0x00,0x00},0x0D,{0xFE,0x01,0x64,0x00,0x00,0x65},0x06,300};       //Êý¾Ý´Ø×¢²á,Ä¬ÈÏ²ÎÊý
+ 337          //      u8 code frameResponse_Subs[6] = {0xFE,0x01,0x64,0x00,0xB8,0xDD}; //ÏìÓ¦Ö¡Ìæ²¹£¬ÈôÊý¾Ý´ØÒÑ¾­×¢²á
+ 338          //              
+ 339          //#define       dataLen_zigbClusterSet  64
+ 340          //      u8 xdata paramTX_temp[dataLen_zigbClusterSet] = {0};
+ 341          //      
+ 342          //      bit setResult = 0;
+ 343          //      
+ 344          //      memcpy(paramTX_temp, default_param.zigbInit_reqDAT, default_param.reqDAT_num);
+ 345          //      paramTX_temp[0] = endPoint;
+ 346          //      paramTX_temp[3] = (u8)((deviveID & 0x00ff) >> 0);
+ 347          //      paramTX_temp[4] = (u8)((deviveID & 0xff00) >> 8);
+ 348          //      
+ 349          //      setResult =  zigb_VALIDA_INPUT( (u8 *)default_param.zigbInit_reqCMD,
+ 350          //                                                                      (u8 *)paramTX_temp,
+ 351          //                                                                      default_param.reqDAT_num,
+ 352          //                                                                      (u8 *)default_param.zigbInit_REPLY,
+ 353          //                                                                      default_param.REPLY_num,
+ 354          //                                                                      2,              //2´ÎÒÔÄÚÃ»ÓÐÕýÈ·ÏìÓ¦¾ÍÊ§°Ü
+ 355          //                                                                      default_param.timeTab_waitAnsr);
+ 356          //      
+ 357          //      if(setResult)return setResult;
+ 358          //      else{
+ 359          //      
+ 360          //              return zigb_VALIDA_INPUT((u8 *)default_param.zigbInit_reqCMD,
+ 361          //                                                               (u8 *)paramTX_temp,
+ 362          //                                                               default_param.reqDAT_num,
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 7   
+
+ 363          //                                                               (u8 *)frameResponse_Subs,
+ 364          //                                                               6,
+ 365          //                                                               2,             //2´ÎÒÔÄÚÃ»ÓÐÕýÈ·ÏìÓ¦¾ÍÊ§°Ü
+ 366          //                                                               default_param.timeTab_waitAnsr);
+ 367          //      }
+ 368          //}
+ 369          
+ 370          ///*zigbeeÖØÐÂÈëÍø*///×èÈûº¯Êý£¬½ö¹©²âÊÔÊ¹ÓÃ
+ 371          //bit ZigB_NwkJoin(u16 PANID, u8 CHANNELS){
+ 372          
+ 373          //#define       cmdNum_zigbNwkJoin      8       
+ 374          //      
+ 375          //#define        loop_PANID             5
+ 376          //#define        loop_CHANNELS  6
+ 377          
+ 378          //      datsAttr_ZigbInit code ZigbInit_dats[cmdNum_zigbNwkJoin] = {
+ 379          //              
+ 380          //              {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      
+             -//¸´Î»
+ 381          //              {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      
+             -//¸´Î»
+ 382          //              {       {0x26,0x05},    {0x03,0x01,0x03},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //¼Ä´æÆ÷³
+             -õÊ¼»¯£¬È«²¿Çå¿Õ
+ 383          //              {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      
+             -//¶þ´Î¸´Î»
+ 384          //              
+ 385          ////            {       {0x26,0x05},    {0x87,0x01,0x00},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«É
+             -èÖÃ£¨Ð­µ÷Æ÷£©
+ 386          //              {       {0x26,0x05},    {0x87,0x01,0x01},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«ÉèÖ
+             -Ã£¨Â·ÓÉÆ÷£©
+ 387          ////            {       {0x26,0x05},    {0x87,0x01,0x02},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«É
+             -èÖÃ£¨ÖÕ¶Ë£©
+ 388          //              
+ 389          //              {       {0x27,0x02},    {0x34,0x12},                    0x02,   {0xFE,0x01,0x67,0x02,0x00,0x64},                                                        0x06,   500             },      //PAN_ID¼Ä´æÆ
+             -÷ÉèÖÃ
+ 390          //              {       {0x27,0x03},    {0x00,0x80,0x00,0x00},  0x04,   {0xFE,0x01,0x67,0x03,0x00,0x65},                                                        0x06,   500             },      //ÐÅµ
+             -À¼Ä´æÆ÷ÅäÖÃ
+ 391          ////            {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x09,0x8D},                                                        0x06,   12000   },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È
+             -¶¨½ÇÉ«Ð­µ÷Æ÷£¨Ð­µ÷Æ÷ÏìÓ¦£©
+ 392          //              {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x07,0x83},                                                        0x06,   12000   },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È¶¨
+             -½ÇÉ«Ð­µ÷Æ÷£¨Â·ÓÉÆ÷ÏìÓ¦£©
+ 393          ////            {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x06,0x82},                                                        0x06,   12000   },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È
+             -¶¨½ÇÉ«Ð­µ÷Æ÷£¨ÖÕ¶ËÏìÓ¦£©
+ 394          //      };
+ 395          //      
+ 396          //#define       dataLen_zigbNwkJoin 64
+ 397          //      u8 xdata paramTX_temp[dataLen_zigbNwkJoin] = {0};
+ 398          //      
+ 399          //      u8  loop;
+ 400          //      u32 chnl_temp = 0x00000800UL << CHANNELS;
+ 401          //      
+ 402          //      for(loop = 1; loop < cmdNum_zigbNwkJoin; loop ++){
+ 403          //              
+ 404          //              memset(paramTX_temp, 0, dataLen_zigbNwkJoin * sizeof(u8));
+ 405          //              
+ 406          //              switch(loop){   //×ÔÑ¡²ÎÊý&Ä¬ÈÏ²ÎÊý
+ 407          //              
+ 408          //                      case loop_PANID:{
+ 409          //                      
+ 410          //                              paramTX_temp[0] = (u8)((PANID & 0x00ff) >> 0);
+ 411          //                              paramTX_temp[1] = (u8)((PANID & 0xff00) >> 8);
+ 412          //                              
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 8   
+
+ 413          //                      }break;
+ 414          //                      
+ 415          //                      case loop_CHANNELS:{
+ 416          //                      
+ 417          //                              paramTX_temp[0] = (u8)((chnl_temp & 0x000000ff) >>  0);
+ 418          //                              paramTX_temp[1] = (u8)((chnl_temp & 0x0000ff00) >>  8);
+ 419          //                              paramTX_temp[2] = (u8)((chnl_temp & 0x00ff0000) >> 16);
+ 420          //                              paramTX_temp[3] = (u8)((chnl_temp & 0xff000000) >> 24);
+ 421          //                              
+ 422          //                      }break;
+ 423          //                      
+ 424          //                      default:{
+ 425          //                      
+ 426          //                              memcpy(paramTX_temp,ZigbInit_dats[loop].zigbInit_reqDAT,ZigbInit_dats[loop].reqDAT_num);
+ 427          //                              
+ 428          //                      }break;
+ 429          //              }
+ 430          //      
+ 431          //              delayMs(100);
+ 432          //              if(0 == zigb_VALIDA_INPUT((u8 *)ZigbInit_dats[loop].zigbInit_reqCMD,
+ 433          //                                                                (u8 *)paramTX_temp,
+ 434          //                                                                ZigbInit_dats[loop].reqDAT_num,
+ 435          //                                                                (u8 *)ZigbInit_dats[loop].zigbInit_REPLY,
+ 436          //                                                                ZigbInit_dats[loop].REPLY_num,
+ 437          //                                                                3,
+ 438          //                                                                ZigbInit_dats[loop].timeTab_waitAnsr)
+ 439          //                                                               )loop = 0;
+ 440          //      }
+ 441          //      
+ 442          //      return zigb_clusterSet(13, 13); //Éè±¸ID 13£¬ÖÕ¶Ëµã 13£»
+ 443          //}
+ 444          
+ 445          /*zigbee Ö÷¶¯¿ª·ÅÍøÂç*///×èÈû
+ 446          bit ZigB_nwkOpen(bit openIF, u8 openTime){
+ 447   1      
+ 448   1              datsAttr_ZigbInit code default_param = {{0x26,0x08}, {0xFC,0xFF,0x00}, 0x03, {0xFE,0x01,0x66,0x08,0x00,0x
+             -6F}, 0x06, 150}; //zigbeeÖ¸ÁîÏÂ´ïÄ¬ÈÏ²ÎÊý
+ 449   1              
+ 450   1              bit resultSet = 0;
+ 451   1              
+ 452   1              u8 openTime_temp = 0;
+ 453   1              
+ 454   1      #define paramLen_zigbNwkOpen 3
+ 455   1              u8 xdata paramTX_temp[paramLen_zigbNwkOpen] = {0xFC,0xFF,0x00};
+ 456   1              
+ 457   1              (openIF)?(paramTX_temp[2] = openTime):(paramTX_temp[2] = 0);
+ 458   1              
+ 459   1              resultSet = zigb_VALIDA_INPUT((u8 *)default_param.zigbInit_reqCMD,
+ 460   1                                                                        (u8 *)paramTX_temp,
+ 461   1                                                                        default_param.reqDAT_num,
+ 462   1                                                                        (u8 *)default_param.zigbInit_REPLY,
+ 463   1                                                                        default_param.REPLY_num,
+ 464   1                                                                        2,    //2´ÎÎÞ»Ø¸´ÎªÊ§°Ü
+ 465   1                                                                        default_param.timeTab_waitAnsr);
+ 466   1      
+ 467   1      #if(DEBUG_LOGOUT_EN == 1)       
+ 468   1      //      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 469   1      //              u8 xdata log_buf[64];
+ 470   1      //              
+ 471   1      //              sprintf(log_buf, "nwkOpen result:%d.\n", (int)resultSet);
+ 472   1      //              PrintString1_logOut(log_buf);
+ 473   1      //      }
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 9   
+
+ 474   1      #endif
+ 475   1              
+ 476   1              return resultSet;
+ 477   1      }
+ 478          
+ 479          /*zigbee PANID»ñÈ¡*///×èÈû
+ 480          static u16 ZigB_getPanIDCurrent(void){
+ 481   1      
+ 482   1              u16 PANID_temp = 0;
+ 483   1              
+ 484   1      #define paramLen_zigbPanIDGet 32
+ 485   1              u8 xdata paramTX_temp[paramLen_zigbPanIDGet] = {0};
+ 486   1              
+ 487   1              u8 code frameREQ_zigbPanIDGet[6] = {0xFE, 0x01, 0x26, 0x06, 0x06, 0x27};        //zigb PANID»ñÈ¡Ö¸ÁîÖ¡
+ 488   1              u8 code cmdResp_zigbPanIDGet[2]  = {0x66, 0x06};        //zigb PANID»ñÈ¡Ô¤ÆÚÏìÓ¦Ö¸Áî
+ 489   1              u8 datsResp_Len = 0;
+ 490   1      
+ 491   1              datsResp_Len = zigb_datsRequest(frameREQ_zigbPanIDGet, 6, cmdResp_zigbPanIDGet, paramTX_temp, 2, 300);
+ 492   1      
+ 493   1              if(datsResp_Len){
+ 494   2      
+ 495   2                      PANID_temp |= (((u16)(paramTX_temp[5]) << 0) & 0x00FF);
+ 496   2                      PANID_temp |= (((u16)(paramTX_temp[6]) << 8) & 0xFF00);
+ 497   2      
+ 498   2      //              printf_datsHtoA("[Tips_uartZigb]: resultDats:", local_datsParam->frameResp, local_datsParam->frameResp
+             -Len);
+ 499   2              }
+ 500   1      
+ 501   1              return PANID_temp;
+ 502   1      }
+ 503          
+ 504          /*zigbeeÏµÍ³Ê±¼ä»ñÈ¡²¢¸üÐÂ*///×èÈû
+ 505          static bit getSystemTime_reales(void){
+ 506   1              
+ 507   1              bit resultOpreat = 0;
+ 508   1      
+ 509   1      #define paramLen_zigbSystimeGet 32
+ 510   1              u8 xdata paramTX_temp[paramLen_zigbSystimeGet] = {0};
+ 511   1              
+ 512   1              u8 code frameREQ_zigbSystimeGet[5] = {0xFE, 0x00, 0x21, 0x11, 0x30};    //zigb PANID»ñÈ¡Ö¸ÁîÖ¡
+ 513   1              u8 code cmdResp_zigbSystimeGet[2]  = {0x61, 0x11};      //zigb PANID»ñÈ¡Ô¤ÆÚÏìÓ¦Ö¸Áî
+ 514   1              u8 datsResp_Len = 0;
+ 515   1      
+ 516   1              datsResp_Len = zigb_datsRequest(frameREQ_zigbSystimeGet, 5, cmdResp_zigbSystimeGet, paramTX_temp, 2, 300)
+             -;
+ 517   1              
+ 518   1              if(!datsResp_Len)resultOpreat = 0;
+ 519   1              else{
+ 520   2                      
+ 521   2                      u16 Y_temp16 = ((u16)paramTX_temp[13] << 0) | ((u16)paramTX_temp[14] << 8);
+ 522   2                      u8  Y_temp8 = 0;
+ 523   2                      u8  M_temp8 = 0;
+ 524   2                      
+ 525   2                      u8 Y = (u8)(Y_temp16 % 2000);
+ 526   2                      u8 M = paramTX_temp[11];
+ 527   2                      u8 D = paramTX_temp[12];
+ 528   2                      u8 W = 0;
+ 529   2                      
+ 530   2                      /*¼ÆËã»º´æ¸³Öµ*/
+ 531   2                      Y_temp8 = Y;
+ 532   2                      if(M == 1 || M == 2){ //Ò»ÔÂºÍ¶þÔÂµ±×÷ÉÏÒ»ÄêÊ®ÈýÔÂºÍÊ®ËÄÔÂ
+ 533   3                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 10  
+
+ 534   3                              M_temp8 = M + 12;
+ 535   3                              Y_temp8 --;
+ 536   3                      }
+ 537   2                      else M_temp8 = M;
+ 538   2                      
+ 539   2                      /*¿ªÊ¼¼ÆËã*/
+ 540   2                      W =      Y_temp8 + (Y_temp8 / 4) + 5 - 40 + (26 * (M_temp8 + 1) / 10) + D - 1;  //²ÌÀÕ¹«Ê½
+ 541   2                      W %= 7; 
+ 542   2                      
+ 543   2                      /*¼ÆËã½á¹û¸³Öµ*/
+ 544   2                      W?(systemTime_current.time_Week = W):(systemTime_current.time_Week = 7);
+ 545   2                      
+ 546   2                      systemTime_current.time_Month =         M;
+ 547   2                      systemTime_current.time_Day =           D;
+ 548   2                      systemTime_current.time_Year =          Y;
+ 549   2                      
+ 550   2                      systemTime_current.time_Hour =          paramTX_temp[8];
+ 551   2                      systemTime_current.time_Minute =        paramTX_temp[9];
+ 552   2                      systemTime_current.time_Second =        paramTX_temp[10];
+ 553   2                      
+ 554   2                      /*±¾µØÊ±¼äÎ¬³Ö¼ÆÊýÖµÐ£×¼¸üÐÂ*/
+ 555   2                      sysTimeKeep_counter = systemTime_current.time_Minute * 60 + systemTime_current.time_Second; //ÏµÍ³Ê±¼äÎ¬
+             -³Ö¼ÆÊýÖµ¸üÐÂ
+ 556   2                      
+ 557   2                      resultOpreat = 1;
+ 558   2              }
+ 559   1              
+ 560   1      #if(DEBUG_LOGOUT_EN == 1)       
+ 561   1      //      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 562   1      //              u8 xdata log_buf[64];
+ 563   1      //              
+ 564   1      //              sprintf(log_buf, "sysTime reales result:%d.\n", (int)resultOpreat);
+ 565   1      //              PrintString1_logOut(log_buf);
+ 566   1      //      }
+ 567   1      #endif
+ 568   1              
+ 569   1              return resultOpreat;
+ 570   1      }
+ 571          
+ 572          /*zigbeeÏµÍ³Ê±¼äÉèÖÃ*///×èÈû
+ 573          bit zigB_sysTimeSet(u32 timeStamp){
+ 574   1      
+ 575   1              datsAttr_ZigbInit code default_param = {{0x21,0x10},{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x
+             -00},0x0B,{0xFE,0x01,0x61,0x10,0x00},0x05,100}; //zigbeeÖ¸ÁîÏÂ´ïÄ¬ÈÏ²ÎÊý
+ 576   1              u8 xdata timeStampArray[0x0B] = {0};
+ 577   1              bit resultSet = 0;
+ 578   1              u32 timeStamp_temp = timeStamp;
+ 579   1              
+ 580   1              timeStamp_temp += (3600UL * (long)sysTimeZone_H + 60UL * (long)sysTimeZone_M); //Ê±Çø
+ 581   1      
+ 582   1              timeStampArray[0] = (u8)((timeStamp_temp & 0x000000ff) >> 0);
+ 583   1              timeStampArray[1] = (u8)((timeStamp_temp & 0x0000ff00) >> 8);
+ 584   1              timeStampArray[2] = (u8)((timeStamp_temp & 0x00ff0000) >> 16);
+ 585   1              timeStampArray[3] = (u8)((timeStamp_temp & 0xff000000) >> 24);
+ 586   1              
+ 587   1              resultSet = zigb_VALIDA_INPUT((u8 *)default_param.zigbInit_reqCMD,
+ 588   1                                                                        (u8 *)timeStampArray,
+ 589   1                                                                        default_param.reqDAT_num,
+ 590   1                                                                        (u8 *)default_param.zigbInit_REPLY,
+ 591   1                                                                        default_param.REPLY_num,
+ 592   1                                                                        2,    //2´ÎÎÞ»Ø¸´ÎªÊ§°Ü
+ 593   1                                                                        default_param.timeTab_waitAnsr);
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 11  
+
+ 594   1              
+ 595   1      #if(DEBUG_LOGOUT_EN == 1)       
+ 596   1      //      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 597   1      //              u8 xdata log_buf[64];
+ 598   1      //              
+ 599   1      //              sprintf(log_buf, "sysTime set result:%d.\n", (int)resultSet);
+ 600   1      //              PrintString1_logOut(log_buf);
+ 601   1      //      }
+ 602   1      #endif
+ 603   1              
+ 604   1              return resultSet;
+ 605   1      }
+ 606          
+ 607          ///*zigbeeÓ²¼þ¸´Î»³õÊ¼»¯*///×èÈû
+ 608          //bit ZigB_resetInit(void){
+ 609          
+ 610          //#define zigbInit_loopTry              3
+ 611          //#define zigbInit_onceWait     5000
+ 612          
+ 613          //      u8 code initCmp_Frame[11] = {0xFE, 0x06, 0x41, 0x80, 0x01, 0x02, 0x00, 0x02, 0x06, 0x03, 0xC3};
+ 614          //      
+ 615          //      u8      loop = 0;
+ 616          //      u16 timeWait = 0;
+ 617          //      
+ 618          //      for(loop = 0; loop < zigbInit_loopTry; loop ++){
+ 619          //      
+ 620          //              zigbPin_RESET = 0;
+ 621          //              delayMs(100);
+ 622          //              zigbPin_RESET = 1;
+ 623          //              
+ 624          //              timeWait = zigbInit_onceWait;
+ 625          //              while(timeWait --){
+ 626          //              
+ 627          //                      delayMs(2);     //±ØÐëÑÓÊ±
+ 628          //                      if(uartRX_toutFLG){
+ 629          //                      
+ 630          //                              uartRX_toutFLG = 0;
+ 631          //                              
+ 632          //                              if(!memcmp(datsRcv_ZIGB.rcvDats, initCmp_Frame, 11)){
+ 633          //                              
+ 634          //                                      return 1;
+ 635          //                                      
+ 636          //                              }else{
+ 637          //                                      
+ 638          //                                      delayMs(1);     //±ØÐëÑÓÊ±
+ 639          //                              }
+ 640          //                      }
+ 641          //              }
+ 642          //      }
+ 643          //      
+ 644          //      return 0;
+ 645          //}
+ 646          
+ 647          ///*zigbee³õÊ¼»¯×Ô¼ì*///×èÈû
+ 648          //bit ZigB_inspectionSelf(void){        
+ 649          //      
+ 650          //#define       paramLen_zigbInspection 64
+ 651          //      u8 xdata paramTX_temp[paramLen_zigbInspection] = {0};
+ 652          //      
+ 653          ////    bit REQResult = 0;
+ 654          //      
+ 655          ////    u8 code frameREQ_zigbStatusCheck[5] = {0xFE, 0x00, 0x27, 0x00, 0x27};   //zigb×´Ì¬²éÑ¯Ö¸ÁîÖ¡
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 12  
+
+ 656          ////    u8 code cmdResp_zigbStatusCheck[2]      = {0x67, 0x00}; //zigb×´Ì¬²éÑ¯ÏìÓ¦Ö¸Áî
+ 657          //      u8 code frameREQ_zigbJoinNWK[5]         = {0xFE, 0x00, 0x26, 0x00, 0x26};       //zigb¼¤»îÍøÂçÖ¸ÁîÖ¡
+ 658          //      u8 code cmdResp_zigbJoinNWK[2]          = {0x45, 0xC0}; //zigb¼¤»îÍøÂçÏìÓ¦Ö¸Áî
+ 659          //      u8 datsResp_Len = 0;
+ 660          //      
+ 661          ////    datsResp_Len = zigb_datsRequest(frameREQ_zigbStatusCheck, 5, cmdResp_zigbStatusCheck, paramTX_temp, 2
+             -, 500);
+ 662          ////    if(paramTX_temp[16] == 0x07)REQResult
+ 663          //      
+ 664          //      datsResp_Len = zigb_datsRequest(frameREQ_zigbJoinNWK, 5, cmdResp_zigbJoinNWK, paramTX_temp, 2, 5000);
+ 665          //      if(paramTX_temp[4] == 0x07)return (zigb_clusterSet(13, 13) & zigb_clusterSet(13, 14));  //Éè±¸ID 13£¬ÖÕ¶
+             -Ëµã 13£»        
+ 666          //      else{
+ 667          //      
+ 668          //              return 0;
+ 669          //      }
+ 670          //}
+ 671          
+ 672          /*zigbee·Ç×èÈûÈëÍøÇëÇó*///·Ç×èÈû ---ÐÅµÀÄ¬ÈÏµÚËÄÐÅµÀ
+ 673          static 
+ 674          void zigB_nwkJoinRequest(bit reJoin_IF){
+ 675   1      
+ 676   1      #define cmdNum_zigbNwkREQ       9       
+ 677   1      
+ 678   1              datsAttr_ZigbInit code ZigbInit_dats[cmdNum_zigbNwkREQ] = {
+ 679   1      
+ 680   1                      {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      //
+             -¸´Î»(Ó²¼þ)
+ 681   1      //              {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x00,0x02,0x00,0x02,0x06,0x03,0xC2},       0x0B,   4000    },      
+             -//¸´Î»(Ìæ²¹)
+ 682   1                      {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      //
+             -¸´Î»(Èí¼þ)
+ 683   1                      {       {0x26,0x05},    {0x03,0x01,0x03},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //¼Ä´æÆ÷³õÊ
+             -¼»¯£¬È«²¿Çå¿Õ
+ 684   1                      {       {0x46,0x09},    {0},                                    0x00,   {0xFE,0x06,0x41,0x80,0x01,0x02,0x00,0x02,0x06,0x03,0xC3},       0x0B,   4000    },      //
+             -¶þ´Î¸´Î»(Èí¼þ)
+ 685   1                      
+ 686   1      //              {       {0x26,0x05},    {0x87,0x01,0x00},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«ÉèÖ
+             -Ã£¨Ð­µ÷Æ÷£©
+ 687   1                      {       {0x26,0x05},    {0x87,0x01,0x01},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«ÉèÖÃ£
+             -¨Â·ÓÉÆ÷£©
+ 688   1      //              {       {0x26,0x05},    {0x87,0x01,0x02},               0x03,   {0xFE,0x01,0x66,0x05,0x00,0x62},                                                        0x06,   500             },      //½ÇÉ«ÉèÖ
+             -Ã£¨ÖÕ¶Ë£©
+ 689   1                      
+ 690   1                      {       {0x27,0x02},    {0xFF,0xFF},                    0x02,   {0xFE,0x01,0x67,0x02,0x00,0x64},                                                        0x06,   500             },      //PAN_ID¼Ä´æÆ÷É
+             -èÖÃ
+ 691   1                      {       {0x27,0x03},    {0x00,0x80,0x00,0x00},  0x04,   {0xFE,0x01,0x67,0x03,0x00,0x65},                                                        0x06,   500             },      //ÐÅµÀ¼
+             -Ä´æÆ÷ÅäÖÃ
+ 692   1      //              {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x09,0x8D},                                                        0x06,   12000   },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È¶¨
+             -½ÇÉ«Ð­µ÷Æ÷£¨Ð­µ÷Æ÷ÏìÓ¦£©
+ 693   1                      {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x07,0x83},                                                        0x06,   8000    },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È¶¨½ÇÉ
+             -«Ð­µ÷Æ÷£¨Â·ÓÉÆ÷ÏìÓ¦£©
+ 694   1      //              {       {0x26,0x00},    {0},                                    0x00,   {0xFE,0x01,0x45,0xC0,0x06,0x82},                                                        0x06,   12000   },      //¿ªÊ¼ÈëÍø£¬ÒÔ¼È¶¨
+             -½ÇÉ«Ð­µ÷Æ÷£¨ÖÕ¶ËÏìÓ¦£©
+ 695   1                      {       {0x26,0x08},    {0xFC,0xFF,0x00},               0x03,   {0xFE,0x01,0x66,0x08,0x00,0x6F},                                                        0x06,   150             },  //¹Ø±Õ
+             -ÍøÂç
+ 696   1              };
+ 697   1              
+ 698   1              datsAttr_ZigbInit code defaultParam_clusterRegister = {{0x24,0x00},{0x0E,0x0D,0x00,0x0D,0x00,0x0D,0x00,0x
+             -01,0x00,0x00,0x01,0x00,0x00},0x0D,{0xFE,0x01,0x64,0x00,0x00,0x65},0x06,500};  //Êý¾Ý´Ø×¢²á,Ä¬ÈÏ²ÎÊý
+ 699   1              u8 code frameResponseSubs_clusterRegister[6] = {0xFE,0x01,0x64,0x00,0xB8,0xDD}; //ÏìÓ¦Ö¡Ìæ²¹£¬ÈôÊý¾Ý´ØÒÑ¾
+             -­×¢²á
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 13  
+
+ 700   1              
+ 701   1      #define clusterNum_default 2
+ 702   1              datsAttr_clusterREG code cluster_Default[clusterNum_default] = {{13, 13}, {14, 13}};
+ 703   1              
+ 704   1      #define dataLen_zigbNwkREQ 64
+ 705   1              u8 xdata paramTX_temp[dataLen_zigbNwkREQ] = {0};
+ 706   1              
+ 707   1              static u8 step_CortexA = 0,
+ 708   1                                step_CortexB = 0;
+ 709   1              static u8 reactionLoop = 0;
+ 710   1              
+ 711   1              u8 datsTX_Len = 0;
+ 712   1              
+ 713   1              if(devStatus_switch.statusChange_IF){ //×´Ì¬Ç¿ÖÆÇÐ»»Ê±£¬½«µ±Ç°×Ó×´Ì¬ÄÚ¾²Ì¬±äÁ¿³õÊ¼»¯ºóÔÙ½øÐÐÍâ²¿ÇÐ»»
+ 714   2              
+ 715   2                      devStatus_switch.statusChange_IF = 0;
+ 716   2                      devRunning_Status = devStatus_switch.statusChange_standBy;
+ 717   2                      
+ 718   2                      step_CortexA = 0;
+ 719   2                      step_CortexB = 0;
+ 720   2                      reactionLoop = 0;
+ 721   2                      zigbPin_RESET = 1;
+ 722   2                      
+ 723   2                      return;
+ 724   2              }
+ 725   1              
+ 726   1              if(step_CortexA > (cmdNum_zigbNwkREQ + clusterNum_usr + clusterNum_default)){ //ÄÚ²¿×´Ì¬Íê³É
+ 727   2              
+ 728   2                      step_CortexA = 0;
+ 729   2                      step_CortexB = 0;
+ 730   2                      reactionLoop = 0;
+ 731   2                      zigbPin_RESET = 1;
+ 732   2                      
+ 733   2                      sysTimeReales_counter = PERIOD_SYSTIMEREALES; //systime¸üÐÂÖÜÆÚÖØÖÃ£¬·ÀÖ¹¶àÖ¸Áî¶ÂÈû³åÍ»
+ 734   2                      
+ 735   2                      devRunning_Status = status_passiveDataRcv; //Íâ²¿×´Ì¬ÇÐ»»
+ 736   2                      devTips_status = status_Normal; //tips×´Ì¬ÇÐ»»
+ 737   2                      
+ 738   2                      return;
+ 739   2              }
+ 740   1              
+ 741   1              if(!reJoin_IF)if(step_CortexA == 0)step_CortexA = 7; //ÊÇ·ñÎªÖØÐÂÖ÷¶¯¼ÓÈëÐÂÍøÂç£¬·ñÔò²»½øÐÐÓ²¼þ¸´Î»(Ó²¼þ¸
+             -´Î»½«µ¼ÖÂ±¾µØÊ±¼ä±»ÖØÖÃ)
+ 742   1              if((step_CortexA == 7) || (step_CortexA == 0))sysTimeReales_counter     = PERIOD_SYSTIMEREALES; //·Ç×èÈû¹Ø¼üÖ
+             -¸Áî²»ÄÜ±»×èÈûÖ¸Áî´ò¶Ï£¨Ó²¼þ¸´Î» ºÍ ÈëÍøÊ± ÖÐ¶Ï×èÈûÖ¸ÁîÏÂ´ï£©
+ 743   1              if(step_CortexA == 0){ //ÌØÊâÖ¸Áî_Ó²¼þ¸´Î»:<0>
+ 744   2              
+ 745   2                      switch(step_CortexA){
+ 746   3                      
+ 747   3                              case 0:{ //Ê×ÌõÖ¸Áî£¬Ó²¼þ¸´Î»
+ 748   4                              
+ 749   4                                      switch(step_CortexB){
+ 750   5                                      
+ 751   5                                              case 0:{ //²½ÖèÒ»£ºÓ²¼þÀ­µÍ100ms
+ 752   6                                              
+ 753   6                                                      zigbPin_RESET = 0;
+ 754   6                                                      zigbNwkAction_counter = 200;
+ 755   6                                                      step_CortexB = 1;
+ 756   6                                              
+ 757   6                                              }break;
+ 758   5                                      
+ 759   5                                              case 1:{ //²½Öè¶þ£ºÓ²¼þÀ­µÍÍê±ÏºóÈ·ÈÏÓ¦´ðÖ¡Ê±³¤
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 14  
+
+ 760   6                                              
+ 761   6                                                      if(!zigbNwkAction_counter){ //·Ç×èÈûµÈ´ý
+ 762   7                                                      
+ 763   7                                                              zigbPin_RESET = 1;
+ 764   7                                                              zigbNwkAction_counter = 6000;
+ 765   7                                                              step_CortexB = 2;
+ 766   7                                                      }
+ 767   6                                                      
+ 768   6                                              }break;
+ 769   5                                              
+ 770   5                                              case 2:{ //²½Öè¶þ£ºÈ·ÈÏÓ¦´ðÖ¡
+ 771   6                                                      
+ 772   6                                                      if(!zigbNwkAction_counter)step_CortexB = 0; //·Ç×èÈûµÈ´ýÏìÓ¦
+ 773   6                                              
+ 774   6                                                      if(uartRX_toutFLG){
+ 775   7                                                      
+ 776   7                                                              uartRX_toutFLG = 0;
+ 777   7                                                              
+ 778   7                                                              if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, ZigbInit_dats[0].zigbInit_REPLY, ZigbInit_dats[0].RE
+             -PLY_num)){
+ 779   8                              
+ 780   8                                                                      step_CortexB = 0;
+ 781   8                                                                      reactionLoop = 0;
+ 782   8                                                                      step_CortexA ++;
+ 783   8                                                              }
+ 784   7                                                      }
+ 785   6                                                      
+ 786   6                                              }break;
+ 787   5                                      }
+ 788   4                                      
+ 789   4                              }break;
+ 790   3                      }
+ 791   2              }else
+ 792   1              if(step_CortexA > 0 && step_CortexA < cmdNum_zigbNwkREQ){ //³£¹æÖ¸Áî:<1 - 9>
+ 793   2                      
+ 794   2      //              if(!reJoin_IF)if(step_CortexA == 2)step_CortexA = 7;    //ÊÇ·ñÎªÖØÐÂÖ÷¶¯¼ÓÈëÐÂÍøÂç£¬·ñÔòÖ»½øÐÐ±»¶¯ÍøÂç¼¤»
+             -î
+ 795   2      
+ 796   2                      switch(step_CortexB){
+ 797   3                      
+ 798   3                              case 0:{
+ 799   4                                      
+ 800   4                                      if(reactionLoop > 2){
+ 801   5                                              
+ 802   5                                              reactionLoop = 0;
+ 803   5                                              step_CortexA = 0;
+ 804   5                                              break;
+ 805   5                                      }
+ 806   4                                      
+ 807   4                                      datsTX_Len = ZigB_TXFrameLoad(paramTX_temp, 
+ 808   4                                                                                                ZigbInit_dats[step_CortexA].zigbInit_reqCMD, 
+ 809   4                                                                                                2, 
+ 810   4                                                                                                ZigbInit_dats[step_CortexA].zigbInit_reqDAT, 
+ 811   4                                                                                                ZigbInit_dats[step_CortexA].reqDAT_num);
+ 812   4                                      
+ 813   4                                      uartZigB_datsSend(paramTX_temp, datsTX_Len);
+ 814   4                                      
+ 815   4                                      zigbNwkAction_counter = ZigbInit_dats[step_CortexA].timeTab_waitAnsr;
+ 816   4                                      step_CortexB = 1;
+ 817   4                                      
+ 818   4                              }break;
+ 819   3                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 15  
+
+ 820   3                              case 1:{
+ 821   4                                      
+ 822   4                                      if(!zigbNwkAction_counter){ //·Ç×èÈûµÈ´ýÏìÓ¦
+ 823   5                                      
+ 824   5                                              reactionLoop ++;
+ 825   5                                              step_CortexB = 0;
+ 826   5                                      }
+ 827   4                                      else
+ 828   4                                      if(uartRX_toutFLG){
+ 829   5                                      
+ 830   5                                              uartRX_toutFLG = 0;
+ 831   5                                              
+ 832   5                                              if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, ZigbInit_dats[step_CortexA].zigbInit_REPLY, ZigbInit_d
+             -ats[step_CortexA].REPLY_num)){
+ 833   6                                              
+ 834   6                                                      step_CortexB = 0;
+ 835   6                                                      reactionLoop = 0;
+ 836   6                                                      step_CortexA ++;
+ 837   6                                              }
+ 838   5                                      }
+ 839   4                                      
+ 840   4                              }break;
+ 841   3                      }
+ 842   2                      
+ 843   2              }else
+ 844   1              if(step_CortexA >= cmdNum_zigbNwkREQ){ //ÌØÊâÖ¸Áî_³£¹æÍ¨ÐÅ´Ø×¢²á:<10 - n>
+ 845   2                      
+ 846   2                      u8 datsREG_cluster[16] = {0};
+ 847   2                      memcpy(datsREG_cluster, defaultParam_clusterRegister.zigbInit_reqDAT, defaultParam_clusterRegister.reqDA
+             -T_num);
+ 848   2                      if(step_CortexA < (cmdNum_zigbNwkREQ + clusterNum_default)){ //Ä¬ÈÏÍ¨ÐÅ´Ø²ÎÊýÌî×°
+ 849   3                      
+ 850   3                              datsREG_cluster[0] = cluster_Default[step_CortexA - cmdNum_zigbNwkREQ].endpoint;
+ 851   3                              datsREG_cluster[3] = (u8)((cluster_Default[step_CortexA - cmdNum_zigbNwkREQ].devID & 0x00ff) >> 0);
+ 852   3                              datsREG_cluster[4] = (u8)((cluster_Default[step_CortexA - cmdNum_zigbNwkREQ].devID & 0xff00) >> 8);
+ 853   3                              
+ 854   3                      }else{  //ÓÃ»§Í¨ÐÅ´Ø£¨»¥¿Ø£©×¢²á²ÎÊýÌî×°
+ 855   3                      
+ 856   3                              if((CTRLEATHER_PORT[step_CortexA - cmdNum_zigbNwkREQ - clusterNum_usr] >= 0x10) && (CTRLEATHER_PORT[ste
+             -p_CortexA - cmdNum_zigbNwkREQ - clusterNum_usr] < 255)){ //Í¨ÐÅ´Ø¶Ë¿ÚºÏ·¨ÐÔÅÐ¶Ï
+ 857   4                              
+ 858   4                                      datsREG_cluster[0] = CTRLEATHER_PORT[step_CortexA - cmdNum_zigbNwkREQ - clusterNum_usr];
+ 859   4                                      datsREG_cluster[3] = zigbDatsDefault_ClustID; //Ä¬ÈÏ´ØID <LSB>
+ 860   4                                      datsREG_cluster[4] = 0; //Ä¬ÈÏ´ØID <MSB>
+ 861   4                                      
+ 862   4                              }else{
+ 863   4                              
+ 864   4                                      step_CortexA ++;
+ 865   4                                      return;
+ 866   4                              }
+ 867   3                      }
+ 868   2              
+ 869   2                      switch(step_CortexB){
+ 870   3                      
+ 871   3                              case 0:{
+ 872   4                                      
+ 873   4                                      if(reactionLoop > 2){
+ 874   5                                              
+ 875   5                                              reactionLoop = 0;
+ 876   5                                              step_CortexA = 0;
+ 877   5                                              break;
+ 878   5                                      }
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 16  
+
+ 879   4                                      
+ 880   4                                      datsTX_Len = ZigB_TXFrameLoad(paramTX_temp, 
+ 881   4                                                                                                defaultParam_clusterRegister.zigbInit_reqCMD, 
+ 882   4                                                                                                2, 
+ 883   4                                                                                                datsREG_cluster, 
+ 884   4                                                                                                defaultParam_clusterRegister.reqDAT_num);
+ 885   4                                      
+ 886   4                                      uartZigB_datsSend(paramTX_temp, datsTX_Len);
+ 887   4                                      
+ 888   4                                      zigbNwkAction_counter = defaultParam_clusterRegister.timeTab_waitAnsr;
+ 889   4                                      step_CortexB = 1;
+ 890   4                                      
+ 891   4                              }break;
+ 892   3                                      
+ 893   3                              case 1:{
+ 894   4                                      
+ 895   4                                      if(!zigbNwkAction_counter){ //·Ç×èÈûµÈ´ýÏìÓ¦
+ 896   5                                      
+ 897   5                                              reactionLoop ++;
+ 898   5                                              step_CortexB = 0;
+ 899   5                                      }
+ 900   4                                      else
+ 901   4                                      if(uartRX_toutFLG){
+ 902   5                                      
+ 903   5                                              uartRX_toutFLG = 0;
+ 904   5                                              
+ 905   5                                              if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, defaultParam_clusterRegister.zigbInit_REPLY, defaultPa
+             -ram_clusterRegister.REPLY_num) || //Ô¤ÆÚÏìÓ¦
+ 906   5                                                 memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, frameResponseSubs_clusterRegister, 6)){ //Ìæ²¹ÏìÓ¦
+ 907   6                                              
+ 908   6                                                      step_CortexB = 0;
+ 909   6                                                      reactionLoop = 0;
+ 910   6                                                      step_CortexA ++;
+ 911   6                                              }
+ 912   5                                      }
+ 913   4                                      
+ 914   4                              }break;
+ 915   3                      }
+ 916   2              }
+ 917   1      }
+ 918          
+ 919          /*zigbeeÍøÂçÊý¾Ý·¢ËÍ¸ñÊ½»¯Ìî×°*/
+ 920          static 
+ 921          u8 zigb_datsLoad_datsSend(u8  frame_Temp[NORMALDATS_DEFAULT_LENGTH],
+ 922                                                            u16 DstAddr,
+ 923                                                            u8  portPoint,
+ 924                                                            u8  dats[],
+ 925                                                            u8  datsLen){
+ 926   1              
+ 927   1              u8 code zigbCMD_DatsSend[2] = {0x24, 0x01};
+ 928   1              
+ 929   1      #define zigbDatsSend_datsTransLen       72
+ 930   1              u8 xdata buf_datsLOAD[zigbDatsSend_datsTransLen] = {0};
+ 931   1              u8 datsTX_Len = 0;
+ 932   1                                                                
+ 933   1              memset(frame_Temp, 0, NORMALDATS_DEFAULT_LENGTH * sizeof(u8));  
+ 934   1      
+ 935   1              //·¢ËÍÖ¡Ìî×°
+ 936   1              buf_datsLOAD[0] = (u8)((DstAddr & 0x00ff) >> 0);
+ 937   1              buf_datsLOAD[1] = (u8)((DstAddr & 0xff00) >> 8);
+ 938   1              buf_datsLOAD[2] = portPoint;
+ 939   1              buf_datsLOAD[3] = portPoint;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 17  
+
+ 940   1              buf_datsLOAD[4] = zigbDatsDefault_ClustID;
+ 941   1              buf_datsLOAD[6] = zigbDatsDefault_TransID;
+ 942   1              buf_datsLOAD[7] = zigbDatsDefault_Option;
+ 943   1              buf_datsLOAD[8] = zigbDatsDefault_Radius;
+ 944   1              buf_datsLOAD[9] = datsLen;
+ 945   1              memcpy(&buf_datsLOAD[10], dats, datsLen);       
+ 946   1              
+ 947   1              return ZigB_TXFrameLoad(frame_Temp, (u8 *)zigbCMD_DatsSend, 2, buf_datsLOAD, datsLen + 10);
+ 948   1      }
+ 949          
+ 950          /*zigbeeÍøÂçÊý¾Ý·¢ËÍÇëÇó×´Ì¬*///·Ç×èÈû
+ 951          static
+ 952          void dataTransRequest_datsSend(void){
+ 953   1      
+ 954   1              u8 xdata buf_datsTX[NORMALDATS_DEFAULT_LENGTH] = {0};
+ 955   1              u8 datsTX_Len = 0;
+ 956   1              
+ 957   1      #define zigbDatsSend_datsRespLen        64
+ 958   1              u8 xdata buf_datsRX[zigbDatsSend_datsRespLen] = {0};
+ 959   1              u8 datsRX_Len = 0;
+ 960   1              
+ 961   1      #define zigbDatsSend_ASR_datsLen        3
+ 962   1              u8              ASR_dats[zigbDatsSend_ASR_datsLen] = {0};
+ 963   1              u8 code ASR_cmd[2] = {0x44,0x80};       //±¾µØZNPÐ­Òé²ãÈ·ÈÏ·¢ËÍÏìÓ¦
+ 964   1              
+ 965   1      #define resCODE_datsSend_NOROUTER 0xCD  //Êý¾Ý·¢ËÍÐ­Òé²ãÏìÓ¦´úÂë-Â·ÓÉÊ§Áª
+ 966   1      #define resCODE_datsSend_NOREMOTE 0xE9  //Êý¾Ý·¢ËÍÐ­Òé²ãÏìÓ¦´úÂë-¶Ô·½²»ÔÚÏß
+ 967   1      #define resCODE_datsSend_TIMEOUT  0x01  //Êý¾Ý·¢ËÍÐ­Òé²ãÏìÓ¦´úÂë-·¢ËÍ³¬Ê±
+ 968   1      #define resCODE_datsSend_SUCCESS  0x00  //Êý¾Ý·¢ËÍÐ­Òé²ãÏìÓ¦´úÂë-·¢ËÍ³É¹¦
+ 969   1              static u8 datsTrans_respondCode = 0; //·¢ËÍÍê³ÉÏìÓ¦Âë
+ 970   1              
+ 971   1              static u8 step = 0;
+ 972   1              static u8 reactionLoop = 0;
+ 973   1              
+ 974   1              if(devStatus_switch.statusChange_IF){   //×´Ì¬Ç¿ÖÆÇÐ»»Ê±£¬½«µ±Ç°×Ó×´Ì¬ÄÚ¾²Ì¬±äÁ¿³õÊ¼»¯ºóÔÙ½øÐÐÍâ²¿ÇÐ»»
+ 975   2              
+ 976   2                      devStatus_switch.statusChange_IF = 0;
+ 977   2                      devRunning_Status = devStatus_switch.statusChange_standBy;
+ 978   2                      
+ 979   2                      step = 0;
+ 980   2                      reactionLoop = 0;
+ 981   2                      
+ 982   2                      return;
+ 983   2              }
+ 984   1              
+ 985   1              //½ÓÊÕÖ¡Ìî×°_±¾µØ
+ 986   1              ASR_dats[0] = 0x00; //·¢ËÍ³É¹¦ÏìÓ¦´úÂë
+ 987   1              ASR_dats[1] = datsSend_request.portPoint;
+ 988   1              ASR_dats[2] = zigbDatsDefault_TransID;
+ 989   1              datsRX_Len = ZigB_TXFrameLoad(buf_datsRX, (u8 *)ASR_cmd, 2, ASR_dats, zigbDatsSend_ASR_datsLen);
+ 990   1              
+ 991   1              datsTX_Len = zigb_datsLoad_datsSend(buf_datsTX, datsSend_request.nwkAddr, datsSend_request.portPoint, dat
+             -sSend_request.datsTrans.dats, datsSend_request.datsTrans.datsLen);
+ 992   1              
+ 993   1              switch(step){
+ 994   2              
+ 995   2                      case 0:{ //ÏìÓ¦½ÓÊÕ¾ÍÐ÷£¬ÉèÖÃÏìÓ¦Ê±¼ä
+ 996   3                              
+ 997   3                              if(reactionLoop > 3){
+ 998   4                                      
+ 999   4                                      datsTrans_respondCode = resCODE_datsSend_TIMEOUT; //ÏìÓ¦Âë¸ÄÎª³¬Ê±
+1000   4                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 18  
+
+1001   4                                      reactionLoop = 0;
+1002   4                                      step = 4;
+1003   4                                      
+1004   4                                      break;
+1005   4                              }
+1006   3                      
+1007   3                              zigbPin_RESET = 1; //±£ÏÕÆð¼û£¬¸´Î»À­¸ß
+1008   3                              uartZigB_datsSend(buf_datsTX, datsTX_Len);
+1009   3                              zigbNwkAction_counter = 1000; //Ä¬ÈÏÐ­Òé²ãÏìÓ¦Ê±¼ä<Ê±¼äÌ«¶ÌÎÞ·¨ÊÕµ½ºóÃæµÄ½ÓÊÕ×´Ì¬ÏìÓ¦Ö¸Áî£¬Ö»ÄÜÊÕµ½ÏµÍ³
+             -ÏìÓ¦>
+1010   3                              step = 1;
+1011   3                              
+1012   3                      }break;
+1013   2                      
+1014   2                      case 1:{ //·Ç×èÈûµÈ´ýÏµÍ³ÏìÓ¦
+1015   3                      
+1016   3                              if(!zigbNwkAction_counter){
+1017   4                              
+1018   4                                      reactionLoop ++;
+1019   4                                      step = 0;
+1020   4                              }
+1021   3                              else{
+1022   4                                      
+1023   4                                      if(uartRX_toutFLG){
+1024   5                                      
+1025   5                                              uartRX_toutFLG = 0;
+1026   5      
+1027   5                                              if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, buf_datsRX, datsRX_Len)){
+1028   6                                              
+1029   6                                                      if(datsRcv_respond.datsTrans.datsLen == 0){
+1030   7                                                      
+1031   7                                                              step = 3;
+1032   7                                                              
+1033   7                                                      }else{
+1034   7                                                      
+1035   7                                                              step = 2;
+1036   7                                                              zigbNwkAction_counter = 500; //Ä¬ÈÏÔ¶¶ËÏìÓ¦Ê±¼ä<¶Ô·½½ÚµãÏìÓ¦>
+1037   7                                                      }
+1038   6                                                      
+1039   6                                              }else{  
+1040   6                                                      
+1041   6                                                      datsTrans_respondCode = datsRcv_ZIGB.rcvDats[4]; //´íÎóÏìÓ¦Âë×°ÔØ
+1042   6                                                      
+1043   6      //#if(DEBUG_LOGOUT_EN == 1)
+1044   6      //                                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+1045   6      //                                                      u8 xdata log_buf[64]; //Êý¾Ý´«ÊäÊ§°ÜÐ­Òé²ãÏìÓ¦´úÂë´òÓ¡
+1046   6      //                                                      
+1047   6      //                                                      sprintf(log_buf, "dats_TX fail code: %02X %02X %02X.\n", (int)datsRcv_ZIGB.rcvDats[2], (int)datsR
+             -cv_ZIGB.rcvDats[3], (int)datsRcv_ZIGB.rcvDats[4]);
+1048   6      //                                                      PrintString1_logOut(log_buf);
+1049   6      //                                              }       
+1050   6      //#endif                                
+1051   6                                              }
+1052   5                                      }
+1053   4                              }
+1054   3                              
+1055   3                      }break;
+1056   2                      
+1057   2                      case 2:{ //·Ç×èÈûµÈ´ýÔ¶¶ËÏìÓ¦
+1058   3      
+1059   3                              if(!zigbNwkAction_counter){
+1060   4                              
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 19  
+
+1061   4                                      reactionLoop ++;
+1062   4                                      step = 0;
+1063   4                              }
+1064   3                              else{
+1065   4                                      
+1066   4                                      if(uartRX_toutFLG){
+1067   5                                              
+1068   5                                              u16 idata datsFrom_addr = ((u16)(datsRcv_ZIGB.rcvDats[9]) << 8) | ((u16)(datsRcv_ZIGB.rcvDats[8]) << 
+             -0); //Êý¾Ý·¢ËÍ·½ÍøÂçµØÖ·
+1069   5                                              u8      idata dstPoint =  datsRcv_ZIGB.rcvDats[11];     //Ô¶¶Ë  
+1070   5                                              
+1071   5                                              uartRX_toutFLG = 0;
+1072   5      
+1073   5                                              if(!memcmp(&(datsRcv_ZIGB.rcvDats[21]), datsRcv_respond.datsTrans.dats, datsRcv_respond.datsTrans.dat
+             -sLen) && 
+1074   5                                                 (datsRcv_respond.nwkAddr == datsFrom_addr) &&
+1075   5                                                      (datsRcv_respond.portPoint == dstPoint)){
+1076   6                                              
+1077   6                                                      step = 3;
+1078   6                                              }
+1079   5                                      }
+1080   4                              }
+1081   3                              
+1082   3                      }break;
+1083   2                      
+1084   2                      case 3:{ //ÏìÓ¦³É¹¦
+1085   3                      
+1086   3                              if(reConnectAfterDatsReq_IF){ //Õë¶Ô¼´¿Ì×¢²á»¥¿ØÌØÊâÇé¿ö ×´Ì¬ÇÐ»»
+1087   4                              
+1088   4                                      reConnectAfterDatsReq_IF = 0;
+1089   4                                      devRunning_Status = status_nwkReconnect;
+1090   4                                      
+1091   4                              }else{ 
+1092   4                              
+1093   4                                      devRunning_Status = status_passiveDataRcv;
+1094   4                              }
+1095   3                              
+1096   3                              reactionLoop = 0;
+1097   3                              step = 0;
+1098   3                              
+1099   3                      }break;
+1100   2                      
+1101   2                      case 4:{ //ÏìÓ¦Ê§°Ü
+1102   3                      
+1103   3                              if(reConnectAfterDatsReq_IF){ //Õë¶Ô¼´¿Ì×¢²á»¥¿ØÌØÊâÇé¿ö ×´Ì¬ÇÐ»»
+1104   4                              
+1105   4                                      reConnectAfterDatsReq_IF = 0;
+1106   4                                      devRunning_Status = status_nwkReconnect;
+1107   4                                      
+1108   4                              }else{ 
+1109   4                              
+1110   4                                      devRunning_Status = status_passiveDataRcv;
+1111   4                              }
+1112   3                              
+1113   3                              //Õë¶ÔÊý¾Ý´«ÊäÊ§°ÜÏìÓ¦´úÂëÇé¿ö½øÐÐÑ¡ÔñÐÔÖØÁ¬£¬·ñÔò½öÊ±ÇøÐ­µ÷Æ÷Éè±¸¾Ígg
+1114   3                              if(datsTrans_respondCode){ 
+1115   4                                      
+1116   4                                      switch(datsTrans_respondCode){ //ÏìÓ¦Ê§°ÜÂë·ÖÎö
+1117   5                                      
+1118   5                                              case resCODE_datsSend_NOROUTER:
+1119   5                                              case resCODE_datsSend_NOREMOTE:
+1120   5                                              case resCODE_datsSend_SUCCESS:{
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 20  
+
+1121   6                                              
+1122   6                                                      devTips_nwkZigb = nwkZigb_outLine; //ÔÝÊ±Ö»×öÊ§°ÜÌáÊ¾£¬²»×öÆäËû¶¯×÷
+1123   6                                                      
+1124   6                                              }break;
+1125   5                                              
+1126   5                                              default:{
+1127   6                                              
+1128   6                                                      devTips_nwkZigb = nwkZigb_outLine; //ÔÝÊ±Ö»×öÊ§°ÜÌáÊ¾£¬²»×öÆäËû¶¯×÷
+1129   6                                                      
+1130   6                                              }break;
+1131   5                                      }
+1132   4                                      
+1133   4                                      datsTrans_respondCode = 0;
+1134   4                              }
+1135   3                              
+1136   3                              reactionLoop = 0;
+1137   3                              step = 0;
+1138   3                              
+1139   3                      }break;
+1140   2                              
+1141   2                      default:{
+1142   3                      
+1143   3                              step = 4;
+1144   3                              
+1145   3                      }break;
+1146   2              }
+1147   1      }
+1148          
+1149          /*zigbee³£¹æ¿ØÖÆÊý¾Ý½âÎö*/
+1150          static 
+1151          void dataParing_zigbSysCtrl(u8 datsFrame[]){
+1152   1      
+1153   1              frame_zigbSysCtrl xdata dats = {0};
+1154   1              
+1155   1              dats.command = datsFrame[0];
+1156   1              memcpy(dats.dats, &datsFrame[2], datsFrame[1]);
+1157   1              dats.datsLen = datsFrame[1];
+1158   1              
+1159   1              switch(dats.command){
+1160   2              
+1161   2                      case ZIGB_SYSCMD_NWKOPEN:{ //ÍøÂç¿ª·Å
+1162   3                              
+1163   3                              bit resultSet = 0;
+1164   3                              
+1165   3                              resultSet = ZigB_nwkOpen(1, dats.dats[0]);
+1166   3                              
+1167   3                      }break;
+1168   2                      
+1169   2                      case ZIGB_SYSCMD_TIMESET:{ //ÏµÍ³Ê±¼äÉè¶¨
+1170   3                      
+1171   3                              bit resultSet = 0;
+1172   3                              u32 time_Temp = 0UL;
+1173   3                              
+1174   3                              time_Temp |= (u32)dats.dats[0] << 0;
+1175   3                              time_Temp |= (u32)dats.dats[1] << 8;
+1176   3                              time_Temp |= (u32)dats.dats[2] << 16;
+1177   3                              time_Temp |= (u32)dats.dats[3] << 24;
+1178   3                              
+1179   3                              resultSet = zigB_sysTimeSet(time_Temp - 946713600UL); //zigbeeÊ±¼ä´Á´Óunix¼ÍÔª946713600<2000/01/01 00:0
+             -0:00>¿ªÊ¼¼ÆËã
+1180   3                              
+1181   3                      }break;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 21  
+
+1182   2                              
+1183   2                      default:break;
+1184   2              }
+1185   1      }
+1186          
+1187          /*zigbee³£¹æ¿ØÖÆ×ª·¢Êý¾Ý½âÎö*/
+1188          static 
+1189          void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
+1190   1              
+1191   1      #define dataLen_dataParingNomal 96
+1192   1              u8 xdata paramTX_temp[dataLen_dataParingNomal] = {0};
+1193   1              
+1194   1              bit dataFromRemote_IF = 0;      //ÊÇ·ñÎª·þÎñÆ÷¶ËÊý¾Ý±êÖ¾
+1195   1      
+1196   1              /*²úÆ·¶þ¼¶Ð­ÒéºË¶Ô_³£¹æ¿ØÖÆ*///¿ØÖÆÏÂ´ï
+1197   1              switch(datsParam[0]){
+1198   2              
+1199   2                      /*Ô¶¶Ë*/
+1200   2                      case ZIGB_FRAMEHEAD_CTRLREMOTE:{
+1201   3                              
+1202   3                              dataFromRemote_IF = 1;
+1203   3                              
+1204   3                              memcpy(MAC_ID_DST, &datsParam[7], 6);
+1205   3                              memcpy(&datsParam[1], &datsParam[13], datsRcv_ZIGB.rcvDats[20] - 13);
+1206   3                      }
+1207   2                      
+1208   2                      /*±¾µØ*/
+1209   2                      case ZIGB_FRAMEHEAD_CTRLLOCAL:{
+1210   3                              
+1211   3                              bit frameCheck_Done = 0; //Êý¾Ý¼ì²âºÏ¸ñ±êÖ¾
+1212   3                              
+1213   3                              {
+1214   4                                      bit frameCodeCheck_PASS = 0; //Ð£ÑéÂë¼ì²éÍ¨¹ý±êÖ¾
+1215   4                                      bit frameMacCheck_PASS  = 0; //macµØÖ·´ý¼ì²éÍ¨¹ý±êÖ¾
+1216   4                                      
+1217   4                                      if(datsParam[4] == frame_Check(&datsParam[5], 28))frameCodeCheck_PASS = 1; //Ð£ÑéÂë¼ì²â
+1218   4                                      if(!memcmp(&datsParam[5], &MAC_ID[1], 5))frameMacCheck_PASS = 1; //MAC¼ì²â
+1219   4      
+1220   4                                      if(datsParam[3] == FRAME_MtoZIGBCMD_cmdConfigSearch){ //ÌØÊâÖ¸Áî²»×öMAC¼ì²â
+1221   5                                      
+1222   5                                              frameMacCheck_PASS = 1;
+1223   5                                              
+1224   5                                      }else
+1225   4                                      if((datsParam[3] == FRAME_MtoZIGBCMD_cmdCfg_swTim) || //ÌØÊâÖ¸Áî²»×öÐ£ÑéÂë¼ì²â
+1226   4                                         (datsParam[3] == FRAME_MtoZIGBCMD_cmdswTimQuery)){
+1227   5                                         
+1228   5                                              frameCodeCheck_PASS = 1;
+1229   5                                      }
+1230   4                                         
+1231   4                                      if(frameCodeCheck_PASS && frameCodeCheck_PASS)frameCheck_Done = 1;
+1232   4                              }
+1233   3                                 
+1234   3                              if(frameCheck_Done){ //Ö¡¼ì²éÍ¨¹ý£¬¿ªÊ¼½âÎö¡¢¶¯×÷¼°ÏìÓ¦
+1235   4                                      
+1236   4                                      bit respond_IF          = 0;    //ÊÇ·ñ»Ø¸´
+1237   4                                      bit specialCmd_IF       = 0;    //ÊÇ·ñÎªÌØÊâÖ¸Áî£¨ÌØÊâÖ¸ÁîÕ¼ÓÃ¿ª¹ØÀàÐÍÄÇÒ»¸ö×Ö½Ú£©
+1238   4                                      
+1239   4      #if(DEBUG_LOGOUT_EN == 1)
+1240   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+1241   5                                              u8 xdata log_buf[64];
+1242   5                                              
+1243   5                                              sprintf(log_buf, "cmdComing:%02X.\n", (int)datsParam[3]);
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 22  
+
+1244   5                                              PrintString1_logOut(log_buf);
+1245   5                                      }                       
+1246   4      #endif          
+1247   4                                      memset(paramTX_temp, 0, sizeof(u8) * dataLen_dataParingNomal);
+1248   4                              
+1249   4                                      switch(datsParam[3]){
+1250   5                                      
+1251   5                                              case FRAME_MtoZIGBCMD_cmdConfigSearch:{
+1252   6                                                      
+1253   6                                                      if(!deviceLock_flag){ //Éè±¸ÊÇ·ñÉÏËø
+1254   7                                                              
+1255   7                                                              u16 xdata panid_Temp = ZigB_getPanIDCurrent(); //ÅäÖÃ»Ø¸´Ìí¼ÓPANID
+1256   7                                                              
+1257   7                                                              paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8);
+1258   7                                                              paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
+1259   7                                                      
+1260   7                                                              respond_IF              = 1; //ÏìÓ¦»Ø¸´
+1261   7                                                              specialCmd_IF   = 0;
+1262   7                                                              
+1263   7                                                      }else{
+1264   7                                                      
+1265   7                                                              
+1266   7                                                      }
+1267   6                                                      
+1268   6                                              }break;
+1269   5                                              
+1270   5                                              case FRAME_MtoZIGBCMD_cmdControl:{
+1271   6                                                      
+1272   6                                                      swCommand_fromUsr.objRelay = datsParam[11];
+1273   6                                                      swCommand_fromUsr.actMethod = relay_OnOff;
+1274   6                                                      
+1275   6                                                      respond_IF              = 1; //ÏìÓ¦»Ø¸´
+1276   6                                                      specialCmd_IF   = 0;    
+1277   6      
+1278   6                                                      paramTX_temp[11] = datsParam[11];                                               
+1279   6                                                      
+1280   6                                              }break;
+1281   5                                                      
+1282   5                                              case FRAME_MtoZIGBCMD_cmdQuery:{}break;
+1283   5                                                      
+1284   5                                              case FRAME_MtoZIGBCMD_cmdInterface:{}break;
+1285   5                                                      
+1286   5                                              case FRAME_MtoZIGBCMD_cmdReset:{}break;
+1287   5                                                      
+1288   5                                              case FRAME_MtoZIGBCMD_cmdDevLockON:{
+1289   6                                              
+1290   6                                                      //Êý¾Ý´¦Àí¼°¶¯×÷ÏìÓ¦
+1291   6                                                      {
+1292   7                                                              u8 deviceLock_IF = 1;
+1293   7                                                              
+1294   7                                                              deviceLock_flag  = 1;
+1295   7                                                              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+1296   7                                                      }               
+1297   6                                                      
+1298   6                                              }break;
+1299   5                                                      
+1300   5                                              case FRAME_MtoZIGBCMD_cmdDevLockOFF:{
+1301   6                                              
+1302   6                                                      //Êý¾Ý´¦Àí¼°¶¯×÷ÏìÓ¦
+1303   6                                                      {
+1304   7                                                              u8 deviceLock_IF = 0;
+1305   7                                                              
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 23  
+
+1306   7                                                              deviceLock_flag  = 0;
+1307   7                                                              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+1308   7                                                      }       
+1309   6                                              
+1310   6                                              }break;
+1311   5                                                      
+1312   5                                              case FRAME_MtoZIGBCMD_cmdswTimQuery:{
+1313   6                                              
+1314   6                                                      //·ÖÀà»Ø¸´
+1315   6                                                      switch(datsParam[13]){ //×ÓÃüÁî½âÎö
+1316   7                                                      
+1317   7                                                              case 0: /*ÉÏÎ»»úÔÚ¶¨Ê±µÄÊ±ºò¸ø0£¬´ýÐ­ÉÌ*/
+1318   7                                                              case cmdConfigTim_normalSwConfig:{
+1319   8                                                              
+1320   8                                                                      u8 loop = 0;
+1321   8                                                              
+1322   8                                                                      //Êý¾ÝÏìÓ¦¼°»Ø¸´
+1323   8                                                                      EEPROM_read_n(EEPROM_ADDR_swTimeTab, &paramTX_temp[14], 12);    //¶¨Ê±±í»Ø¸´Ìî×°
+1324   8                                                                      
+1325   8                                                                      //»Ø¸´Êý¾Ý¶þ´Î´¦Àí£¨Õë¶ÔÒ»´ÎÐÔ¶¨Ê±Êý¾Ý£©
+1326   8                                                                      for(loop = 0; loop < 4; loop ++){
+1327   9                                                                      
+1328   9                                                                              if(swTim_onShoot_FLAG & (1 << loop)){
+1329  10                                                                                      
+1330  10                                                                                      paramTX_temp[14 + loop * 3] &= 0x80;
+1331  10                                                                              }
+1332   9                                                                      }
+1333   8                                                                                      
+1334   8                                                                      specialCmd_IF = 1; //ÌØÊâÕ¼Î»Ö¸Áî
+1335   8                                                                      
+1336   8                                                              }break;
+1337   7                                                              
+1338   7                                                              case cmdConfigTim_onoffDelaySwConfig:{
+1339   8                                                              
+1340   8                                                                      if(!delayCnt_onoff)paramTX_temp[14] = 0;
+1341   8                                                                      else paramTX_temp[14] = delayPeriod_onoff - (u8)(delayCnt_onoff / 60);
+1342   8                                                                      paramTX_temp[15] = delayUp_act;
+1343   8                                                                      
+1344   8                                                              }break;
+1345   7                                                              
+1346   7                                                              case cmdConfigTim_closeLoopSwConfig:{
+1347   8                                                              
+1348   8                                                                      paramTX_temp[14] = delayPeriod_closeLoop;
+1349   8                                                                      
+1350   8                                                              }break;
+1351   7                                                              
+1352   7                                                              case cmdConfigTim_nightModeSwConfig:{  
+1353   8                                                              
+1354   8                                                                      EEPROM_read_n(EEPROM_ADDR_TimeTabNightMode, &paramTX_temp[14], 6);      //Ò¹¼äÄ£Ê½¶¨Ê±±í»Ø¸´Ìî×°
+1355   8                                                                      
+1356   8                                                                      (deviceLock_flag)?(paramTX_temp[12] |= 0x01):(paramTX_temp[12] &= ~0x01);
+1357   8                                                                      (ifNightMode_sw_running_FLAG)?(paramTX_temp[12] |= 0x02):(paramTX_temp[12] &= ~0x02);
+1358   8                                                                      
+1359   8                                                              }break;
+1360   7                                                              
+1361   7                                                              default:break;
+1362   7                                                      }
+1363   6                                                      
+1364   6                                                      paramTX_temp[13] = datsParam[13]; //¶¨Ê±×ÓÃüÁîÍ¬²½»Ø¸´
+1365   6                                                      
+1366   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1367   6                                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 24  
+
+1368   6                                              }break;
+1369   5                                                      
+1370   5                                              case FRAME_MtoZIGBCMD_cmdConfigAP:{}break;
+1371   5                                                      
+1372   5                                              case FRAME_MtoZIGBCMD_cmdBeepsON:{ //Ò¹¼äÄ£Ê½¹Ø
+1373   6                                              
+1374   6                                                      u8 datsTemp = 0;
+1375   6                                                      
+1376   6                                                      EEPROM_read_n(EEPROM_ADDR_TimeTabNightMode, &datsTemp, 1);
+1377   6                                                      datsTemp &= ~0x7f; //Ò¹¼äÄ£Ê½¶¨Ê±±í´æ´¢,È¡ÏûÍ·×Ö½ÚÈ«Õ¼Âú,Ê§ÄÜÈ«Ìì
+1378   6                                                      coverEEPROM_write_n(EEPROM_ADDR_TimeTabNightMode, &datsTemp, 1);
+1379   6                                                      
+1380   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1381   6                                                      
+1382   6                                              }break;
+1383   5                                                      
+1384   5                                              case FRAME_MtoZIGBCMD_cmdBeepsOFF:{ //Ò¹¼äÄ£Ê½¿ª
+1385   6                                              
+1386   6                                                      u8 datsTemp = 0;
+1387   6                                                      
+1388   6                                                      EEPROM_read_n(EEPROM_ADDR_TimeTabNightMode, &datsTemp, 1);
+1389   6                                                      datsTemp |= 0x7f; //Ò¹¼äÄ£Ê½¶¨Ê±±í´æ´¢,Í·×Ö½ÚÈ«Õ¼Âú,Ç¿ÖÆÈ«Ìì
+1390   6                                                      coverEEPROM_write_n(EEPROM_ADDR_TimeTabNightMode, &datsTemp, 1);        
+1391   6                                                      
+1392   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1393   6                                                      
+1394   6                                              }break;
+1395   5                                                      
+1396   5                                              case FRAME_MtoZIGBCMD_cmdftRecoverRQ:{
+1397   6                                              
+1398   6                                                      respond_IF = 1;
+1399   6                                                      
+1400   6                                              }break;
+1401   5                                                      
+1402   5                                              case FRAME_MtoZIGBCMD_cmdRecoverFactory:{
+1403   6                                              
+1404   6                                                      Factory_recover();
+1405   6                                              
+1406   6                                              }break;
+1407   5                                                      
+1408   5                                              case FRAME_MtoZIGBCMD_cmdCfg_swTim:{
+1409   6                                                      
+1410   6                                                      u8 loop = 0;
+1411   6                                                      
+1412   6                                                      switch(datsParam[13]){ //¶¨Ê±Êý¾Ý´¦Àí¼°¸üÐÂ,·ÖÀà´¦Àí
+1413   7                                                      
+1414   7                                                              case cmdConfigTim_normalSwConfig:{      /*ÆÕÍ¨¶¨Ê±*/
+1415   8                                                                      
+1416   8                                                                      for(loop = 0; loop < 4; loop ++){
+1417   9                                                                      
+1418   9                                                                              if(datsParam[14 + loop * 3] == 0x80){   /*Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï*///ÖÜÕ¼Î»Îª¿Õ£¬¶ø¶¨Ê±Æ÷±»´ò¿ª£¬ËµÃ÷ÊÇÒ»´ÎÐ
+             -Ô
+1419  10                                                                              
+1420  10                                                                                      swTim_onShoot_FLAG      |= (1 << loop); //Ò»´ÎÐÔ¶¨Ê±±êÖ¾¿ªÆô
+1421  10                                                                                      datsParam[14 + loop * 3] |= (1 << (datsParam[31] - 1)); //Ç¿ÐÐ½øÐÐµ±Ç°ÖÜÕ¼Î»£¬µ±´ÎÖ´ÐÐÍê±ÏºóÇå³ý
+1422  10                                                                              }
+1423   9                                                                      }
+1424   8                                                                      coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, &datsParam[14], 12); //¶¨Ê±±í
+1425   8      
+1426   8                                                              }break;
+1427   7                                                              
+1428   7                                                              case cmdConfigTim_onoffDelaySwConfig:{  /*¿ª¹ØÑÓÊ±*/
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 25  
+
+1429   8                                                              
+1430   8                                                                      if(datsParam[14]){
+1431   9                                                                      
+1432   9                                                                              ifDelay_sw_running_FLAG |= (1 << 1);
+1433   9                                                                              delayPeriod_onoff               = datsParam[14];
+1434   9                                                                              
+1435   9                                                                              delayUp_act                             = datsParam[15];
+1436   9                                                                              
+1437   9                                                                              delayCnt_onoff                  = 0;
+1438   9                                                                              
+1439   9                                                                      }else{
+1440   9                                                                      
+1441   9                                                                              ifDelay_sw_running_FLAG &= ~(1 << 1);
+1442   9                                                                              delayPeriod_onoff               = 0;
+1443   9                                                                              delayCnt_onoff                  = 0;
+1444   9                                                                      }
+1445   8                                                                      
+1446   8                                                              }break;
+1447   7                                                              
+1448   7                                                              case cmdConfigTim_closeLoopSwConfig:{   /*ÂÌÉ«¹¦ÄÜ(×Ô¶¯Ñ­»·¹Ø±Õ)*/
+1449   8                                                              
+1450   8                                                                      if(datsParam[14]){
+1451   9                                                                      
+1452   9                                                                              ifDelay_sw_running_FLAG |= (1 << 0);
+1453   9                                                                              delayPeriod_closeLoop   = datsParam[14];
+1454   9                                                                              delayCnt_closeLoop              = 0;
+1455   9                                                                      }else{
+1456   9                                                                      
+1457   9                                                                              ifDelay_sw_running_FLAG &= ~(1 << 0);
+1458   9                                                                              delayPeriod_closeLoop   = 0;
+1459   9                                                                              delayCnt_closeLoop              = 0;
+1460   9                                                                      }
+1461   8                                                                      
+1462   8                                                                      coverEEPROM_write_n(EEPROM_ADDR_swDelayFLAG, &ifDelay_sw_running_FLAG, 1);
+1463   8                                                                      coverEEPROM_write_n(EEPROM_ADDR_periodCloseLoop, &delayPeriod_closeLoop, 1);
+1464   8                                                                      
+1465   8                                                              }break;         
+1466   7      
+1467   7                                                              case cmdConfigTim_nightModeSwConfig:{  /*Ò¹¼äÄ£Ê½ ±³¹â°ëÁÁ*/
+1468   8                                                              
+1469   8                                                                      coverEEPROM_write_n(EEPROM_ADDR_TimeTabNightMode, &datsParam[14], 6);   //Ò¹¼äÄ£Ê½¶¨Ê±±í´æ´¢
+1470   8                                                                      
+1471   8                                                              }break;
+1472   7                                                              
+1473   7                                                              default:break;
+1474   7                                                      }
+1475   6                                                      
+1476   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1477   6                                                      
+1478   6                                              }break;
+1479   5                                              
+1480   5                                              case FRAME_MtoZIGBCMD_cmdCfg_ctrlEachO:{
+1481   6                                              
+1482   6                                                      u8 loop = 0;
+1483   6                                                      u8 effective_oprate = datsParam[12]; //ÓÐÐ§²Ù×÷Êý¾ÝÕ¼Î»»ñÈ¡
+1484   6                                                      
+1485   6                                                      for(loop = 0; loop < clusterNum_usr; loop ++){
+1486   7                                                      
+1487   7                                                              if((effective_oprate >> loop) & 0x01){ //ÓÐÐ§Êý¾ÝÅÐ¶Ï
+1488   8                                                              
+1489   8                                                                      coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther + loop, &datsParam[14 + loop], 1);
+1490   8                                                                      CTRLEATHER_PORT[loop] = datsParam[14 + loop];
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 26  
+
+1491   8                                                                      reConnectAfterDatsReq_IF = 1; //¼´¿Ì×¢²á»¥¿ØÍ¨Ñ¶´Ø¶Ë¿Ú
+1492   8                                                              }
+1493   7                                                      }
+1494   6                                                      
+1495   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1496   6                                              
+1497   6                                              }break;
+1498   5                                              
+1499   5                                              case FRAME_MtoZIGBCMD_cmdQue_ctrlEachO:{
+1500   6                                              
+1501   6                                                      u8 loop = 0;
+1502   6                                                      
+1503   6                                                      for(loop = 0; loop < clusterNum_usr; loop ++){
+1504   7                                                      
+1505   7                                                              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther + loop, &paramTX_temp[14 + loop], 1);
+1506   7                                                      }
+1507   6                                                      
+1508   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1509   6                                              
+1510   6                                              }break;
+1511   5                                                      
+1512   5                                              case FRAME_MtoZIGBCMD_cmdCfg_ledBackSet:{
+1513   6                                              
+1514   6                                                      coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &datsParam[14], 1);
+1515   6                                                      coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &datsParam[15], 1);
+1516   6                                                      tipsInsert_swLedBKG_ON  = datsParam[14];
+1517   6                                                      tipsInsert_swLedBKG_OFF = datsParam[15];
+1518   6                                                      
+1519   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1520   6                                              
+1521   6                                              }break;
+1522   5                                              
+1523   5                                              case FRAME_MtoZIGBCMD_cmdQue_ledBackSet:{
+1524   6                                              
+1525   6                                                      EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &paramTX_temp[14], 1);
+1526   6                                                      EEPROM_read_n(EEPROM_ADDR_ledSWBackGround + 1, &paramTX_temp[15], 1);
+1527   6                                                      
+1528   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1529   6                                              
+1530   6                                              }break;
+1531   5                                              
+1532   5                                              case FRAME_MtoZIGBCMD_cmdCfg_scenarioSet:{
+1533   6                                                      
+1534   6                                                      u16 xdata panid_Temp = ZigB_getPanIDCurrent(); //ÅäÖÃ»Ø¸´Ìí¼ÓPANID
+1535   6                                              
+1536   6                                                      bit opt_result = swScenario_oprateSave(datsParam[12], datsParam[14]);
+1537   6                                                      if(opt_result)paramTX_temp[12] = 0;
+1538   6                                                      else paramTX_temp[12] = 0x0A; //³¡¾°ÉèÖÃÎÞÐ§»Ø¸´£¨³¡¾°´æ´¢ÒÑÂú£©
+1539   6                                                      
+1540   6                                                      paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8);
+1541   6                                                      paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
+1542   6                                                      
+1543   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ£¨±¾µØ´æ´¢ÒÑ±»Õ¼Âú£©
+1544   6                                              
+1545   6                                              }break;
+1546   5                                              
+1547   5                                              case FRAME_MtoZIGBCMD_cmdCfg_scenarioCtl:{
+1548   6                                                      
+1549   6                                                      u8 sw_Act = swScenario_oprateCheck(datsParam[12]);
+1550   6                                                      if(sw_Act != SW_SCENCRAIO_ACTINVALID){ //ÈôË÷Òýµ½ÓÐÐ§²Ù×÷Î»
+1551   7                                                              
+1552   7                                                              swCommand_fromUsr.actMethod = relay_OnOff;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 27  
+
+1553   7                                                              swCommand_fromUsr.objRelay = sw_Act;
+1554   7                                                      
+1555   7                                                              paramTX_temp[12] = 0;
+1556   7                                                              
+1557   7                                                      }else{ //ÈôÎÞ·¨Ë÷Òýµ½ÓÐÐ§²Ù×÷Î»
+1558   7                                                      
+1559   7                                                              paramTX_temp[12] = 0x0A; //³¡¾°¿ØÖÆÎÞÐ§»Ø¸´£¨³¡¾°ºÅÎÞ·¨±»Ë÷Òý£©
+1560   7                                                      }
+1561   6                                              
+1562   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1563   6                                              
+1564   6                                              }break;
+1565   5                                              
+1566   5                                              case FRAME_MtoZIGBCMD_cmdCfg_scenarioDel:{
+1567   6                                                      
+1568   6                                                      swScenario_oprateDele(datsParam[12]);
+1569   6                                                      paramTX_temp[12] = 0;
+1570   6                                              
+1571   6                                                      respond_IF = 1; //ÏìÓ¦»Ø¸´Ê¹ÄÜ
+1572   6                                              
+1573   6                                              }break;
+1574   5                                              
+1575   5                                              default:{
+1576   6                                              
+1577   6                                                      respond_IF = 0;
+1578   6                                              
+1579   6                                              }break;
+1580   5                                      }
+1581   4                                      
+1582   4                                      /*»Ø¸´ÏìÓ¦*/
+1583   4                                      if(respond_IF){ //Êý¾Ý°ü»Ø¸´ÏìÓ¦¶¯×÷
+1584   5                                      
+1585   5                                              u8 datsTX_Len = 0;
+1586   5                                              
+1587   5                                              respond_IF = 0;
+1588   5                                              
+1589   5                                              datsTX_Len = dtasTX_loadBasic_CUST(dataFromRemote_IF,
+1590   5                                                                                                                 paramTX_temp,
+1591   5                                                                                                                 33,
+1592   5                                                                                                                 FRAME_TYPE_StoM_RCVsuccess,
+1593   5                                                                                                                 datsParam[3],
+1594   5                                                                                                                 specialCmd_IF);
+1595   5                                              
+1596   5                                              heartBeatCount = 1; //»Ø¸´ÏìÓ¦µÖÏûÒ»´ÎÐÄÌø
+1597   5                                              
+1598   5                                              datsSend_request.nwkAddr = nwkAddr_from;
+1599   5                                              datsSend_request.portPoint = port_from;
+1600   5                                              memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+1601   5                                              memcpy(datsSend_request.datsTrans.dats, paramTX_temp, datsTX_Len);
+1602   5                                              datsSend_request.datsTrans.datsLen = datsTX_Len;
+1603   5                                              datsRcv_respond.datsTrans.datsLen = 0;
+1604   5                                              devRunning_Status = status_dataTransRequestDatsSend;
+1605   5                                      }
+1606   4                              }
+1607   3                      }break;
+1608   2                      
+1609   2                      /*ÐÄÌø_Íø¹ØÔÚÏß*/
+1610   2                      case ZIGB_FRAMEHEAD_HEARTBEAT:{
+1611   3                      
+1612   3                              
+1613   3                              
+1614   3                      }break;
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 28  
+
+1615   2                      
+1616   2                      /*ÐÄÌø_Íø¹ØÀëÏß*///internetÀëÏß£¬²»ÊÇzigbÍøÂçÀëÏß
+1617   2                      case ZIGB_FRAMEHEAD_HBOFFLINE:{
+1618   3                      
+1619   3                              
+1620   3                              
+1621   3                      }break;
+1622   2                      
+1623   2                      default:{}break;
+1624   2              }
+1625   1      }
+1626          
+1627          /*zigbeeÖ÷Ïß³Ì*///¶¯×÷×èÈû´óÓÚ200msµÄº¯Êý¶¼ÉèÎª×´Ì¬»úÔËÐÐ£¬ÆäËüÐ¡ÓÚ200msº¯Êý£¬×èÈûÎ¬³Ö£¬·ñÔò×´Ì¬»ú¸´ÔÓ¶È¼Ó
+             -´ó
+1628          void thread_dataTrans(void){
+1629   1              
+1630   1              u8 code cmd_datsComing[2] = {0x44, 0x81};
+1631   1      
+1632   1      #define dataLen_zigbDatsTrans 96
+1633   1              u8 xdata paramTX_temp[dataLen_zigbDatsTrans] = {0};
+1634   1              u8 xdata paramRX_temp[dataLen_zigbDatsTrans] = {0};
+1635   1              
+1636   1              static bit heartBeat_cmdFLG = 0; //ÐÄÌøÆæÅ¼±êÖ¾
+1637   1              
+1638   1              /*zigbÖ÷Ïß³ÌÏµÍ³Ê±¼ä¸üÐÂ*/
+1639   1              if(!sysTimeReales_counter){ 
+1640   2              
+1641   2                      sysTimeReales_counter = PERIOD_SYSTIMEREALES;
+1642   2                      getSystemTime_reales();
+1643   2              }
+1644   1              
+1645   1              /*zigbÖ÷Ïß³Ì×´Ì¬»ú£º¸ù¾Ý×´Ì¬±êÖ¾ÔËÐÐ*/
+1646   1              switch(devRunning_Status){
+1647   2              
+1648   2                      case status_passiveDataRcv:{
+1649   3                              
+1650   3                              if(devStatus_switch.statusChange_IF){ //×´Ì¬Ç¿ÖÆÇÐ»»Ê±£¬½«µ±Ç°×Ó×´Ì¬ÄÚ¾²Ì¬±äÁ¿³õÊ¼»¯ºóÔÙ½øÐÐÍâ²¿ÇÐ»»
+1651   4                              
+1652   4                                      devStatus_switch.statusChange_IF = 0;
+1653   4                                      devRunning_Status = devStatus_switch.statusChange_standBy;
+1654   4                                      
+1655   4                                      break;
+1656   4                              }
+1657   3                              
+1658   3                              {/*³õÊ¼»¯Ê±¼ä¸³Öµ*///½ö¿ª»ú¸³ÖµÒ»´Î
+1659   4                                      static bit FLG_timeSetInit = 1;
+1660   4                                      
+1661   4                                      if(FLG_timeSetInit){
+1662   5                                      
+1663   5                                              FLG_timeSetInit = 0;
+1664   5                                              zigB_sysTimeSet(1533810700UL - 946713600UL); //zigbeeÊ±¼ä´Á´Óunix¼ÍÔª946713600<2000/01/01 00:00:00>¿ª
+             -Ê¼¼ÆËã
+1665   5                                      }
+1666   4                              }
+1667   3              
+1668   3                              //--------------------------------Ö÷×´Ì¬£ºÐÄÌø--------------------------------------------------------/
+             -/
+1669   3                              if(heartBeatCycle_FLG){
+1670   4                              
+1671   4                                      heartBeatCycle_FLG = 0;
+1672   4                                      heartBeat_cmdFLG = !heartBeat_cmdFLG;
+1673   4                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 29  
+
+1674   4                                      paramTX_temp[0] = ZIGB_FRAMEHEAD_HEARTBEAT;
+1675   4                                      paramTX_temp[1] = 14;
+1676   4                                      (heartBeat_cmdFLG)?(paramTX_temp[2] = FRAME_HEARTBEAT_cmdOdd):(paramTX_temp[2] = FRAME_HEARTBEAT_cmdEv
+             -en);
+1677   4                                      memcpy(&paramTX_temp[4], &MAC_ID[1], 5);
+1678   4                                      
+1679   4                                      if(heartBeat_cmdFLG){
+1680   5                                      
+1681   5                                              
+1682   5                                      
+1683   5                                      }else{
+1684   5                                      
+1685   5                                              
+1686   5                                      }
+1687   4                                      
+1688   4                                      datsSend_request.nwkAddr = 0;
+1689   4                                      datsSend_request.portPoint = 13;
+1690   4                                      memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+1691   4                                      memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 14);
+1692   4                                      datsSend_request.datsTrans.datsLen = 14;
+1693   4                                      datsRcv_respond.datsTrans.datsLen = 0;
+1694   4                                      devRunning_Status = status_dataTransRequestDatsSend;
+1695   4                                      
+1696   4                                      return;
+1697   4              
+1698   4                              }memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+1699   3                              
+1700   3                              //--------------------------------Ö÷×´Ì¬£º»¥¿ØÍ¬²½---------------------------------------------------//
+1701   3                              if(EACHCTRL_realesFLG){
+1702   4                              
+1703   4                                      if(devRunning_Status == status_passiveDataRcv){
+1704   5                                      
+1705   5                                              u8 idata loop;
+1706   5                                              
+1707   5                                              for(loop = 0; loop < 3; loop ++){ //Èý¸ö¿ª¹ØÎ»·Ö±ðÅÐ¶¨
+1708   6                                              
+1709   6                                                      if(EACHCTRL_realesFLG & (1 << loop)){ //»¥¿ØÓÐÐ§Î»ÅÐ¶Ï
+1710   7                                                      
+1711   7                                                              EACHCTRL_realesFLG &= ~(1 << loop); //»¥¿ØÓÐÐ§Î»ÇåÁã
+1712   7                                                              
+1713   7                                                              paramTX_temp[0] = (status_Relay >> loop) & 0x01; //¿ª¹Ø×´Ì¬Ìî×°
+1714   7                                                              
+1715   7                                                              if((CTRLEATHER_PORT[loop] > 0x10) && CTRLEATHER_PORT[loop] < 0xFF){ //ÊÇ·ñÎªÓÐÐ§»¥¿Ø¶Ë¿Ú
+1716   8                                                              
+1717   8                                                                      datsSend_request.nwkAddr = 0xffff;
+1718   8                                                                      datsSend_request.portPoint = CTRLEATHER_PORT[loop];
+1719   8                                                                      memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+1720   8                                                                      memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 1);
+1721   8                                                                      datsSend_request.datsTrans.datsLen = 1;
+1722   8                                                                      datsRcv_respond.datsTrans.datsLen = 0;
+1723   8                                                                      devRunning_Status = status_dataTransRequestDatsSend;
+1724   8                                                                      
+1725   8                                                                      break; //Ë³ÐòÖ´ÐÐ£¬ÏÈÖ´ÐÐÏÈbreak£¬Ã¿¸ö×Üµ÷¶ÈÖÜÆÚÖ´ÐÐÒ»¸öÓÐÐ§»¥¿Ø
+1726   8                                                              }
+1727   7                                                      }
+1728   6                                              }
+1729   5                                      }       
+1730   4                              }memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+1731   3                              
+1732   3                              //--------------------------------Ö÷×´Ì¬£ºÊý¾Ý½âÎöÏìÓ¦-----------------------------------------------//
+1733   3                              if(uartRX_toutFLG){ //Êý¾Ý½ÓÊÕ(Ö¡³¬Ê±)
+1734   4                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 30  
+
+1735   4                                      uartRX_toutFLG = 0;
+1736   4                                      
+1737   4                                      /*ZigbeeÒ»¼¶Ð­ÒéºË¶Ô½âÎö*/
+1738   4                                      if((datsRcv_ZIGB.rcvDats[0] == ZIGB_FRAME_HEAD) &&
+1739   4                                              !memcmp(&datsRcv_ZIGB.rcvDats[2], cmd_datsComing, 2)){
+1740   5                                              
+1741   5                                              u16 idata datsFrom_addr = ((u16)(datsRcv_ZIGB.rcvDats[9]) << 8) | ((u16)(datsRcv_ZIGB.rcvDats[8]) << 
+             -0); //Êý¾Ý·¢ËÍ·½ÍøÂçµØÖ·
+1742   5                                              u8      idata srcPoint =  datsRcv_ZIGB.rcvDats[10];     //Ô´¶Ë
+1743   5                                              u8      idata dstPoint =  datsRcv_ZIGB.rcvDats[11];     //Ô¶¶Ë
+1744   5                                                      
+1745   5                                              devTips_nwkZigb = nwkZigb_Normal; //zigbTips×´Ì¬ÏìÓ¦£¬Ö»Òª½ÓÊÕµ½zigbÊý¾Ý£¬tips×´Ì¬¾ÍÇÐ»»ÖÁÕý³£
+1746   5                                              
+1747   5                                              memset(paramRX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+1748   5                                              memcpy(paramRX_temp, &(datsRcv_ZIGB.rcvDats[21]), datsRcv_ZIGB.rcvDats[20]);
+1749   5                                                      
+1750   5                                              if(srcPoint > 0x10 && srcPoint < 0xff){ /*»¥¿Ø¶Ë¿Ú*/
+1751   6                                                      
+1752   6                                                      u8 statusRelay_temp = status_Relay; //µ±Ç°¿ª¹Ø×´Ì¬»º´æ
+1753   6                                              
+1754   6                                                      if((srcPoint == CTRLEATHER_PORT[0]) && (0 != CTRLEATHER_PORT[0])){ //¿ª¹ØÎ»1 »¥¿Ø°ó¶¨ÅÐ¶Ï
+1755   7                                                      
+1756   7                                                              swCommand_fromUsr.actMethod = relay_OnOff;
+1757   7                                                              statusRelay_temp &= ~(1 << 0); //¶¯×÷Î»»º´æÇåÁã
+1758   7                                                              swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 0; //bit0 ¿ª¹ØÎ»¶¯×÷ÏìÓ¦
+1759   7                                                      }
+1760   6                                                      else
+1761   6                                                      if((srcPoint == CTRLEATHER_PORT[1]) && (0 != CTRLEATHER_PORT[1])){ //¿ª¹ØÎ»2 »¥¿Ø°ó¶¨ÅÐ¶Ï
+1762   7                                                      
+1763   7                                                              swCommand_fromUsr.actMethod = relay_OnOff;
+1764   7                                                              statusRelay_temp &= ~(1 << 1); //¶¯×÷Î»»º´æÇåÁã
+1765   7                                                              swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 1; //bit1 ¿ª¹ØÎ»¶¯×÷ÏìÓ¦
+1766   7                                                      }
+1767   6                                                      else
+1768   6                                                      if((srcPoint == CTRLEATHER_PORT[2]) && (0 != CTRLEATHER_PORT[2])){ //¿ª¹ØÎ»3 »¥¿Ø°ó¶¨ÅÐ¶Ï
+1769   7                                                      
+1770   7                                                              swCommand_fromUsr.actMethod = relay_OnOff;
+1771   7                                                              statusRelay_temp &= ~(1 << 2); //¶¯×÷Î»»º´æÇåÁã
+1772   7                                                              swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 2; //bit2 ¿ª¹ØÎ»¶¯×÷ÏìÓ¦
+1773   7                                                      }
+1774   6                                              
+1775   6                                              }else{ /*·Ç»¥¿Ø¶Ë¿Ú*/
+1776   6                                              
+1777   6                                                      switch(srcPoint){
+1778   7                                                      
+1779   7                                                              /*³£¹æ¿ØÖÆ×ª·¢¶Ë¿Ú*/
+1780   7                                                              case PORTPOINT_OBJ_CTRLNOMAL:{  
+1781   8                                                              
+1782   8                                                                      if(datsFrom_addr == ZIGB_NWKADDR_CORDINATER){ //À´×ÔÐ­µ÷Æ÷
+1783   9                                                                      
+1784   9                                                                              dataParing_Nomal(paramRX_temp, datsFrom_addr, srcPoint); //³£¹æ½âÎö
+1785   9                                                                      }
+1786   8                                                                      
+1787   8                                                              }break;
+1788   7                                                              
+1789   7                                                              /*ÏµÍ³¿ØÖÆ¶Ë¿Ú*/
+1790   7                                                              case PORTPOINT_OBJ_CTRLSYSZIGB:{        
+1791   8                                                              
+1792   8                                                                      dataParing_zigbSysCtrl(paramRX_temp); //ÏµÍ³¿ØÖÆ½âÎö
+1793   8                                                                      
+1794   8                                                              }break;
+1795   7                                                                      
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 31  
+
+1796   7                                                              default:{
+1797   8                                                              
+1798   8                                                                      
+1799   8                                                                      
+1800   8                                                              }break;
+1801   7                                                      }
+1802   6                                              }
+1803   5                                      }
+1804   4                              }
+1805   3                              
+1806   3                      }break;
+1807   2                      
+1808   2                      case status_nwkREQ:{
+1809   3                      
+1810   3                              //--------------------------------Ð­×´Ì¬£ºÍøÂçÇëÇó-----------------------------------------------//
+1811   3                              devTips_nwkZigb = nwkZigb_nwkREQ;
+1812   3                              zigB_nwkJoinRequest(1); //·Ç×èÈûÖ÷¶¯¼ÓÈë¸½½ü¿ª·ÅÍøÂç
+1813   3                              
+1814   3                      }break;
+1815   2                              
+1816   2                      case status_nwkReconnect:{
+1817   3                      
+1818   3                              //--------------------------------Ð­×´Ì¬£ºµôÏß´¦Àí-----------------------------------------------//
+1819   3                              devTips_nwkZigb = nwkZigb_reConfig;
+1820   3                              zigB_nwkJoinRequest(0); //·Ç×èÈûÖØÁ¬
+1821   3                              
+1822   3                      }break;
+1823   2                      
+1824   2                      case status_dataTransRequestDatsSend:{
+1825   3                              
+1826   3                              //--------------------------------Ð­×´Ì¬£ºÊý¾ÝÇëÇó-----------------------------------------------//
+1827   3                              dataTransRequest_datsSend(); //·Ç×èÈûÔ¶¶ËÊý¾Ý´«Êä
+1828   3                      
+1829   3                      }break;
+1830   2                              
+1831   2                      default:{
+1832   3                      
+1833   3                              if(devStatus_switch.statusChange_IF){ //×´Ì¬Ç¿ÖÆÇÐ»»Ê±£¬½«µ±Ç°×Ó×´Ì¬ÄÚ¾²Ì¬±äÁ¿³õÊ¼»¯ºóÔÙ½øÐÐÍâ²¿ÇÐ»»
+1834   4                              
+1835   4                                      devStatus_switch.statusChange_IF = 0;
+1836   4                                      devRunning_Status = devStatus_switch.statusChange_standBy;
+1837   4                                      
+1838   4                                      break;
+1839   4                              }
+1840   3                      
+1841   3                      }break;
+1842   2              }
+1843   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5831    ----
+   CONSTANT SIZE    =   2599    ----
+   XDATA SIZE       =    283     924
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     12     130
+   IDATA SIZE       =   ----       8
+   BIT SIZE         =      7      13
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+C51 COMPILER V9.54   DATATRANS                                                             09/02/2018 12:30:13 PAGE 32  
+
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

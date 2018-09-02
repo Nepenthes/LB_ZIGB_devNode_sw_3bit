@@ -1,0 +1,133 @@
+C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE RELAY
+OBJECT MODULE PLACED IN .\Output\Relay.obj
+COMPILER INVOKED BY: E:\KEIL\MDK_5.18&C51_v9.54a\Software\C51\BIN\C51.EXE Actuator\Relay.c OMF2 ROM(COMPACT) OPTIMIZE(8,
+                    -SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.
+                    -lst) OBJECT(.\Output\Relay.obj)
+
+line level    source
+
+   1          #include "Relay.h"
+   2          
+   3          #include "Tips.h"
+   4          #include "timerAct.h"
+   5          #include "dataTrans.h"
+   6          #include "dataManage.h"
+   7          
+   8          #include "eeprom.h"
+   9          
+  10          /**********************本地文件变量定义区*****************************/
+  11          status_ifSave   xdata relayStatus_ifSave = statusSave_disable;  //开关记忆使能变量
+  12          u8                              xdata status_Relay               = 0;
+  13          
+  14          relay_Command   xdata swCommand_fromUsr  = {0, actionNull};
+  15          
+  16          u8                                        EACHCTRL_realesFLG = 0; //互控动作更新使能标志（发码）标志<bit0：一位开关互控更新; bit1：二位开
+             -关互控更新; bit2：三位开关互控更新;>
+  17          
+  18          /*继电器状态更新，硬件执行*/
+  19          void relay_statusReales(void){
+  20   1              
+  21   1              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+  22   1              if(DEV_actReserve & 0x02)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
+  23   1              if(DEV_actReserve & 0x04)(status_Relay & 0x04)?(PIN_RELAY_3 = 1):(PIN_RELAY_3 = 0);
+  24   1      
+  25   1              tips_statusChangeToNormal();
+  26   1      }
+  27          
+  28          /*开关初始化*/
+  29          void relay_pinInit(void){
+  30   1              
+  31   1              u8 idata statusTemp = 0;
+  32   1      
+  33   1              //推挽
+  34   1              P3M1    &= ~0x38;
+  35   1              P3M0    |= 0x38;
+  36   1              
+  37   1              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
+  38   1              
+  39   1              if(relayStatus_ifSave == statusSave_enable){
+  40   2                      
+  41   2                      EEPROM_read_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  42   2                      status_Relay = statusTemp;
+  43   2                      relay_statusReales(); //硬件加载
+  44   2                      
+  45   2              }else{
+  46   2              
+  47   2                      statusTemp = 0;
+  48   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  49   2                      relay_statusReales(); //硬件加载
+  50   2              }
+  51   1      }
+  52          
+C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 2   
+
+  53          /*开关动作*/
+  54          void relay_Act(relay_Command dats){
+  55   1              
+  56   1              u8 statusTemp = 0;
+  57   1              
+  58   1              switch(dats.actMethod){
+  59   2              
+  60   2                      case relay_flip:{
+  61   3                              
+  62   3                              if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
+  63   3                              if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
+  64   3                              if(dats.objRelay & 0x04)status_Relay ^= 1 << 2;
+  65   3                                      
+  66   3                      }break;
+  67   2                      
+  68   2                      case relay_OnOff:{
+  69   3                              
+  70   3                              (dats.objRelay & 0x01)?(status_Relay |= 1 << 0):(status_Relay &= ~(1 << 0));
+  71   3                              (dats.objRelay & 0x02)?(status_Relay |= 1 << 1):(status_Relay &= ~(1 << 1));
+  72   3                              (dats.objRelay & 0x04)?(status_Relay |= 1 << 2):(status_Relay &= ~(1 << 2));
+  73   3                              
+  74   3                      }break;
+  75   2                      
+  76   2                      default:break;
+  77   2                      
+  78   2              }relay_statusReales(); //硬件加载
+  79   1              
+  80   1              if(status_Relay)delayCnt_closeLoop = 0; //开关一旦打开立刻更新绿色模式时间计数值
+  81   1              
+  82   1              if(relayStatus_ifSave == statusSave_enable){ //开关状态记忆
+  83   2              
+  84   2                      statusTemp = status_Relay;
+  85   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  86   2              }
+  87   1      }
+  88          
+  89          /*继电器主线程*/
+  90          void thread_Relay(void){
+  91   1              
+  92   1              if(swCommand_fromUsr.actMethod != actionNull){ //请求响应
+  93   2              
+  94   2                      relay_Act(swCommand_fromUsr);
+  95   2                      
+  96   2                      swCommand_fromUsr.actMethod = actionNull;
+  97   2                      swCommand_fromUsr.objRelay = 0;
+  98   2              }
+  99   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    323    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      4    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      1       3
+   IDATA SIZE       =   ----       1
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 3   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
