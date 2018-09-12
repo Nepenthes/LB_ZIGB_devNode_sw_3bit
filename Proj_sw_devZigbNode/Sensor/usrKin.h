@@ -29,7 +29,7 @@ sbit touchPad_3 = P1^5;
 
 #define Dcode_bitReserve(x)		((x & 0x30) >> 4)
 
-typedef void *funKey_Callback(void);
+typedef const void (*funKey_Callback)(void);
 
 typedef enum{
 

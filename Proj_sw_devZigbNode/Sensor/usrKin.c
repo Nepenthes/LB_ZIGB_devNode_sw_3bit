@@ -24,6 +24,8 @@ u16	xdata touchPadContinueCnt	= 0;  //触摸盘连按计时
 //***************Tips变量引用区***************************/
 extern tips_Status devTips_status;
 
+/*------------------------------------------------------------------------------------------------------------*/
+//funKey_Callback xdata funKey[10] = {0};
 
 static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
 static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
@@ -37,6 +39,12 @@ void usrKin_pinInit(void){
 	P0M0 &= ~(0x04);
 	
 	if(!Dcode2)relayStatus_ifSave = statusSave_enable;
+}
+
+void usrZigbNwkOpen(void){
+
+	ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
+	tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 }
 
 u8 DcodeScan_oneShoot(void){
@@ -343,7 +351,15 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 	switch(statusCfm){
 	
 		case press_Short:{
-		
+			
+#if(DEBUG_LOGOUT_EN == 1)				
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
+				PrintString1_logOut(log_buf);
+			}
+#endif	
 			switch(statusPad){
 				
 				case 1:
@@ -353,6 +369,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 					swCommand_fromUsr.actMethod = relay_flip;
 					swCommand_fromUsr.objRelay = statusPad;
 					EACHCTRL_realesFLG = statusPad; //互控
+					devActionPush_IF.push_IF = 1; //推送使能
 					
 				}break;
 					
@@ -362,6 +379,15 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 		}break;
 		
 		case press_ShortCnt:{
+			
+#if(DEBUG_LOGOUT_EN == 1)				
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
+				PrintString1_logOut(log_buf);
+			}
+#endif	
 			
 			switch(statusPad){
 				
@@ -380,18 +406,30 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 		}break;
 		
 		case press_LongA:{
+			
+#if(DEBUG_LOGOUT_EN == 1)				
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
+				PrintString1_logOut(log_buf);
+			}
+#endif	
 		
 			switch(statusPad){
 			
 				case 1:{
 					
-//					PrintString1_logOut("touch mark: longA.\n"); //输出打印，谨记 用后注释，否则占用大量代码空间
 				
 				}break;
 					
 				case 2:{}break;
 					
-				case 4:{}break;
+				case 4:{
+				
+					devStatusChangeTo_devHold(1); //设备网络挂起
+				
+				}break;
 					
 				default:{}break;
 			}
@@ -399,6 +437,15 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 		}break;
 			
 		case press_LongB:{
+			
+#if(DEBUG_LOGOUT_EN == 1)				
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
+				PrintString1_logOut(log_buf);
+			}
+#endif	
 		
 			switch(statusPad){
 			
@@ -420,6 +467,16 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 	
 	EACHCTRL_realesFLG = statusPad; //最后一次连按触发互控同步
+	devActionPush_IF.push_IF = 1; //最后一次连按触发推送使能
+	
+#if(DEBUG_LOGOUT_EN == 1)				
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
+		PrintString1_logOut(log_buf);
+	}
+#endif	
 
 	switch(statusPad){
 	
@@ -428,18 +485,12 @@ void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 			switch(loopCount){
 			
 				case 3:{
-#if(DEBUG_LOGOUT_EN == 1)				
-					{
-					
-//						PrintString1_logOut("continue 3.\n");
-					}
-#endif					
+				
 				}break;
 				
 				case 4:{
 				
-					ZigB_nwkOpen(1, 5);
-					devTips_status = status_tipsNwkOpen;
+					usrZigbNwkOpen(); //网络开放
 					
 				}break;
 					
@@ -465,6 +516,12 @@ void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 			
 				case 3:{}break;
 					
+				case 4:{
+				
+					devHoldStop_makeInAdvance(); //设备网络挂起停止
+				
+				}break;
+					
 				default:{}break;
 			}
 			
@@ -480,9 +537,9 @@ void fun_Test(void){
 }
 
 void usrKeyFun_zigbNwkRejoin(void){
-	
-	devTips_status = status_tipsNwkFind;
 
 	devStatus_switch.statusChange_standBy = status_nwkREQ;
 	devStatus_switch.statusChange_IF = 1;
+	
+	tips_statusChangeToZigbNwkFind(); //tips更新
 }

@@ -18,14 +18,17 @@ datsAttr_datsTrans xdata datsSend_request;//远端数据传输请求缓存
 datsAttr_datsTrans xdata datsRcv_respond;//远端数据传输请求等待响应缓存缓存
 
 //zigbee运行状态切换标志
-stt_statusChange devStatus_switch = {0, status_NULL};
+stt_statusChange xdata devStatus_switch = {0, status_NULL};
 //数据请求完成后是否需要重启网络
 bit reConnectAfterDatsReq_IF = 0; //用于互控通讯簇即刻注册特殊情况下使用
 
 bit coordinatorOnline_IF = 0; //协调器在线标志
 
-//zigb网络重连专用动作时间计数
+//zigb网络动作专用时间计数
 u16 xdata zigbNwkAction_counter = 0;
+
+//zigb设备网络挂起属性参数
+attr_devNwkHold	xdata devNwkHoldTime_Param = {0};
 
 //心跳
 bit heartBeatCycle_FLG = 0;	//心跳周期触发
@@ -268,9 +271,7 @@ u8 zigb_datsRequest( u8 frameREQ[],		//请求帧
 		zigbNwkAction_counter = timeWait;	
 	    uartZigB_datsSend(frameREQ, frameREQ_Len);
 		
-		while(zigbNwkAction_counter --){
-			
-			delayMs(2);
+		while(zigbNwkAction_counter){ //定时器中断内进行倒计时
 
 			if(uartRX_toutFLG){
 			
@@ -310,10 +311,8 @@ bit zigb_VALIDA_INPUT(u8 REQ_CMD[2],		//指令
 		zigbNwkAction_counter = timeDelay;
 		uartZigB_datsSend(dataTXBUF, datsTX_Len);
 		
-		while(zigbNwkAction_counter --){
+		while(zigbNwkAction_counter){ //定时器中断内进行倒计时
 			
-			delayMs(2);
-
 			if(uartRX_toutFLG){
 			
 				uartRX_toutFLG = 0;
@@ -570,14 +569,31 @@ static bit getSystemTime_reales(void){
 }
 
 /*zigbee系统时间设置*///阻塞
-bit zigB_sysTimeSet(u32 timeStamp){
+static
+bit zigB_sysTimeSet(u32 timeStamp, bit timeZoneAdjust_IF){
 
 	datsAttr_ZigbInit code default_param = {{0x21,0x10},{0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},0x0B,{0xFE,0x01,0x61,0x10,0x00},0x05,100}; //zigbee指令下达默认参数
 	u8 xdata timeStampArray[0x0B] = {0};
 	bit resultSet = 0;
 	u32 timeStamp_temp = timeStamp;
 	
-	timeStamp_temp += (3600UL * (long)sysTimeZone_H + 60UL * (long)sysTimeZone_M); //时区
+	if(timeZoneAdjust_IF){ //是否需要时区调整
+	
+		if(sysTimeZone_H <= 12){
+		
+			timeStamp_temp += (3600UL * (long)sysTimeZone_H + 60UL * (long)sysTimeZone_M); //时区正
+			
+		}else
+		if(sysTimeZone_H > 12 && sysTimeZone_H <= 24){
+		
+			timeStamp_temp -= (3600UL * (long)(sysTimeZone_H - 12) + 60UL * (long)sysTimeZone_M); //时区负
+			
+		}else
+		if(sysTimeZone_H >= 30){
+		
+			timeStamp_temp += (3600UL * (long)(sysTimeZone_H - 17) + 60UL * (long)sysTimeZone_M); //时区特殊
+		}
+	}
 
 	timeStampArray[0] = (u8)((timeStamp_temp & 0x000000ff) >> 0);
 	timeStampArray[1] = (u8)((timeStamp_temp & 0x0000ff00) >> 8);
@@ -669,7 +685,7 @@ bit zigB_sysTimeSet(u32 timeStamp){
 //	}
 //}
 
-/*zigbee非阻塞入网请求*///非阻塞 ---信道默认第四信道
+/*zigbee非阻塞入网请求状态机*///非阻塞 ---信道默认第四信道
 static 
 void zigB_nwkJoinRequest(bit reJoin_IF){
 
@@ -698,8 +714,13 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 	datsAttr_ZigbInit code defaultParam_clusterRegister = {{0x24,0x00},{0x0E,0x0D,0x00,0x0D,0x00,0x0D,0x00,0x01,0x00,0x00,0x01,0x00,0x00},0x0D,{0xFE,0x01,0x64,0x00,0x00,0x65},0x06,500};	//数据簇注册,默认参数
 	u8 code frameResponseSubs_clusterRegister[6] = {0xFE,0x01,0x64,0x00,0xB8,0xDD}; //响应帧替补，若数据簇已经注册
 	
-#define	clusterNum_default 2
-	datsAttr_clusterREG code cluster_Default[clusterNum_default] = {{13, 13}, {14, 13}};
+#define	clusterNum_default 3
+	datsAttr_clusterREG code cluster_Default[clusterNum_default] = {
+	
+		{ZIGB_ENDPOINT_CTRLSECENARIO, zigbDatsDefault_ClustID}, 
+		{ZIGB_ENDPOINT_CTRLNORMAL, zigbDatsDefault_ClustID}, 
+		{ZIGB_ENDPOINT_CTRLSYSZIGB, zigbDatsDefault_ClustID}
+	};
 	
 #define	dataLen_zigbNwkREQ 64
 	u8 xdata paramTX_temp[dataLen_zigbNwkREQ] = {0};
@@ -733,7 +754,7 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		sysTimeReales_counter = PERIOD_SYSTIMEREALES; //systime更新周期重置，防止多指令堵塞冲突
 		
 		devRunning_Status = status_passiveDataRcv; //外部状态切换
-		devTips_status = status_Normal; //tips状态切换
+		devTips_status = status_Normal; //设备系统tips状态切换
 		
 		return;
 	}
@@ -845,7 +866,7 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		
 		u8 datsREG_cluster[16] = {0};
 		memcpy(datsREG_cluster, defaultParam_clusterRegister.zigbInit_reqDAT, defaultParam_clusterRegister.reqDAT_num);
-		if(step_CortexA < (cmdNum_zigbNwkREQ + clusterNum_default)){ //默认通信簇参数填装
+		if(step_CortexA < (cmdNum_zigbNwkREQ + clusterNum_default)){ //默认专用通信簇参数填装
 		
 			datsREG_cluster[0] = cluster_Default[step_CortexA - cmdNum_zigbNwkREQ].endpoint;
 			datsREG_cluster[3] = (u8)((cluster_Default[step_CortexA - cmdNum_zigbNwkREQ].devID & 0x00ff) >> 0);
@@ -947,7 +968,22 @@ u8 zigb_datsLoad_datsSend(u8  frame_Temp[NORMALDATS_DEFAULT_LENGTH],
 	return ZigB_TXFrameLoad(frame_Temp, (u8 *)zigbCMD_DatsSend, 2, buf_datsLOAD, datsLen + 10);
 }
 
-/*zigbee网络数据发送请求状态*///非阻塞
+/*zigbee无视响应回复直接发送数据*///阻塞
+static
+void dataSendRemote_straightforward( u16 DstAddr, //远端网络短地址
+									  u8 port,	 //端点口
+									  u8 dats[], //数据
+									  u8 datsLen ){ //数据长度
+									  								  
+	u8 xdata buf_datsTX[NORMALDATS_DEFAULT_LENGTH] = {0};
+	u8 datsTX_Len = 0;
+	
+	datsTX_Len = zigb_datsLoad_datsSend(buf_datsTX, DstAddr, port, dats, datsLen);
+	
+	uartZigB_datsSend(buf_datsTX, datsTX_Len);
+}
+
+/*zigbee网络数据发送请求状态机*///非阻塞
 static
 void dataTransRequest_datsSend(void){
 
@@ -1146,7 +1182,142 @@ void dataTransRequest_datsSend(void){
 	}
 }
 
-/*zigbee常规控制数据解析*/
+/*设备数据传输主状态切换至网络挂起*/
+void devStatusChangeTo_devHold(bit zigbNwkSysNote_IF){ //设备网络挂起
+
+	devNwkHoldTime_Param.devHoldTime_counter = DEVHOLD_TIME_DEFAULT;
+	if(zigbNwkSysNote_IF)devNwkHoldTime_Param.zigbNwkSystemNote_IF = 1;
+	
+	devStatus_switch.statusChange_standBy = status_devNwkHold; //数据传输状态机更变
+	devStatus_switch.statusChange_IF = 1;
+	
+	devTips_status = status_devHold; //tips更变
+	
+#if(DEBUG_LOGOUT_EN == 1)				
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, "devHold start right now.\n");
+		PrintString1_logOut(log_buf);
+	}
+#endif	
+}
+
+/*设备网络挂起停止，使提前结束*/
+void devHoldStop_makeInAdvance(void){ //停止设备网络挂起（提前）
+
+	if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter = 0;
+}
+
+/*zigbee设备网络挂起状态机*///非阻塞
+static 
+void function_devNwkHold(void){
+	
+	static status_Step = 0; //当前状态机步骤状态指示
+	
+	if(devNwkHoldTime_Param.devHoldTime_counter){ //直到挂起时间结束
+	
+		if(devNwkHoldTime_Param.zigbNwkSystemNote_IF){ //通知当前网络内子设备挂起,报两次
+			
+			u8 xdata dats_Note[3] = {ZIGB_SYSCMD_DEVHOLD, 1, 0}; //命令、数据长度、数据
+		
+			devNwkHoldTime_Param.zigbNwkSystemNote_IF = 0; //通知使能复位
+			
+			dataSendRemote_straightforward( 0xFFFF, //广播通知网内所有子设备挂起
+											ZIGB_ENDPOINT_CTRLSYSZIGB,
+											dats_Note,
+											3 );
+			
+			delayMs(50); //必需延时，否则数据还没发送出去，就跑到下一步复位了
+		}
+		
+		{ //设备挂起,循环复位
+			
+			switch(status_Step){
+			
+				case 0:{ //复位200ms
+				
+					zigbPin_RESET = 0;
+					zigbNwkAction_counter = 200;
+					status_Step = 1;
+				
+				}break;
+					
+				case 1:{ //每6s复位一次
+				
+					if(!zigbNwkAction_counter){ //非阻塞等待
+					
+						zigbPin_RESET = 1;
+						zigbNwkAction_counter = 6000;
+						status_Step = 2;
+					}
+				
+				}break;
+				
+				case 2:{
+				
+					if(!zigbNwkAction_counter){ //非阻塞等待
+					
+						status_Step = 0;
+						
+#if(DEBUG_LOGOUT_EN == 1)				
+						{ //输出打印，谨记 用后注释，否则占用大量代码空间
+							u8 xdata log_buf[64];
+							
+							sprintf(log_buf, "devHold time count remind: %02d s.\n", (int)devNwkHoldTime_Param.devHoldTime_counter);
+							PrintString1_logOut(log_buf);
+						}
+#endif
+					}
+				
+				}break;
+				
+				default:{
+					
+					status_Step = 0;
+					
+				}break;
+			}
+		}
+
+	}else{
+	
+		//挂起时间结束,主状态恢复至重连，本地状态恢复
+		status_Step = 0;
+		zigbPin_RESET = 1;
+		
+		devRunning_Status = status_nwkReconnect; //直接将主状态切换至网络重连,不走standby流程
+		devTips_status = status_Normal; //tips更变
+	
+#if(DEBUG_LOGOUT_EN == 1)				
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+			u8 xdata log_buf[64];
+			
+			sprintf(log_buf, "devHold stop.\n");
+			PrintString1_logOut(log_buf);
+		}
+#endif	
+	}
+}
+
+/*zigbee集群控制数据解析*/
+static 
+void dataParing_scenarioCtrl(u8 datsFrame[]){
+
+	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	
+#if(DEBUG_LOGOUT_EN == 1)
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, "cmdScenarioCtrl comming, statusData:%02X.\n", (int)datsFrame[0]);
+		PrintString1_logOut(log_buf);
+	}			
+#endif		
+}
+
+/*zigbee系统交互数据解析*/
 static 
 void dataParing_zigbSysCtrl(u8 datsFrame[]){
 
@@ -1162,21 +1333,37 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 			
 			bit resultSet = 0;
 			
-			resultSet = ZigB_nwkOpen(1, dats.dats[0]);
+			resultSet = ZigB_nwkOpen(1, dats.dats[0]); //功能触发
+			tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 			
 		}break;
 		
 		case ZIGB_SYSCMD_TIMESET:{ //系统时间设定
 		
 			bit resultSet = 0;
+			bit timeZoneAdjust_needIF = 0;
 			u32 time_Temp = 0UL;
 			
 			time_Temp |= (u32)dats.dats[0] << 0;
 			time_Temp |= (u32)dats.dats[1] << 8;
 			time_Temp |= (u32)dats.dats[2] << 16;
 			time_Temp |= (u32)dats.dats[3] << 24;
+			if((sysTimeZone_H != dats.dats[4]) || (sysTimeZone_M != dats.dats[5])){ //时区同步
 			
-			resultSet = zigB_sysTimeSet(time_Temp - 946713600UL); //zigbee时间戳从unix纪元946713600<2000/01/01 00:00:00>开始计算
+				sysTimeZone_H = dats.dats[4];
+				sysTimeZone_M = dats.dats[5];
+				coverEEPROM_write_n(EEPROM_ADDR_timeZone_H, &sysTimeZone_H, 1);
+				coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);
+			}
+			
+			if(dats.dats[6])timeZoneAdjust_needIF = 1; //时区补偿使能
+			resultSet = zigB_sysTimeSet(time_Temp - ZIGB_UTCTIME_START, timeZoneAdjust_needIF); //zigbee UTC负补偿
+			
+		}break;
+		
+		case ZIGB_SYSCMD_DEVHOLD:{
+		
+			devStatusChangeTo_devHold(0); //设备网络挂起,不进行网络通知
 			
 		}break;
 			
@@ -1256,6 +1443,11 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							
 							paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8);
 							paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
+							
+							sysTimeZone_H = datsParam[12];
+							sysTimeZone_M = datsParam[13];
+							coverEEPROM_write_n(EEPROM_ADDR_timeZone_H, &sysTimeZone_H, 1);
+							coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);
 						
 							respond_IF 		= 1; //响应回复
 							specialCmd_IF 	= 0;
@@ -1268,14 +1460,18 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 					}break;
 					
 					case FRAME_MtoZIGBCMD_cmdControl:{
+
+						paramTX_temp[11] = 0;
+						paramTX_temp[11] |= (datsParam[11] & 0x07);	//状态位填装
+						if(		(datsParam[11] & 0x01) != (status_Relay & 0x01))paramTX_temp[11] |= 0x20; //更改值填装<高三位>第一位
+						else if((datsParam[11] & 0x02) != (status_Relay & 0x02))paramTX_temp[11] |= 0x40; //更改值填装<高三位>第二位
+						else if((datsParam[11] & 0x04) != (status_Relay & 0x04))paramTX_temp[11] |= 0x80; //更改值填装<高三位>第三位
 						
 						swCommand_fromUsr.objRelay = datsParam[11];
 						swCommand_fromUsr.actMethod = relay_OnOff;
-						
-						respond_IF 		= 1; //响应回复
-						specialCmd_IF 	= 0;	
 
-						paramTX_temp[11] = datsParam[11];						
+						respond_IF 		= 1; //响应回复
+						specialCmd_IF 	= 0;							
 						
 					}break;
 						
@@ -1529,48 +1725,48 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 					
 					}break;
 					
-					case FRAME_MtoZIGBCMD_cmdCfg_scenarioSet:{
-						
-						u16 xdata panid_Temp = ZigB_getPanIDCurrent(); //配置回复添加PANID
-					
-						bit opt_result = swScenario_oprateSave(datsParam[12], datsParam[14]);
-						if(opt_result)paramTX_temp[12] = 0;
-						else paramTX_temp[12] = 0x0A; //场景设置无效回复（场景存储已满）
-						
-						paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8);
-						paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
-						
-						respond_IF = 1; //响应回复使能（本地存储已被占满）
-					
-					}break;
-					
-					case FRAME_MtoZIGBCMD_cmdCfg_scenarioCtl:{
-						
-						u8 sw_Act = swScenario_oprateCheck(datsParam[12]);
-						if(sw_Act != SW_SCENCRAIO_ACTINVALID){ //若索引到有效操作位
-							
-							swCommand_fromUsr.actMethod = relay_OnOff;
-							swCommand_fromUsr.objRelay = sw_Act;
-						
-							paramTX_temp[12] = 0;
-							
-						}else{ //若无法索引到有效操作位
-						
-							paramTX_temp[12] = 0x0A; //场景控制无效回复（场景号无法被索引）
-						}
-					
-						respond_IF = 1; //响应回复使能
-					
-					}break;
-					
-					case FRAME_MtoZIGBCMD_cmdCfg_scenarioDel:{
-						
-						swScenario_oprateDele(datsParam[12]);
-						paramTX_temp[12] = 0;
-					
-						respond_IF = 1; //响应回复使能
-					
-					}break;
+//					case FRAME_MtoZIGBCMD_cmdCfg_scenarioSet:{
+//						
+//						u16 xdata panid_Temp = ZigB_getPanIDCurrent(); //配置回复添加PANID
+//					
+//						bit opt_result = swScenario_oprateSave(datsParam[12], datsParam[14]);
+//						if(opt_result)paramTX_temp[12] = 0;
+//						else paramTX_temp[12] = 0x0A; //场景设置无效回复（场景存储已满）
+//						
+//						paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8);
+//						paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
+//						
+//						respond_IF = 1; //响应回复使能（本地存储已被占满）
+//					
+//					}break;
+//					
+//					case FRAME_MtoZIGBCMD_cmdCfg_scenarioCtl:{
+//						
+//						u8 sw_Act = swScenario_oprateCheck(datsParam[12]);
+//						if(sw_Act != SW_SCENCRAIO_ACTINVALID){ //若索引到有效操作位
+//							
+//							swCommand_fromUsr.actMethod = relay_OnOff;
+//							swCommand_fromUsr.objRelay = sw_Act;
+//						
+//							paramTX_temp[12] = 0;
+//							
+//						}else{ //若无法索引到有效操作位
+//						
+//							paramTX_temp[12] = 0x0A; //场景控制无效回复（场景号无法被索引）
+//						}
+//					
+//						respond_IF = 1; //响应回复使能
+//					
+//					}break;
+//					
+//					case FRAME_MtoZIGBCMD_cmdCfg_scenarioDel:{
+//						
+//						swScenario_oprateDele(datsParam[12]);
+//						paramTX_temp[12] = 0;
+//					
+//						respond_IF = 1; //响应回复使能
+//					
+//					}break;
 					
 					default:{
 					
@@ -1655,15 +1851,17 @@ void thread_dataTrans(void){
 				break;
 			}
 			
-			{/*初始化时间赋值*///仅开机赋值一次
+			{/*初始化时间赋值*///仅开机赋值一次，不做时区调整
 				static bit FLG_timeSetInit = 1;
 				
 				if(FLG_timeSetInit){
 				
 					FLG_timeSetInit = 0;
-					zigB_sysTimeSet(1533810700UL - 946713600UL); //zigbee时间戳从unix纪元946713600<2000/01/01 00:00:00>开始计算
+					zigB_sysTimeSet(1533810700UL - 946713600UL, 0); //zigbee时间戳从unix纪元946713600<2000/01/01 00:00:00>开始计算
 				}
 			}
+			
+			if(devTips_status == status_tipsNwkFind)tips_statusChangeToNormal(); //tips复原(网络已加入，恢复正常tips)
 	
 			//--------------------------------主状态：心跳--------------------------------------------------------//
 			if(heartBeatCycle_FLG){
@@ -1686,16 +1884,57 @@ void thread_dataTrans(void){
 				}
 				
 				datsSend_request.nwkAddr = 0;
-				datsSend_request.portPoint = 13;
+				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL;
 				memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
 				memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 14);
 				datsSend_request.datsTrans.datsLen = 14;
 				datsRcv_respond.datsTrans.datsLen = 0;
 				devRunning_Status = status_dataTransRequestDatsSend;
 				
+				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+				
 				return;
-	
-			}memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+			}
+			
+			//--------------------------------主状态：数据推送---------------------------------------------------//	
+			if(devActionPush_IF.push_IF){
+				
+				const bit dataFromRemote_IF = 1; //远程推送
+				const bit specialCmd_IF = 0; //非特殊占位
+				
+				u8 xdata datsTX_Len = 0;
+				
+				devActionPush_IF.push_IF = 0;
+				
+				paramTX_temp[11] = devActionPush_IF.dats_Push; //推送信息填装
+
+#if(DEBUG_LOGOUT_EN == 1)
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					u8 xdata log_buf[64];
+					
+					sprintf(log_buf, "swData push:%02X.\n", (int)devActionPush_IF.dats_Push);
+					PrintString1_logOut(log_buf);
+				}			
+#endif	
+				datsTX_Len = dtasTX_loadBasic_CUST(dataFromRemote_IF,
+												   paramTX_temp,
+												   33,
+												   FRAME_TYPE_StoM_RCVsuccess,
+												   FRAME_MtoZIGBCMD_cmdControl,
+												   specialCmd_IF);
+			
+				datsSend_request.nwkAddr = 0;
+				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL;
+				memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+				memcpy(datsSend_request.datsTrans.dats, paramTX_temp, datsTX_Len);
+				datsSend_request.datsTrans.datsLen = datsTX_Len;
+				datsRcv_respond.datsTrans.datsLen = 0;
+				devRunning_Status = status_dataTransRequestDatsSend;
+				
+				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+
+				return;
+			}
 			
 			//--------------------------------主状态：互控同步---------------------------------------------------//
 			if(EACHCTRL_realesFLG){
@@ -1771,13 +2010,22 @@ void thread_dataTrans(void){
 							statusRelay_temp &= ~(1 << 2); //动作位缓存清零
 							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 2; //bit2 开关位动作响应
 						}
+						
+						devActionPush_IF.push_IF = 1; //推送使能
 					
-					}else{ /*非互控端口*/
+					}else{ /*非互控端口*///剩下就是专用的15个端口
 					
 						switch(srcPoint){
+							
+							/*场景集群端口*/
+							case ZIGB_ENDPOINT_CTRLSECENARIO:{	
+							
+								dataParing_scenarioCtrl(paramRX_temp); //场景集群控制解析
+								
+							}break;
 						
 							/*常规控制转发端口*/
-							case PORTPOINT_OBJ_CTRLNOMAL:{	
+							case ZIGB_ENDPOINT_CTRLNORMAL:{	
 							
 								if(datsFrom_addr == ZIGB_NWKADDR_CORDINATER){ //来自协调器
 								
@@ -1786,8 +2034,8 @@ void thread_dataTrans(void){
 								
 							}break;
 							
-							/*系统控制端口*/
-							case PORTPOINT_OBJ_CTRLSYSZIGB:{	
+							/*zigb系统交互端口*/
+							case ZIGB_ENDPOINT_CTRLSYSZIGB:{	
 							
 								dataParing_zigbSysCtrl(paramRX_temp); //系统控制解析
 								
@@ -1826,6 +2074,14 @@ void thread_dataTrans(void){
 			//--------------------------------协状态：数据请求-----------------------------------------------//
 			dataTransRequest_datsSend(); //非阻塞远端数据传输
 		
+		}break;
+		
+		case status_devNwkHold:{
+		
+			//--------------------------------协状态：网络挂起-----------------------------------------------//
+			devTips_nwkZigb = nwkZigb_hold;
+			function_devNwkHold();
+			
 		}break;
 			
 		default:{

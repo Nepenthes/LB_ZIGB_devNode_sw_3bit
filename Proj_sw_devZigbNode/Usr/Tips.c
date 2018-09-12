@@ -26,14 +26,14 @@ color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = {
 
 sound_Attr xdata devTips_beep  	= {0, 0, 0};
 
-tips_Status devTips_status 		= status_Null;
+tips_Status devTips_status 		= status_Null; //系统状态指示
+tips_nwkZigbStatus devTips_nwkZigb = nwkZigb_Normal; //zigbee网络状态指示灯
 
-u8  xdata counter_tipsAct 		= 0; //tips 调色灯调色单周期
-u8  counter_ifTipsFree 			= TIPS_SWFREELOOP_TIME;
+u16 xdata counter_tipsAct 		= 0; //tips 调色灯调色单周期
+u8  xdata counter_ifTipsFree 	= TIPS_SWFREELOOP_TIME;
+u8  xdata timeCount_zigNwkOpen	= 0; //zigb 网络开放时间计时
 
 enum_beeps dev_statusBeeps	 	= beepsMode_null; //状态机状态：蜂鸣器状态指示
-
-tips_nwkZigbStatus devTips_nwkZigb = nwkZigb_Normal; //zigbee网络状态指示灯
 
 void tipLED_pinInit(void){
 
@@ -87,13 +87,6 @@ void beeps_usrActive(u8 tons, u8 time, u8 loop){ //音调 时间 次数
 	}
 }
 
-/*led状态指示模式切换至正常模式*/
-void tips_statusChangeToNormal(void){
-
-	counter_ifTipsFree = TIPS_SWFREELOOP_TIME;
-	devTips_status = status_Normal;
-}
-
 void thread_tipsGetDark(u8 funSet){ //占位清色值
 
 	if((funSet & 0x01) >> 0)relay1_Tips.colorGray_R = relay1_Tips.colorGray_G = relay1_Tips.colorGray_B = 0;
@@ -102,7 +95,29 @@ void thread_tipsGetDark(u8 funSet){ //占位清色值
 	if((funSet & 0x08) >> 3)zigbNwk_Tips.colorGray_R = zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_B = 0;
 }
 
-/*tips主线程*/
+/*led状态指示模式切换至正常模式*/
+void tips_statusChangeToNormal(void){
+
+	counter_ifTipsFree = TIPS_SWFREELOOP_TIME;
+	devTips_status = status_Normal;
+}
+
+/*led状态指示模式切换至zigb网络开放*/
+void tips_statusChangeToZigbNwkOpen(u8 timeopen){
+
+	timeCount_zigNwkOpen = timeopen;
+	devTips_status = status_tipsNwkOpen;
+	thread_tipsGetDark(0x0F);
+}
+
+/*led状态指示模式切换至zigb网络加入请求*/
+void tips_statusChangeToZigbNwkFind(void){
+
+	devTips_status = status_tipsNwkFind;
+	thread_tipsGetDark(0x0F);
+}
+
+/*tips主线程*///状态机
 void thread_Tips(void){
 	
 	if(ifNightMode_sw_running_FLAG){ //夜间模式，背景灯tips模式强制切换
@@ -160,13 +175,13 @@ void thread_Tips(void){
 					
 						case nwkZigb_Normal:{
 						
-							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 20, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 20, 0)); //常绿
+							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)); //常绿
 						
 						}break;
 						
 						case nwkZigb_outLine:{
 						
-							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 20, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 20, 0, 0)); //常红
+							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)); //常红
 						
 						}break;
 						
@@ -178,11 +193,21 @@ void thread_Tips(void){
 						
 						case nwkZigb_nwkREQ:{
 						
-							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 20, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //红闪
+							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //黄闪
 						
 						}break;
 						
-						default:break;
+						case nwkZigb_hold:{
+						
+							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //红闪
+							
+						}break;
+						
+						default:{
+						
+							devTips_nwkZigb = nwkZigb_Normal;
+						
+						}break;
 					}
 				}
 			}
@@ -191,21 +216,31 @@ void thread_Tips(void){
 		
 		case status_tipsNwkOpen:{
 			
-			thread_tipsGetDark(0x0F);
+			if(timeCount_zigNwkOpen)tips_specified(1);
+			else{
+
+				tips_statusChangeToNormal();
+			}
 			
-			tips_specified(1);
-		
 		}break;
 		
 		case status_tipsNwkFind:{
-			
-			thread_tipsGetDark(0x0F);
 		
 			tips_specified(0);
 		
 		}break;
+		
+		case status_devHold:{
+		
+			tips_warning();
 			
-		default:{}break;
+		}break;
+			
+		default:{
+		
+			devTips_status = status_Normal;
+			
+		}break;
 	}
 }
 
@@ -259,6 +294,62 @@ void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B){
 			
 			default:break;
 		}
+	}
+}
+
+void tips_warning(void){
+
+	static u8 xdata tipsStep = 0;
+	
+	switch(tipsStep){
+	
+		case 0:{
+		
+			counter_tipsAct = 1000;
+			tipsStep = 1;
+		
+		}break;
+		
+		case 1:{
+		
+			if(counter_tipsAct){
+				
+				if(counter_tipsAct % 199 > 99){
+				
+					zigbNwk_Tips.colorGray_R = \
+					relay3_Tips.colorGray_R = \
+					relay2_Tips.colorGray_R = \
+					relay1_Tips.colorGray_R = 31;
+				
+				}else{
+				
+					zigbNwk_Tips.colorGray_R = \
+					relay3_Tips.colorGray_R = \
+					relay2_Tips.colorGray_R = \
+					relay1_Tips.colorGray_R = 0;
+				}
+			
+			}else{
+			
+				counter_tipsAct = 600;
+				thread_tipsGetDark(0x0F);
+				tipsStep = 2;
+			}
+		
+		}break;
+		
+		
+		case 2:{
+		
+			if(!counter_tipsAct)tipsStep = 0;
+			
+		}break;
+		
+		default:{
+		
+			tipsStep = 0;
+		
+		}break;
 	}
 }
 
@@ -403,7 +494,7 @@ void tips_fadeOut(void){
 	}
 }
 
-void tips_specified(u8 tips_Type){ //tips类别，次数统计
+void tips_specified(u8 tips_Type){ //tips类别
 
 	static u8 	localTips_Count = 0; //步骤初期切换初始值
 	static bit 	count_FLG = 1;

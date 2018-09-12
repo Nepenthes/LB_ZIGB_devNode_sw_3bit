@@ -28,8 +28,8 @@ typedef struct{
 
 extern u8 		xdata sysTimeReales_counter;
 extern stt_Time xdata systemTime_current;
-extern char 	xdata sysTimeZone_H;
-extern char 	xdata sysTimeZone_M;
+extern u8 		xdata sysTimeZone_H;
+extern u8 		xdata sysTimeZone_M;
 extern u16		idata sysTimeKeep_counter;
 
 extern u8 		idata ifDelay_sw_running_FLAG;	//延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0定时关闭运行使能标志）

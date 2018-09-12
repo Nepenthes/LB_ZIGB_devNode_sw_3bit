@@ -29,10 +29,17 @@ typedef struct{
 	rly_methodType actMethod;
 }relay_Command;
 
+typedef struct{
+
+	u8 push_IF:1; //推送使能
+	u8 dats_Push; //推送数据-高三位表示动作位，低三位表示开关状态
+}relayStatus_PUSH;
+
 extern status_ifSave xdata relayStatus_ifSave;
 extern u8 xdata status_Relay;
 extern relay_Command xdata swCommand_fromUsr;
-extern u8 EACHCTRL_realesFLG;
+extern u8 xdata EACHCTRL_realesFLG;
+extern relayStatus_PUSH xdata devActionPush_IF;
 
 void relay_pinInit(void);
 void relay_Act(relay_Command dats);

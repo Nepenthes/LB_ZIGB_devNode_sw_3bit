@@ -1,6 +1,6 @@
 #include "timerAct.h"
 
-#include "dataManage.h"
+#include "dataManage.h" 
 #include "Relay.h"
 #include "dataTrans.h"
 
@@ -12,8 +12,8 @@
 /****************本地文件变量定义区*************************/
 stt_Time xdata	systemTime_current				= {0};	//系统时间
 u8 		 xdata	sysTimeReales_counter			= PERIOD_SYSTIMEREALES;
-char 	 xdata	sysTimeZone_H					= 8;
-char 	 xdata	sysTimeZone_M					= 0;
+u8 	 	 xdata	sysTimeZone_H					= 8;
+u8 	 	 xdata	sysTimeZone_M					= 0;
 
 u16		 idata  sysTimeKeep_counter				= 0;	//系统时间维持计数，一秒递增，用于系统时间查询周期到达之前维持系统时间运转
 
@@ -125,6 +125,12 @@ void time_Logout(stt_Time code timeDats){
 			
 //	LogDats(Log, strlen(Log));
 	PrintString1_logOut(Log);
+			
+	sprintf(Log, 
+			"timeZone_H:%02d.\n", 
+			(int)sysTimeZone_H);
+			
+	PrintString1_logOut(Log);
 }
 #endif
 
@@ -138,7 +144,7 @@ void thread_Timing(void){
 #if(DEBUG_LOGOUT_EN == 1)	
 	{ //调试log代码-当前时间输出
 		
-		u16 code log_period = 3000;
+		u16 code log_period = 5000;
 		static u16 xdata log_Count = 0;
 		
 		if(log_Count < log_period)log_Count ++;
@@ -268,6 +274,7 @@ void thread_Timing(void){
 						//普通开关动作响应
 						swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 						swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
+						devActionPush_IF.push_IF = 1; //推送使能
 						
 					}else
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >	//当前时间大于定时时间，直接清除一次性标志

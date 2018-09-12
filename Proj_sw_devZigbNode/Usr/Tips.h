@@ -57,6 +57,7 @@ typedef enum{
 	status_Night,
 	status_tipsNwkOpen,
 	status_tipsNwkFind,
+	status_devHold, //设备复位网络挂起，等待网关更换
 }tips_Status;
 
 typedef enum{
@@ -65,6 +66,7 @@ typedef enum{
 	nwkZigb_outLine, //网络异常，或遗孤
 	nwkZigb_reConfig,//配置更新/重新入网
 	nwkZigb_nwkREQ, //主动请求网络
+	nwkZigb_hold, //网络挂起
 }tips_nwkZigbStatus;
 
 typedef enum beepsMode{
@@ -86,13 +88,18 @@ extern u8 tipsInsert_swLedBKG_ON;
 extern u8 tipsInsert_swLedBKG_OFF;
 extern color_Attr code color_Tab[10];
 
-extern u8 counter_ifTipsFree;
+extern u8 xdata counter_ifTipsFree;
+extern u8 xdata timeCount_zigNwkOpen;
 
 extern enum_beeps dev_statusBeeps;
 extern sound_Attr xdata devTips_beep;
+
+extern tips_Status devTips_status;
 extern tips_nwkZigbStatus devTips_nwkZigb;
 
 void tips_statusChangeToNormal(void);
+void tips_statusChangeToZigbNwkOpen(u8 timeopen);
+void tips_statusChangeToZigbNwkFind(void);
 
 void beeps_usrActive(u8 tons, u8 time, u8 loop);
 
@@ -100,6 +107,7 @@ void tipLED_pinInit(void);
 void ledBKGColorSw_Reales(void);
 void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B);
 
+void tips_warning(void);
 void tips_fadeOut(void);
 void tips_specified(u8 tips_Type);
 void tips_breath(void);

@@ -1,11 +1,11 @@
-C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 1   
+C51 COMPILER V9.54   RELAY                                                                 09/07/2018 18:15:40 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE RELAY
 OBJECT MODULE PLACED IN .\Output\Relay.obj
-COMPILER INVOKED BY: E:\KEIL\MDK_5.18&C51_v9.54a\Software\C51\BIN\C51.EXE Actuator\Relay.c OMF2 ROM(COMPACT) OPTIMIZE(8,
-                    -SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.
-                    -lst) OBJECT(.\Output\Relay.obj)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\Relay.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Usr
+                    -;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.lst) OBJECT(.\Output\Relay
+                    -.obj)
 
 line level    source
 
@@ -24,101 +24,116 @@ line level    source
   13          
   14          relay_Command   xdata swCommand_fromUsr  = {0, actionNull};
   15          
-  16          u8                                        EACHCTRL_realesFLG = 0; //»¥¿Ø¶¯×÷¸üÐÂÊ¹ÄÜ±êÖ¾£¨·¢Âë£©±êÖ¾<bit0£ºÒ»Î»¿ª¹Ø»¥¿Ø¸üÐÂ; bit1£º¶þÎ»¿ª
-             -¹Ø»¥¿Ø¸üÐÂ; bit2£ºÈýÎ»¿ª¹Ø»¥¿Ø¸üÐÂ;>
+  16          u8                              xdata EACHCTRL_realesFLG = 0; //»¥¿Ø¶¯×÷¸üÐÂÊ¹ÄÜ±êÖ¾£¨·¢Âë£©±êÖ¾<bit0£ºÒ»Î»¿ª¹Ø»¥¿Ø¸üÐÂ; bit1£º¶þÎ»¿
+             -ª¹Ø»¥¿Ø¸üÐÂ; bit2£ºÈýÎ»¿ª¹Ø»¥¿Ø¸üÐÂ;>
   17          
-  18          /*¼ÌµçÆ÷×´Ì¬¸üÐÂ£¬Ó²¼þÖ´ÐÐ*/
-  19          void relay_statusReales(void){
-  20   1              
-  21   1              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
-  22   1              if(DEV_actReserve & 0x02)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
-  23   1              if(DEV_actReserve & 0x04)(status_Relay & 0x04)?(PIN_RELAY_3 = 1):(PIN_RELAY_3 = 0);
-  24   1      
-  25   1              tips_statusChangeToNormal();
-  26   1      }
-  27          
-  28          /*¿ª¹Ø³õÊ¼»¯*/
-  29          void relay_pinInit(void){
-  30   1              
-  31   1              u8 idata statusTemp = 0;
-  32   1      
-  33   1              //ÍÆÍì
-  34   1              P3M1    &= ~0x38;
-  35   1              P3M0    |= 0x38;
-  36   1              
-  37   1              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
+  18          relayStatus_PUSH xdata devActionPush_IF = {0};
+  19          
+  20          /*¼ÌµçÆ÷×´Ì¬¸üÐÂ£¬Ó²¼þÖ´ÐÐ*/
+  21          void relay_statusReales(void){
+  22   1              
+  23   1              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+  24   1              if(DEV_actReserve & 0x02)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
+  25   1              if(DEV_actReserve & 0x04)(status_Relay & 0x04)?(PIN_RELAY_3 = 1):(PIN_RELAY_3 = 0);
+  26   1      
+  27   1              tips_statusChangeToNormal();
+  28   1      }
+  29          
+  30          /*¿ª¹Ø³õÊ¼»¯*/
+  31          void relay_pinInit(void){
+  32   1              
+  33   1              u8 idata statusTemp = 0;
+  34   1      
+  35   1              //ÍÆÍì
+  36   1              P3M1    &= ~0x38;
+  37   1              P3M0    |= 0x38;
   38   1              
-  39   1              if(relayStatus_ifSave == statusSave_enable){
-  40   2                      
-  41   2                      EEPROM_read_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
-  42   2                      status_Relay = statusTemp;
-  43   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
-  44   2                      
-  45   2              }else{
-  46   2              
-  47   2                      statusTemp = 0;
-  48   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
-  49   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
-  50   2              }
-  51   1      }
-  52          
-C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 2   
+  39   1              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
+  40   1              
+  41   1              if(relayStatus_ifSave == statusSave_enable){
+  42   2                      
+  43   2                      EEPROM_read_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  44   2                      status_Relay = statusTemp;
+  45   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
+  46   2                      
+  47   2              }else{
+  48   2              
+  49   2                      statusTemp = 0;
+  50   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  51   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
+  52   2              }
+C51 COMPILER V9.54   RELAY                                                                 09/07/2018 18:15:40 PAGE 2   
 
-  53          /*¿ª¹Ø¶¯×÷*/
-  54          void relay_Act(relay_Command dats){
-  55   1              
-  56   1              u8 statusTemp = 0;
+  53   1      }
+  54          
+  55          /*¿ª¹Ø¶¯×÷*/
+  56          void relay_Act(relay_Command dats){
   57   1              
-  58   1              switch(dats.actMethod){
-  59   2              
-  60   2                      case relay_flip:{
-  61   3                              
-  62   3                              if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
-  63   3                              if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
-  64   3                              if(dats.objRelay & 0x04)status_Relay ^= 1 << 2;
-  65   3                                      
-  66   3                      }break;
-  67   2                      
-  68   2                      case relay_OnOff:{
-  69   3                              
-  70   3                              (dats.objRelay & 0x01)?(status_Relay |= 1 << 0):(status_Relay &= ~(1 << 0));
-  71   3                              (dats.objRelay & 0x02)?(status_Relay |= 1 << 1):(status_Relay &= ~(1 << 1));
-  72   3                              (dats.objRelay & 0x04)?(status_Relay |= 1 << 2):(status_Relay &= ~(1 << 2));
+  58   1              u8 statusTemp = 0;
+  59   1              
+  60   1              statusTemp = status_Relay; //µ±Ç°¿ª¹ØÖµÔÝ´æ
+  61   1              
+  62   1              switch(dats.actMethod){
+  63   2              
+  64   2                      case relay_flip:{ 
+  65   3                              
+  66   3                              if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
+  67   3                              if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
+  68   3                              if(dats.objRelay & 0x04)status_Relay ^= 1 << 2;
+  69   3                                      
+  70   3                      }break;
+  71   2                      
+  72   2                      case relay_OnOff:{
   73   3                              
-  74   3                      }break;
-  75   2                      
-  76   2                      default:break;
-  77   2                      
-  78   2              }relay_statusReales(); //Ó²¼þ¼ÓÔØ
-  79   1              
-  80   1              if(status_Relay)delayCnt_closeLoop = 0; //¿ª¹ØÒ»µ©´ò¿ªÁ¢¿Ì¸üÐÂÂÌÉ«Ä£Ê½Ê±¼ä¼ÆÊýÖµ
-  81   1              
-  82   1              if(relayStatus_ifSave == statusSave_enable){ //¿ª¹Ø×´Ì¬¼ÇÒä
-  83   2              
-  84   2                      statusTemp = status_Relay;
-  85   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
-  86   2              }
-  87   1      }
-  88          
-  89          /*¼ÌµçÆ÷Ö÷Ïß³Ì*/
-  90          void thread_Relay(void){
+  74   3                              (dats.objRelay & 0x01)?(status_Relay |= 1 << 0):(status_Relay &= ~(1 << 0));
+  75   3                              (dats.objRelay & 0x02)?(status_Relay |= 1 << 1):(status_Relay &= ~(1 << 1));
+  76   3                              (dats.objRelay & 0x04)?(status_Relay |= 1 << 2):(status_Relay &= ~(1 << 2));
+  77   3                              
+  78   3                      }break;
+  79   2                      
+  80   2                      default:break;
+  81   2                      
+  82   2              }relay_statusReales(); //Ó²¼þ¼ÓÔØ
+  83   1              
+  84   1              devActionPush_IF.dats_Push = 0;
+  85   1              devActionPush_IF.dats_Push |= (status_Relay & 0x07); //µ±Ç°¿ª¹ØÖµÎ»Ìî×°<µÍÈýÎ»>
+  86   1              if(             (statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»
+             ->µÚÒ»Î»
+  87   1              else if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //¸ü¸ÄÖµÌî×°<¸ßÈ
+             -ýÎ»>µÚ¶þÎ»
+  88   1              else if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //¸ü¸ÄÖµÌî×°<¸ßÈ
+             -ýÎ»>µÚÈýÎ»
+  89   1              
+  90   1              if(status_Relay)delayCnt_closeLoop = 0; //¿ª¹ØÒ»µ©´ò¿ªÁ¢¿Ì¸üÐÂÂÌÉ«Ä£Ê½Ê±¼ä¼ÆÊýÖµ
   91   1              
-  92   1              if(swCommand_fromUsr.actMethod != actionNull){ //ÇëÇóÏìÓ¦
+  92   1              if(relayStatus_ifSave == statusSave_enable){ //¿ª¹Ø×´Ì¬¼ÇÒä
   93   2              
-  94   2                      relay_Act(swCommand_fromUsr);
-  95   2                      
-  96   2                      swCommand_fromUsr.actMethod = actionNull;
-  97   2                      swCommand_fromUsr.objRelay = 0;
-  98   2              }
-  99   1      }
+  94   2                      statusTemp = status_Relay;
+  95   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+  96   2              }
+  97   1      }
+  98          
+  99          /*¼ÌµçÆ÷Ö÷Ïß³Ì*/
+ 100          void thread_Relay(void){
+ 101   1              
+ 102   1              if(swCommand_fromUsr.actMethod != actionNull){ //ÇëÇóÏìÓ¦
+ 103   2              
+ 104   2                      relay_Act(swCommand_fromUsr);
+ 105   2                      
+ 106   2                      swCommand_fromUsr.actMethod = actionNull;
+ 107   2                      swCommand_fromUsr.objRelay = 0;
+ 108   2              }
+ 109   1      }
 
+
+C51 COMPILER V9.54   RELAY                                                                 09/07/2018 18:15:40 PAGE 3   
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    323    ----
+   CODE SIZE        =    405    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =      4    ----
+   XDATA SIZE       =      7    ----
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      1       3
+   DATA SIZE        =   ----       3
    IDATA SIZE       =   ----       1
    BIT SIZE         =   ----    ----
    EDATA SIZE       =   ----    ----
@@ -126,8 +141,6 @@ MODULE INFORMATION:   STATIC OVERLAYABLE
    XDATA CONST SIZE =   ----    ----
    FAR CONST SIZE   =   ----    ----
 END OF MODULE INFORMATION.
-
-C51 COMPILER V9.54   RELAY                                                                 09/02/2018 12:30:13 PAGE 3   
 
 
 C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -32,7 +32,7 @@ extern u16 xdata 		touchPadActCounter;
 extern u16 xdata 		touchPadContinueCnt;
 
 //***************Tips变量引用区***************************/
-extern u8 xdata 		counter_tipsAct;
+extern u16 xdata 		counter_tipsAct;
 
 /*-----------------------------------------------------------------------------------------------*/
 void appTimer0_Init(void){	//50us 中断@24.000M
@@ -118,6 +118,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 				
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = delayUp_act;
+				devActionPush_IF.push_IF = 1; //推送使能
 			}
 		}
 		
@@ -131,6 +132,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 			
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = 0;
+				devActionPush_IF.push_IF = 1; //推送使能
 			}
 		}
 		
@@ -142,6 +144,12 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		
 		/*系统时间周期新更新计时计数业务*/
 		if(sysTimeReales_counter)sysTimeReales_counter --;
+		
+		/*zigb网络开放倒计时*/
+		if(timeCount_zigNwkOpen)timeCount_zigNwkOpen --;
+		
+		/*设备网络挂起时间倒计时*/
+		if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
 	}
 
 	//***************串口接收超时时长计数*******************************//

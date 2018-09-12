@@ -5,12 +5,16 @@
 #include "USART.h"
 #include "timerAct.h"
 
-#define zigbPin_RESET		P23
+#define zigbPin_RESET				P23
 
-#define ZIGB_FRAME_HEAD 	0xFE
+#define ZIGB_FRAME_HEAD 			0xFE
 
-#define PERIOD_HEARTBEAT		6  //心跳包发送周期  单位：s
-#define PERIOD_SYSTIMEREALES	10 //系统时间更新周期  单位：s
+#define ZIGB_UTCTIME_START			946684800UL //zigbee时间戳从unix纪元946684800<2000/01/01 00:00:00>开始计算
+
+#define PERIOD_HEARTBEAT			6  //心跳包发送周期  单位：s
+#define PERIOD_SYSTIMEREALES		10 //系统时间更新周期  单位：s
+#define ZIGBNWK_OPNETIME_DEFAULT	12	//默认zigb网络开放时间 单位：s
+#define DEVHOLD_TIME_DEFAULT		240 //设备挂起默认时间，时间到后重启网络 单位：s
 
 #define ZIGB_FRAMEHEAD_CTRLLOCAL	0xAA
 #define ZIGB_FRAMEHEAD_CTRLREMOTE	0xCC
@@ -18,9 +22,6 @@
 #define ZIGB_FRAMEHEAD_HBOFFLINE	0xBB
 
 #define ZIGB_NWKADDR_CORDINATER		0
-
-#define PORTPOINT_OBJ_CTRLNOMAL			13
-#define PORTPOINT_OBJ_CTRLSYSZIGB		14
 
 //#define FRAME_TYPE_MtoZIGB_CMD			0xA1	/*数据类型*///手机至开关
 //#define FRAME_TYPE_ZIGBtoM_RCVsuccess		0x1A	/*数据类型*///开关至手机
@@ -59,12 +60,17 @@
 
 #define ZIGB_SYSCMD_NWKOPEN	0x68  //zigb系统控制指令，开放网络
 #define ZIGB_SYSCMD_TIMESET	0x69  //zigb系统控制指令，时间设定
+#define ZIGB_SYSCMD_DEVHOLD	0x6A  //zigb系统控制指令，设备挂起
 
 #define ZIGB_BAUND	 115200UL   //串口波特率->ZIGB模块通讯
 
 #define rxBuff_WIFI	 RX1_Buffer
 
-#define NORMALDATS_DEFAULT_LENGTH	96
+#define NORMALDATS_DEFAULT_LENGTH	80 //默认数据发送缓存长度
+
+#define ZIGB_ENDPOINT_CTRLSECENARIO		12 //场景集群控制专用端口
+#define ZIGB_ENDPOINT_CTRLNORMAL		13 //常规数据转发专用端口
+#define ZIGB_ENDPOINT_CTRLSYSZIGB		14 //zigb系统交互专用端口
 
 #define zigbDatsDefault_GroupID		13
 #define zigbDatsDefault_ClustID		13
@@ -79,6 +85,7 @@ typedef enum{
 	status_nwkREQ, //主动加入新网络请求
 	status_nwkReconnect, //主动重连网络
 	status_dataTransRequestDatsSend, //网络数据发送请求
+	status_devNwkHold, //设备网络挂起
 }threadRunning_Status;
 
 typedef enum{
@@ -91,8 +98,14 @@ typedef enum{
 
 typedef struct{
 
-	u8 statusChange_IF:1;
-	threadRunning_Status statusChange_standBy;
+	u8 zigbNwkSystemNote_IF:1; //是否需要进行广播通知其他子设备挂起
+	u8 devHoldTime_counter; //挂起倒计时时间设定
+}attr_devNwkHold;
+
+typedef struct{
+
+	u8 statusChange_IF:1; //状态切换使能
+	threadRunning_Status statusChange_standBy; //需要切换到的状态
 }stt_statusChange;
 
 typedef struct{
@@ -138,8 +151,9 @@ typedef struct ZigB_Init_datsAttr{
 	u16  timeTab_waitAnsr;		//等待响应时间
 }datsAttr_ZigbInit;
 
-extern threadRunning_Status devRunning_Status;
-extern stt_statusChange devStatus_switch;
+extern attr_devNwkHold	xdata devNwkHoldTime_Param;
+extern stt_statusChange xdata devStatus_switch;
+extern u8 xdata devNwkHoldTime_counter;
 
 void zigbUart_pinInit(void);
 void uartObjZigb_Init(void);
@@ -148,7 +162,6 @@ void uartObjZigb_Send_Byte(u8 dat);
 void uartObjZigb_Send_String(char *s,unsigned char ucLength);
 
 void thread_dataTrans(void);
-bit zigB_sysTimeSet(u32 timeStamp);
 bit zigb_clusterSet(u16 deviveID, u8 endPoint);
 bit ZigB_NwkJoin(u16 PANID, u8 CHANNELS);
 bit ZigB_nwkOpen(bit openIF, u8 openTime);
@@ -170,8 +183,7 @@ void ZigB_datsTX(u16  DstAddr,
 
 void thread_dataTrans(void);
 
-void zigB_nwkReconnect(void);
-
-void zigB_nwkJoinRequest(bit reJoin_IF);
+void devStatusChangeTo_devHold(bit zigbNwkSysNote_IF);
+void devHoldStop_makeInAdvance(void);
 
 #endif

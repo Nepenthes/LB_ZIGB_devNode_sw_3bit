@@ -38,7 +38,7 @@ int main(void){
 	bsp_datsReales();
 	birthDay_Judge();
 	
-//	while(1)tips_specified(1);
+//	while(1)tips_warning();
 	
 	devStatus_switch.statusChange_standBy = status_nwkReconnect;
 	devStatus_switch.statusChange_IF = 1;

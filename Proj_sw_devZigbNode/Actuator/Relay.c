@@ -13,7 +13,9 @@ u8 				xdata status_Relay 		 = 0;
 
 relay_Command	xdata swCommand_fromUsr	 = {0, actionNull};
 
-u8				  	  EACHCTRL_realesFLG = 0; //互控动作更新使能标志（发码）标志<bit0：一位开关互控更新; bit1：二位开关互控更新; bit2：三位开关互控更新;>
+u8				xdata EACHCTRL_realesFLG = 0; //互控动作更新使能标志（发码）标志<bit0：一位开关互控更新; bit1：二位开关互控更新; bit2：三位开关互控更新;>
+
+relayStatus_PUSH xdata devActionPush_IF = {0};
 
 /*继电器状态更新，硬件执行*/
 void relay_statusReales(void){
@@ -55,9 +57,11 @@ void relay_Act(relay_Command dats){
 	
 	u8 statusTemp = 0;
 	
+	statusTemp = status_Relay; //当前开关值暂存
+	
 	switch(dats.actMethod){
 	
-		case relay_flip:{
+		case relay_flip:{ 
 			
 			if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
 			if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
@@ -76,6 +80,12 @@ void relay_Act(relay_Command dats){
 		default:break;
 		
 	}relay_statusReales(); //硬件加载
+	
+	devActionPush_IF.dats_Push = 0;
+	devActionPush_IF.dats_Push |= (status_Relay & 0x07); //当前开关值位填装<低三位>
+	if(		(statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //更改值填装<高三位>第一位
+	else if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //更改值填装<高三位>第二位
+	else if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //更改值填装<高三位>第三位
 	
 	if(status_Relay)delayCnt_closeLoop = 0; //开关一旦打开立刻更新绿色模式时间计数值
 	
