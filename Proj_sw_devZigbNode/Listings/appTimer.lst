@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 1   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
@@ -62,7 +62,7 @@ line level    source
   51          void timer0_Rountine (void) interrupt TIMER0_VECTOR{
   52   1              
   53   1              u16 code period_1second = 20000;
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 2   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 2   
 
   54   1              static u16 counter_1second = 0; 
   55   1              
@@ -126,7 +126,7 @@ line level    source
  113   3                              else{
  114   4                              
  115   4                                      delayCnt_onoff = 0;
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 3   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 3   
 
  116   4                                      
  117   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
@@ -190,7 +190,7 @@ line level    source
  175   1              else{
  176   2                      
  177   2                      static u16 xdata        tips_Period = 20 * 50 / 2;
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 4   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 4   
 
  178   2                      static u16 xdata        tips_Count      = 0;
  179   2                      static u8 xdata         tips_Loop       = 2 * 4;
@@ -254,7 +254,7 @@ line level    source
  237   1              //***************tips_Led 刷新业务*******************************//
  238   1              if(counter_tipsColor > period_tipsColor){       //灰度值值加载
  239   2              
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 5   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 5   
 
  240   2                      counter_tipsColor = 0;
  241   2                      
@@ -318,7 +318,7 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-C51 COMPILER V9.54   APPTIMER                                                              09/07/2018 18:15:39 PAGE 6   
+C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 6   
 
    CODE SIZE        =   1239    ----
    CONSTANT SIZE    =      4    ----

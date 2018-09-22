@@ -1,5 +1,10 @@
 #include "Tips.h"
 
+#include "USART.h"
+
+#include "string.h"
+#include "stdio.h"
+
 #include "Relay.h"
 #include "dataManage.h"
 #include "timerAct.h"
@@ -128,8 +133,8 @@ void thread_Tips(void){
 		
 		if(devTips_status == status_Night)tips_statusChangeToNormal(); //当前若为夜间模式则切回正常模式
 	
-		if(!counter_ifTipsFree &&  //指定时间没有硬件操作，led状态指示切换至空闲模式
-		   (devTips_status == status_Normal) ){ //正常模式下才可以切，其他模式不能
+		if( !counter_ifTipsFree &&  //指定时间没有硬件操作，led状态指示切换至空闲模式
+		    (devTips_status == status_Normal) ){ //正常模式下才可以切，其他模式不能
 		    
 			thread_tipsGetDark(0x0F);
 			devTips_status = status_keyFree;
@@ -220,6 +225,14 @@ void thread_Tips(void){
 			else{
 
 				tips_statusChangeToNormal();
+#if(DEBUG_LOGOUT_EN == 1)
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					u8 xdata log_buf[64];
+					
+					sprintf(log_buf, "zigbNwk Close.\n");
+					PrintString1_logOut(log_buf);
+				}			
+#endif	
 			}
 			
 		}break;

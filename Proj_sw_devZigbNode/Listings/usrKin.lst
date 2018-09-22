@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -37,549 +37,628 @@ line level    source
   26          
   27          /*--------------------------------------------------------------------------------------------------------
              -----*/
-  28          //funKey_Callback xdata funKey[10] = {0};
-  29          
-  30          static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
-  31          static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
-  32          
-  33          void usrKin_pinInit(void){
-  34   1      
-  35   1              P1M1 &= ~(0xE0);
-  36   1              P1M0 &= ~(0xE0);
-  37   1      
-  38   1              P0M1 &= ~(0x04);
-  39   1              P0M0 &= ~(0x04);
-  40   1              
-  41   1              if(!Dcode2)relayStatus_ifSave = statusSave_enable;
-  42   1      }
-  43          
-  44          void usrZigbNwkOpen(void){
-  45   1      
-  46   1              ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
-  47   1              tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
-  48   1      }
-  49          
-  50          u8 DcodeScan_oneShoot(void){
-  51   1      
-  52   1              u8 val_Dcode = 0;
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 2   
+  28          ///*按键回调函数缓存*///为减少代码冗余，此段弃用
+  29          //static fun_KeyTrigger xdata funTrig_keyTouch_1 = {0}; //连按可用 
+  30          //static fun_KeyTrigger xdata funTrig_keyTouch_2 = {0}; //连按可用
+  31          //static fun_KeyTrigger xdata funTrig_keyTouch_3 = {0}; //连按可用
+  32          //static fun_KeyTrigger xdata funTrig_keyButton  = {0}; //连按不可用
+  33          
+  34          static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
+  35          static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
+  36          
+  37          ///*按键触发回调函数注册*///为减少代码冗余，此函数弃用
+  38          //void funKeyTrigger_register(funKey_Callback funTrigger, objKey key, trig_Method mTrig, u8 pressCnt_num){
+             - //回调函数，按键对象，触发方式，连按次数（大于2且 触发方式为连按 有效）
+  39          
+  40          //      switch(key){
+  41          //      
+  42          //              case kinObj_touch_1:{
+  43          //              
+  44          //                      switch(mTrig){
+  45          //                      
+  46          //                              case method_pressShort: funTrig_keyTouch_1.press_Short = funTrigger;break;
+  47          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_1.press_Continue[pressCnt_num] = funTrig
+             -ger;break;
+  48          //                              case method_pressLong_A:funTrig_keyTouch_1.press_Long_A = funTrigger;break;
+  49          //                              case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
+  50          //                                      
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 2   
 
-  53   1              
-  54   1              if(!Dcode0)val_Dcode |= 1 << 0;
-  55   1              else val_Dcode &= ~(1 << 0);
-  56   1              
-  57   1              if(!Dcode1)val_Dcode |= 1 << 1;
-  58   1              else val_Dcode &= ~(1 << 1);
-  59   1              
-  60   1              if(!Dcode2)val_Dcode |= 1 << 2;
-  61   1              else val_Dcode &= ~(1 << 2);
-  62   1              
-  63   1              if(!Dcode3)val_Dcode |= 1 << 3;
-  64   1              else val_Dcode &= ~(1 << 3);
-  65   1              
-  66   1              if(!Dcode4)val_Dcode |= 1 << 4;
-  67   1              else val_Dcode &= ~(1 << 4);
-  68   1              
-  69   1              if(!Dcode5)val_Dcode |= 1 << 5;
-  70   1              else val_Dcode &= ~(1 << 5);
-  71   1              
-  72   1              return val_Dcode;
-  73   1      }
-  74          
-  75          bit UsrKEYScan_oneShoot(void){
-  76   1      
-  77   1              return Usr_key;
-  78   1      }
-  79          
-  80          u8 touchPadScan_oneShoot(void){
-  81   1      
-  82   1              u8 valKey_Temp = 0;
-  83   1              
-  84   1              if(!touchPad_1)valKey_Temp |= 0x01;
-  85   1              if(!touchPad_2)valKey_Temp |= 0x02;
-  86   1              if(!touchPad_3)valKey_Temp |= 0x04;
-  87   1              
-  88   1              return valKey_Temp;
-  89   1      }
-  90          
-  91          void DcodeScan(void){
-  92   1      
-  93   1              static u8       val_Dcode_Local         = 0,
-  94   1                                      comfirm_Cnt                     = 0;
-  95   1              const  u8       comfirm_Period          = 200;  //消抖时间因数——取决于主线程调度周期
-  96   1                      
-  97   1                         u8   val_Dcode_differ        = 0;
-  98   1              
-  99   1                         bit  val_CHG                         = 0;
- 100   1              
- 101   1              val_DcodeCfm = DcodeScan_oneShoot();
- 102   1              
- 103   1              DEV_actReserve = switchTypeReserve_GET(); //当前开关类型对应有效操作位刷新
- 104   1              
- 105   1              if(val_Dcode_Local != val_DcodeCfm){
- 106   2              
- 107   2                      if(comfirm_Cnt < comfirm_Period)comfirm_Cnt ++;
- 108   2                      else{
- 109   3                      
- 110   3                              comfirm_Cnt = 0;
- 111   3                              val_CHG         = 1;
- 112   3                      }
- 113   2              }
- 114   1              
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 3   
+  51          //                              default:break;
+  52          //                      }
+  53          //              }break;
+  54          //                      
+  55          //              case kinObj_touch_2:{
+  56          //                      
+  57          //                      switch(mTrig){
+  58          //                      
+  59          //                              case method_pressShort: funTrig_keyTouch_2.press_Short = funTrigger;break;
+  60          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_2.press_Continue[pressCnt_num] = funTrig
+             -ger;break;
+  61          //                              case method_pressLong_A:funTrig_keyTouch_2.press_Long_A = funTrigger;break;
+  62          //                              case method_pressLong_B:funTrig_keyTouch_2.press_Long_B = funTrigger;break;
+  63          //                                      
+  64          //                              default:break;
+  65          //                      }
+  66          //              }break;
+  67          //                      
+  68          //              case kinObj_touch_3:{
+  69          //                      
+  70          //                      switch(mTrig){
+  71          //                      
+  72          //                              case method_pressShort: funTrig_keyButton.press_Short = funTrigger;break;
+  73          //                              case method_pressLong_A:funTrig_keyButton.press_Long_A = funTrigger;break;
+  74          //                              case method_pressLong_B:funTrig_keyButton.press_Long_B = funTrigger;break;
+  75          //                              
+  76          //                              case method_pressCnt: //连按不可用
+  77          //                              default:break;
+  78          //                      }
+  79          //              }break;
+  80          //                      
+  81          //              case kinObj_button:{
+  82          //              
+  83          //                      switch(mTrig){
+  84          //                      
+  85          //                              case method_pressShort: funTrig_keyTouch_3.press_Short = funTrigger;break;
+  86          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_3.press_Continue[pressCnt_num] = funTrig
+             -ger;break;
+  87          //                              case method_pressLong_A:funTrig_keyTouch_3.press_Long_A = funTrigger;break;
+  88          //                              case method_pressLong_B:funTrig_keyTouch_3.press_Long_B = funTrigger;break;
+  89          //                                      
+  90          //                              default:break;
+  91          //                      }
+  92          //              }break;
+  93          //                      
+  94          //              default:break;
+  95          //      }
+  96          //}
+  97          
+  98          void usrZigbNwkOpen(void){
+  99   1      
+ 100   1              ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
+ 101   1              tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
+ 102   1      #if(DEBUG_LOGOUT_EN == 1)
+ 103   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 104   2                      u8 xdata log_buf[64];
+ 105   2                      
+ 106   2                      sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
+ 107   2                      PrintString1_logOut(log_buf);
+ 108   2              }                       
+ 109   1      #endif  
+ 110   1      }
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 3   
 
- 115   1              if(val_CHG){
- 116   2                      
- 117   2                      val_CHG                         = 0;
- 118   2              
- 119   2                      val_Dcode_differ        = val_Dcode_Local ^ val_DcodeCfm;
- 120   2                      val_Dcode_Local         = val_DcodeCfm;
- 121   2      
- 122   2                      if(val_Dcode_differ & Dcode_FLG_ifAP){
- 123   3                      
- 124   3                              if(val_Dcode_Local & Dcode_FLG_ifAP){
- 125   4                              
- 126   4      
- 127   4                              }else{
- 128   4                              
- 129   4      
- 130   4                              }
- 131   3                      }
- 132   2                      
- 133   2                      if(val_Dcode_differ & Dcode_FLG_ifLED){
- 134   3                      
- 135   3                              if(val_Dcode_Local & Dcode_FLG_ifLED){
- 136   4      
- 137   4                                      
- 138   4                              }else{
- 139   4                              
- 140   4      
- 141   4                              }
- 142   3                      }
- 143   2                      
- 144   2                      if(val_Dcode_differ & Dcode_FLG_ifMemory){
- 145   3                      
- 146   3                              if(val_Dcode_Local & Dcode_FLG_ifMemory){
- 147   4      
- 148   4                                      relayStatus_ifSave = statusSave_enable;
- 149   4                                      
- 150   4                              }else{
- 151   4                              
- 152   4                                      relayStatus_ifSave = statusSave_disable;
- 153   4                              }
- 154   3                      }
- 155   2                      
- 156   2                      if(val_Dcode_differ & Dcode_FLG_bitReserve){
- 157   3                      
- 158   3                              switch(Dcode_bitReserve(val_Dcode_Local)){
- 159   4                              
- 160   4                                      case 0:{
- 161   5                                      
- 162   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
- 163   5                                              
- 164   5                                      }break;
- 165   4                                              
- 166   4                                      case 1:{
- 167   5                                      
- 168   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT1;       
- 169   5      
- 170   5                                      }break;
- 171   4                                              
- 172   4                                      case 2:{
- 173   5                                      
- 174   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT2;       
- 175   5      
- 176   5                                      }break;
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 4   
+ 111          
+ 112          void usrKin_pinInit(void){
+ 113   1      
+ 114   1              P1M1 &= ~(0xE0);
+ 115   1              P1M0 &= ~(0xE0);
+ 116   1      
+ 117   1              P0M1 &= ~(0x04);
+ 118   1              P0M0 &= ~(0x04);
+ 119   1              
+ 120   1              if(!Dcode2)relayStatus_ifSave = statusSave_enable;
+ 121   1      }
+ 122          
+ 123          u8 DcodeScan_oneShoot(void){
+ 124   1      
+ 125   1              u8 val_Dcode = 0;
+ 126   1              
+ 127   1              if(!Dcode0)val_Dcode |= 1 << 0;
+ 128   1              else val_Dcode &= ~(1 << 0);
+ 129   1              
+ 130   1              if(!Dcode1)val_Dcode |= 1 << 1;
+ 131   1              else val_Dcode &= ~(1 << 1);
+ 132   1              
+ 133   1              if(!Dcode2)val_Dcode |= 1 << 2;
+ 134   1              else val_Dcode &= ~(1 << 2);
+ 135   1              
+ 136   1              if(!Dcode3)val_Dcode |= 1 << 3;
+ 137   1              else val_Dcode &= ~(1 << 3);
+ 138   1              
+ 139   1              if(!Dcode4)val_Dcode |= 1 << 4;
+ 140   1              else val_Dcode &= ~(1 << 4);
+ 141   1              
+ 142   1              if(!Dcode5)val_Dcode |= 1 << 5;
+ 143   1              else val_Dcode &= ~(1 << 5);
+ 144   1              
+ 145   1              return val_Dcode;
+ 146   1      }
+ 147          
+ 148          bit UsrKEYScan_oneShoot(void){
+ 149   1      
+ 150   1              return Usr_key;
+ 151   1      }
+ 152          
+ 153          u8 touchPadScan_oneShoot(void){
+ 154   1      
+ 155   1              u8 valKey_Temp = 0;
+ 156   1              
+ 157   1              if(!touchPad_1)valKey_Temp |= 0x01;
+ 158   1              if(!touchPad_2)valKey_Temp |= 0x02;
+ 159   1              if(!touchPad_3)valKey_Temp |= 0x04;
+ 160   1              
+ 161   1              return valKey_Temp;
+ 162   1      }
+ 163          
+ 164          void DcodeScan(void){
+ 165   1      
+ 166   1              static u8       val_Dcode_Local         = 0,
+ 167   1                                      comfirm_Cnt                     = 0;
+ 168   1              const  u8       comfirm_Period          = 200;  //消抖时间因数——取决于主线程调度周期
+ 169   1                      
+ 170   1                         u8   val_Dcode_differ        = 0;
+ 171   1              
+ 172   1                         bit  val_CHG                         = 0;
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 4   
 
- 177   4                                              
- 178   4                                      case 3:{
- 179   5                                              
- 180   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
- 181   5      
- 182   5                                      }break;
- 183   4                                              
- 184   4                                      default:break;
- 185   4                              }
- 186   3                      }
- 187   2              }
- 188   1      }
- 189          
- 190          void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey_Callback funCB_LongB){
- 191   1              
- 192   1              code    u16     keyCfrmLoop_Short       = 10,   //短按消抖时间,据大循环而定
- 193   1                                      keyCfrmLoop_LongA       = 3000, //长按A时间,据大循环而定
- 194   1                                      keyCfrmLoop_LongB       = 10000,//长按B时间,据大循环而定
- 195   1                                      keyCfrmLoop_MAX         = 60000;//计时封顶
- 196   1              
- 197   1              static  bit LongA_FLG = 0;
- 198   1              static  bit LongB_FLG = 0;
- 199   1              
- 200   1              static  bit keyPress_FLG = 0;
- 201   1      
- 202   1              if(!UsrKEYScan_oneShoot()){             
- 203   2                      
- 204   2                      keyPress_FLG = 1;
+ 173   1              
+ 174   1              val_DcodeCfm = DcodeScan_oneShoot();
+ 175   1              
+ 176   1              DEV_actReserve = switchTypeReserve_GET(); //当前开关类型对应有效操作位刷新
+ 177   1              
+ 178   1              if(val_Dcode_Local != val_DcodeCfm){
+ 179   2              
+ 180   2                      if(comfirm_Cnt < comfirm_Period)comfirm_Cnt ++;
+ 181   2                      else{
+ 182   3                      
+ 183   3                              comfirm_Cnt = 0;
+ 184   3                              val_CHG         = 1;
+ 185   3                      }
+ 186   2              }
+ 187   1              
+ 188   1              if(val_CHG){
+ 189   2                      
+ 190   2                      val_CHG                         = 0;
+ 191   2              
+ 192   2                      val_Dcode_differ        = val_Dcode_Local ^ val_DcodeCfm;
+ 193   2                      val_Dcode_Local         = val_DcodeCfm;
+ 194   2      
+ 195   2                      if(val_Dcode_differ & Dcode_FLG_ifAP){
+ 196   3                      
+ 197   3                              if(val_Dcode_Local & Dcode_FLG_ifAP){
+ 198   4                              
+ 199   4      
+ 200   4                              }else{
+ 201   4                              
+ 202   4      
+ 203   4                              }
+ 204   3                      }
  205   2                      
- 206   2      //              tips_statusChangeToNormal();
- 207   2              
- 208   2                      if(!usrKeyCount_EN) usrKeyCount_EN= 1;  //计时
- 209   2                      
- 210   2                      if((usrKeyCount >= keyCfrmLoop_LongA) && (usrKeyCount <= keyCfrmLoop_LongB) && !LongA_FLG){
- 211   3                      
- 212   3                              funCB_LongA();
- 213   3                              
- 214   3                              LongA_FLG = 1;
- 215   3                      }       
+ 206   2                      if(val_Dcode_differ & Dcode_FLG_ifLED){
+ 207   3                      
+ 208   3                              if(val_Dcode_Local & Dcode_FLG_ifLED){
+ 209   4      
+ 210   4                                      
+ 211   4                              }else{
+ 212   4                              
+ 213   4      
+ 214   4                              }
+ 215   3                      }
  216   2                      
- 217   2                      if((usrKeyCount >= keyCfrmLoop_LongB) && (usrKeyCount <= keyCfrmLoop_MAX) && !LongB_FLG){
+ 217   2                      if(val_Dcode_differ & Dcode_FLG_ifMemory){
  218   3                      
- 219   3                              funCB_LongB();
- 220   3                              
- 221   3                              LongB_FLG = 1;
- 222   3                      }
- 223   2                      
- 224   2              }else{          
- 225   2                      
- 226   2                      usrKeyCount_EN = 0;
- 227   2                      
- 228   2                      if(keyPress_FLG){
- 229   3                      
- 230   3                              keyPress_FLG = 0;
- 231   3                              
- 232   3                              if(usrKeyCount < keyCfrmLoop_LongA && usrKeyCount > keyCfrmLoop_Short){
- 233   4                              
- 234   4      //                              static bit tipsFLG = 0;
- 235   4      //                               
- 236   4      //                              tipsFLG = !tipsFLG;
- 237   4      //                              (tipsFLG)?(tipsLED_colorSet(obj_zigbNwk, 5, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 5, 0));
- 238   4                                      
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 5   
+ 219   3                              if(val_Dcode_Local & Dcode_FLG_ifMemory){
+ 220   4      
+ 221   4                                      relayStatus_ifSave = statusSave_enable;
+ 222   4                                      
+ 223   4                              }else{
+ 224   4                              
+ 225   4                                      relayStatus_ifSave = statusSave_disable;
+ 226   4                              }
+ 227   3                      }
+ 228   2                      
+ 229   2                      if(val_Dcode_differ & Dcode_FLG_bitReserve){
+ 230   3                      
+ 231   3                              switch(Dcode_bitReserve(val_Dcode_Local)){
+ 232   4                              
+ 233   4                                      case 0:{
+ 234   5                                      
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 5   
 
- 239   4                                      funCB_Short();
- 240   4                              }
- 241   3                              
- 242   3                              usrKeyCount = 0;
- 243   3                              LongA_FLG       = 0;
- 244   3                              LongB_FLG       = 0;
- 245   3                      }
- 246   2              }
- 247   1      }
- 248          
- 249          void touchPad_Scan(void){
- 250   1      
- 251   1              static u8 touchPad_temp = 0;
- 252   1              static bit keyPress_FLG = 0;
- 253   1              
- 254   1              static bit funTrigFLG_LongA = 0;
- 255   1              static bit funTrigFLG_LongB = 0;
- 256   1              
- 257   1              code    u16     touchCfrmLoop_Short     = timeDef_touchPressCfm,        //短按消抖时间
- 258   1                                      touchCfrmLoop_LongA     = timeDef_touchPressLongA,      //长按A时间
- 259   1                                      touchCfrmLoop_LongB     = timeDef_touchPressLongB,      //长按B时间
- 260   1                                      touchCfrmLoop_MAX               = 60000;//计时封顶
- 261   1              
- 262   1              static u8 pressContinueGet = 0;
- 263   1                     u8 pressContinueCfm = 0;
+ 235   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
+ 236   5                                              
+ 237   5                                      }break;
+ 238   4                                              
+ 239   4                                      case 1:{
+ 240   5                                      
+ 241   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT1;       
+ 242   5      
+ 243   5                                      }break;
+ 244   4                                              
+ 245   4                                      case 2:{
+ 246   5                                      
+ 247   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT2;       
+ 248   5      
+ 249   5                                      }break;
+ 250   4                                              
+ 251   4                                      case 3:{
+ 252   5                                              
+ 253   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
+ 254   5      
+ 255   5                                      }break;
+ 256   4                                              
+ 257   4                                      default:break;
+ 258   4                              }
+ 259   3                      }
+ 260   2              }
+ 261   1      }
+ 262          
+ 263          void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey_Callback funCB_LongB){
  264   1              
- 265   1              u16 conterTemp = 0; //按下计时差值计算缓存
- 266   1              
- 267   1              if(touchPadScan_oneShoot()){
- 268   2                      
- 269   2                      if(!keyPress_FLG){
- 270   3                      
- 271   3                              keyPress_FLG = 1;
- 272   3                              touchPadActCounter = touchCfrmLoop_MAX;
- 273   3                              touchPadContinueCnt = timeDef_touchPressContinue;  //连按间隔判断时间
- 274   3                              touchPad_temp = touchPadScan_oneShoot();
- 275   3                      }
- 276   2                      else{
- 277   3                              
- 278   3                              if(touchPad_temp == touchPadScan_oneShoot()){
- 279   4                                      
- 280   4                                      conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
- 281   4      //                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 282   4      //                                      u8 xdata log_buf[64];
- 283   4      //                                      
- 284   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)conterTemp);
- 285   4      //                                      PrintString1_logOut(log_buf);
- 286   4      //                              }
- 287   4                              
- 288   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
- 289   5                                      
- 290   5                                              if(!funTrigFLG_LongA){
- 291   6                                              
- 292   6                                                      funTrigFLG_LongA = 1;
- 293   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongA);
- 294   6                                              }
- 295   5                                      }
- 296   4                                      if(conterTemp > touchCfrmLoop_LongB && conterTemp <= touchCfrmLoop_MAX){
- 297   5                                      
- 298   5                                              if(!funTrigFLG_LongB){
- 299   6                                              
- 300   6                                                      funTrigFLG_LongB = 1;
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 6   
+ 265   1              code    u16     keyCfrmLoop_Short       = 10,   //短按消抖时间,据大循环而定
+ 266   1                                      keyCfrmLoop_LongA       = 3000, //长按A时间,据大循环而定
+ 267   1                                      keyCfrmLoop_LongB       = 10000,//长按B时间,据大循环而定
+ 268   1                                      keyCfrmLoop_MAX         = 60000;//计时封顶
+ 269   1              
+ 270   1              static  bit LongA_FLG = 0;
+ 271   1              static  bit LongB_FLG = 0;
+ 272   1              
+ 273   1              static  bit keyPress_FLG = 0;
+ 274   1      
+ 275   1              if(!UsrKEYScan_oneShoot()){             
+ 276   2                      
+ 277   2                      keyPress_FLG = 1;
+ 278   2                      
+ 279   2      //              tips_statusChangeToNormal();
+ 280   2              
+ 281   2                      if(!usrKeyCount_EN) usrKeyCount_EN= 1;  //计时
+ 282   2                      
+ 283   2                      if((usrKeyCount >= keyCfrmLoop_LongA) && (usrKeyCount <= keyCfrmLoop_LongB) && !LongA_FLG){
+ 284   3                      
+ 285   3                              funCB_LongA();
+ 286   3                              
+ 287   3                              LongA_FLG = 1;
+ 288   3                      }       
+ 289   2                      
+ 290   2                      if((usrKeyCount >= keyCfrmLoop_LongB) && (usrKeyCount <= keyCfrmLoop_MAX) && !LongB_FLG){
+ 291   3                      
+ 292   3                              funCB_LongB();
+ 293   3                              
+ 294   3                              LongB_FLG = 1;
+ 295   3                      }
+ 296   2                      
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 6   
 
- 301   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongB);
- 302   6                                              }
- 303   5                                      }
- 304   4                              }
- 305   3                      }
- 306   2              }else{
- 307   2                      
- 308   2                      if(keyPress_FLG){
- 309   3                      
- 310   3                              conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
- 311   3                              if(conterTemp > touchCfrmLoop_Short && conterTemp <= touchCfrmLoop_LongA){
- 312   4                              
- 313   4                                      if(touchPadContinueCnt)pressContinueGet ++;
- 314   4                                      if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //非连按短按触发互控
-             -同步，若为连按则最后一次触发同步
- 315   4                                      else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
- 316   4                                      beeps_usrActive(3, 50, 3);
- 317   4                              }
+ 297   2              }else{          
+ 298   2                      
+ 299   2                      usrKeyCount_EN = 0;
+ 300   2                      
+ 301   2                      if(keyPress_FLG){
+ 302   3                      
+ 303   3                              keyPress_FLG = 0;
+ 304   3                              
+ 305   3                              if(usrKeyCount < keyCfrmLoop_LongA && usrKeyCount > keyCfrmLoop_Short){
+ 306   4                              
+ 307   4      //                              static bit tipsFLG = 0;
+ 308   4      //                               
+ 309   4      //                              tipsFLG = !tipsFLG;
+ 310   4      //                              (tipsFLG)?(tipsLED_colorSet(obj_zigbNwk, 5, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 5, 0));
+ 311   4                                      
+ 312   4                                      funCB_Short();
+ 313   4                              }
+ 314   3                              
+ 315   3                              usrKeyCount = 0;
+ 316   3                              LongA_FLG       = 0;
+ 317   3                              LongB_FLG       = 0;
  318   3                      }
- 319   2              
- 320   2                      if(!touchPadContinueCnt && pressContinueGet){
- 321   3                      
- 322   3                              pressContinueCfm = pressContinueGet;
- 323   3                              pressContinueGet = 0;
- 324   3                              
- 325   3                              if(pressContinueCfm >= 2){
- 326   4      #if(DEBUG_LOGOUT_EN == 1)
- 327   4      //                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 328   4      //                                      u8 xdata log_buf[64];
- 329   4      //                                      
- 330   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)pressContinueCfm);
- 331   4      //                                      PrintString1_logOut(log_buf);
- 332   4      //                              }                       
- 333   4      #endif
- 334   4                                      touchPad_functionTrigContinue(touchPad_temp, pressContinueCfm);
- 335   4                                      pressContinueCfm = 0;
- 336   4                              }
- 337   3                              
- 338   3                              touchPad_temp = 0;
- 339   3                      }
- 340   2      
- 341   2                      funTrigFLG_LongA = 0;
- 342   2                      funTrigFLG_LongB = 0;
- 343   2                              
- 344   2                      touchPadActCounter = 0;
- 345   2                      keyPress_FLG = 0;
- 346   2              }
- 347   1      }
- 348          
- 349          void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触摸触发
- 350   1      
- 351   1              switch(statusCfm){
- 352   2              
- 353   2                      case press_Short:{
- 354   3                              
- 355   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 356   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 357   4                                      u8 xdata log_buf[64];
- 358   4                                      
- 359   4                                      sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
- 360   4                                      PrintString1_logOut(log_buf);
- 361   4                              }
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 7   
+ 319   2              }
+ 320   1      }
+ 321          
+ 322          void touchPad_Scan(void){
+ 323   1      
+ 324   1              static u8 touchPad_temp = 0;
+ 325   1              static bit keyPress_FLG = 0;
+ 326   1              
+ 327   1              static bit funTrigFLG_LongA = 0;
+ 328   1              static bit funTrigFLG_LongB = 0;
+ 329   1              
+ 330   1              code    u16     touchCfrmLoop_Short     = timeDef_touchPressCfm,        //短按消抖时间
+ 331   1                                      touchCfrmLoop_LongA     = timeDef_touchPressLongA,      //长按A时间
+ 332   1                                      touchCfrmLoop_LongB     = timeDef_touchPressLongB,      //长按B时间
+ 333   1                                      touchCfrmLoop_MAX               = 60000;//计时封顶
+ 334   1              
+ 335   1              static u8 pressContinueGet = 0;
+ 336   1                     u8 pressContinueCfm = 0;
+ 337   1              
+ 338   1              u16 conterTemp = 0; //按下计时差值计算缓存
+ 339   1              
+ 340   1              if(touchPadScan_oneShoot()){
+ 341   2                      
+ 342   2                      if(!keyPress_FLG){
+ 343   3                      
+ 344   3                              keyPress_FLG = 1;
+ 345   3                              touchPadActCounter = touchCfrmLoop_MAX;
+ 346   3                              touchPadContinueCnt = timeDef_touchPressContinue;  //连按间隔判断时间
+ 347   3                              touchPad_temp = touchPadScan_oneShoot();
+ 348   3                      }
+ 349   2                      else{
+ 350   3                              
+ 351   3                              if(touchPad_temp == touchPadScan_oneShoot()){
+ 352   4                                      
+ 353   4                                      conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
+ 354   4      //                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 355   4      //                                      u8 xdata log_buf[64];
+ 356   4      //                                      
+ 357   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)conterTemp);
+ 358   4      //                                      PrintString1_logOut(log_buf);
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 7   
 
- 362   3      #endif  
- 363   3                              switch(statusPad){
- 364   4                                      
- 365   4                                      case 1:
- 366   4                                      case 2:
- 367   4                                      case 4:{
- 368   5                                              
- 369   5                                              swCommand_fromUsr.actMethod = relay_flip;
- 370   5                                              swCommand_fromUsr.objRelay = statusPad;
- 371   5                                              EACHCTRL_realesFLG = statusPad; //互控
- 372   5                                              devActionPush_IF.push_IF = 1; //推送使能
- 373   5                                              
- 374   5                                      }break;
- 375   4                                              
- 376   4                                      default:{}break;
+ 359   4      //                              }
+ 360   4                              
+ 361   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
+ 362   5                                      
+ 363   5                                              if(!funTrigFLG_LongA){
+ 364   6                                              
+ 365   6                                                      funTrigFLG_LongA = 1;
+ 366   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongA);
+ 367   6                                              }
+ 368   5                                      }
+ 369   4                                      if(conterTemp > touchCfrmLoop_LongB && conterTemp <= touchCfrmLoop_MAX){
+ 370   5                                      
+ 371   5                                              if(!funTrigFLG_LongB){
+ 372   6                                              
+ 373   6                                                      funTrigFLG_LongB = 1;
+ 374   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongB);
+ 375   6                                              }
+ 376   5                                      }
  377   4                              }
- 378   3                              
- 379   3                      }break;
+ 378   3                      }
+ 379   2              }else{
  380   2                      
- 381   2                      case press_ShortCnt:{
- 382   3                              
- 383   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 384   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 385   4                                      u8 xdata log_buf[64];
- 386   4                                      
- 387   4                                      sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
- 388   4                                      PrintString1_logOut(log_buf);
- 389   4                              }
- 390   3      #endif  
- 391   3                              
- 392   3                              switch(statusPad){
- 393   4                                      
- 394   4                                      case 1:
- 395   4                                      case 2:
- 396   4                                      case 4:{
- 397   5                                              
- 398   5                                              swCommand_fromUsr.actMethod = relay_flip;
- 399   5                                              swCommand_fromUsr.objRelay = statusPad;
- 400   5                                              
- 401   5                                      }break;
- 402   4                                              
- 403   4                                      default:{}break;
- 404   4                              }
- 405   3                              
- 406   3                      }break;
- 407   2                      
- 408   2                      case press_LongA:{
- 409   3                              
- 410   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 411   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 412   4                                      u8 xdata log_buf[64];
- 413   4                                      
- 414   4                                      sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
- 415   4                                      PrintString1_logOut(log_buf);
- 416   4                              }
- 417   3      #endif  
- 418   3                      
- 419   3                              switch(statusPad){
- 420   4                              
- 421   4                                      case 1:{
- 422   5                                              
- 423   5                                      
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 8   
+ 381   2                      if(keyPress_FLG){
+ 382   3                      
+ 383   3                              conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
+ 384   3                              if(conterTemp > touchCfrmLoop_Short && conterTemp <= touchCfrmLoop_LongA){
+ 385   4                              
+ 386   4                                      if(touchPadContinueCnt)pressContinueGet ++;
+ 387   4                                      if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //非连按短按触发互控
+             -同步，若为连按则最后一次触发同步
+ 388   4                                      else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
+ 389   4                                      beeps_usrActive(3, 50, 3);
+ 390   4                              }
+ 391   3                      }
+ 392   2              
+ 393   2                      if(!touchPadContinueCnt && pressContinueGet){
+ 394   3                      
+ 395   3                              pressContinueCfm = pressContinueGet;
+ 396   3                              pressContinueGet = 0;
+ 397   3                              
+ 398   3                              if(pressContinueCfm >= 2){
+ 399   4      #if(DEBUG_LOGOUT_EN == 1)
+ 400   4      //                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 401   4      //                                      u8 xdata log_buf[64];
+ 402   4      //                                      
+ 403   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)pressContinueCfm);
+ 404   4      //                                      PrintString1_logOut(log_buf);
+ 405   4      //                              }                       
+ 406   4      #endif
+ 407   4                                      touchPad_functionTrigContinue(touchPad_temp, pressContinueCfm);
+ 408   4                                      pressContinueCfm = 0;
+ 409   4                              }
+ 410   3                              
+ 411   3                              touchPad_temp = 0;
+ 412   3                      }
+ 413   2      
+ 414   2                      funTrigFLG_LongA = 0;
+ 415   2                      funTrigFLG_LongB = 0;
+ 416   2                              
+ 417   2                      touchPadActCounter = 0;
+ 418   2                      keyPress_FLG = 0;
+ 419   2              }
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 8   
 
- 424   5                                      }break;
- 425   4                                              
- 426   4                                      case 2:{}break;
- 427   4                                              
- 428   4                                      case 4:{
- 429   5                                      
- 430   5                                              devStatusChangeTo_devHold(1); //设备网络挂起
- 431   5                                      
- 432   5                                      }break;
- 433   4                                              
- 434   4                                      default:{}break;
- 435   4                              }
- 436   3                              
- 437   3                      }break;
- 438   2                              
- 439   2                      case press_LongB:{
- 440   3                              
- 441   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 442   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 443   4                                      u8 xdata log_buf[64];
- 444   4                                      
- 445   4                                      sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
- 446   4                                      PrintString1_logOut(log_buf);
- 447   4                              }
- 448   3      #endif  
- 449   3                      
- 450   3                              switch(statusPad){
- 451   4                              
- 452   4                                      case 1:{}break;
- 453   4                                              
- 454   4                                      case 2:{}break;
- 455   4                                              
- 456   4                                      case 4:{}break;
- 457   4                                              
- 458   4                                      default:{}break;
- 459   4                              }
- 460   3                              
- 461   3                      }break;
- 462   2                              
- 463   2                      default:{}break;
- 464   2              }
- 465   1      }
- 466          
- 467          void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){ //触摸连按触发
- 468   1              
- 469   1              EACHCTRL_realesFLG = statusPad; //最后一次连按触发互控同步
- 470   1              devActionPush_IF.push_IF = 1; //最后一次连按触发推送使能
- 471   1              
- 472   1      #if(DEBUG_LOGOUT_EN == 1)                               
- 473   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
- 474   2                      u8 xdata log_buf[64];
- 475   2                      
- 476   2                      sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
- 477   2                      PrintString1_logOut(log_buf);
- 478   2              }
- 479   1      #endif  
- 480   1      
- 481   1              switch(statusPad){
- 482   2              
- 483   2                      case 1:{
- 484   3                      
- 485   3                              switch(loopCount){
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 9   
+ 420   1      }
+ 421          
+ 422          void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触摸触发
+ 423   1      
+ 424   1              switch(statusCfm){
+ 425   2              
+ 426   2                      case press_Short:{
+ 427   3                              
+ 428   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 429   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 430   4                                      u8 xdata log_buf[64];
+ 431   4                                      
+ 432   4                                      sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
+ 433   4                                      PrintString1_logOut(log_buf);
+ 434   4                              }
+ 435   3      #endif  
+ 436   3                              switch(statusPad){
+ 437   4                                      
+ 438   4                                      case 1:
+ 439   4                                      case 2:
+ 440   4                                      case 4:{
+ 441   5                                              
+ 442   5                                              swCommand_fromUsr.actMethod = relay_flip;
+ 443   5                                              swCommand_fromUsr.objRelay = statusPad;
+ 444   5                                              EACHCTRL_realesFLG = statusPad; //互控
+ 445   5                                              devActionPush_IF.push_IF = 1; //推送使能
+ 446   5                                              
+ 447   5                                      }break;
+ 448   4                                              
+ 449   4                                      default:{}break;
+ 450   4                              }
+ 451   3                              
+ 452   3                      }break;
+ 453   2                      
+ 454   2                      case press_ShortCnt:{
+ 455   3                              
+ 456   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 457   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 458   4                                      u8 xdata log_buf[64];
+ 459   4                                      
+ 460   4                                      sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
+ 461   4                                      PrintString1_logOut(log_buf);
+ 462   4                              }
+ 463   3      #endif  
+ 464   3                              
+ 465   3                              switch(statusPad){
+ 466   4                                      
+ 467   4                                      case 1:
+ 468   4                                      case 2:
+ 469   4                                      case 4:{
+ 470   5                                              
+ 471   5                                              swCommand_fromUsr.actMethod = relay_flip;
+ 472   5                                              swCommand_fromUsr.objRelay = statusPad;
+ 473   5                                              
+ 474   5                                      }break;
+ 475   4                                              
+ 476   4                                      default:{}break;
+ 477   4                              }
+ 478   3                              
+ 479   3                      }break;
+ 480   2                      
+ 481   2                      case press_LongA:{
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 9   
 
- 486   4                              
- 487   4                                      case 3:{
- 488   5                                      
- 489   5                                      }break;
- 490   4                                      
- 491   4                                      case 4:{
- 492   5                                      
- 493   5                                              usrZigbNwkOpen(); //网络开放
- 494   5                                              
- 495   5                                      }break;
- 496   4                                              
- 497   4                                      default:{}break;
- 498   4                              }
- 499   3                              
- 500   3                      }break;
- 501   2                              
- 502   2                      case 2:{
- 503   3                      
- 504   3                              switch(loopCount){
- 505   4                              
- 506   4                                      case 3:{}break;
- 507   4                                              
- 508   4                                      default:{}break;
- 509   4                              }
- 510   3                              
- 511   3                      }break;
- 512   2                              
- 513   2                      case 4:{
- 514   3                      
- 515   3                              switch(loopCount){
- 516   4                              
- 517   4                                      case 3:{}break;
- 518   4                                              
- 519   4                                      case 4:{
- 520   5                                      
- 521   5                                              devHoldStop_makeInAdvance(); //设备网络挂起停止
- 522   5                                      
- 523   5                                      }break;
- 524   4                                              
- 525   4                                      default:{}break;
- 526   4                              }
- 527   3                              
- 528   3                      }break;
- 529   2                              
- 530   2                      default:{}break;
- 531   2              }
- 532   1      }
- 533          
- 534          void fun_Test(void){
- 535   1      
- 536   1              ;
- 537   1      }
- 538          
- 539          void usrKeyFun_zigbNwkRejoin(void){
- 540   1      
- 541   1              devStatus_switch.statusChange_standBy = status_nwkREQ;
- 542   1              devStatus_switch.statusChange_IF = 1;
- 543   1              
- 544   1              tips_statusChangeToZigbNwkFind(); //tips更新
- 545   1      }
+ 482   3                              
+ 483   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 484   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 485   4                                      u8 xdata log_buf[64];
+ 486   4                                      
+ 487   4                                      sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
+ 488   4                                      PrintString1_logOut(log_buf);
+ 489   4                              }
+ 490   3      #endif  
+ 491   3                      
+ 492   3                              switch(statusPad){
+ 493   4                              
+ 494   4                                      case 1:{
+ 495   5                                              
+ 496   5                                      
+ 497   5                                      }break;
+ 498   4                                              
+ 499   4                                      case 2:{}break;
+ 500   4                                              
+ 501   4                                      case 4:{
+ 502   5                                      
+ 503   5                                              devStatusChangeTo_devHold(1); //设备网络挂起
+ 504   5                                      
+ 505   5                                      }break;
+ 506   4                                              
+ 507   4                                      default:{}break;
+ 508   4                              }
+ 509   3                              
+ 510   3                      }break;
+ 511   2                              
+ 512   2                      case press_LongB:{
+ 513   3                              
+ 514   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 515   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 516   4                                      u8 xdata log_buf[64];
+ 517   4                                      
+ 518   4                                      sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
+ 519   4                                      PrintString1_logOut(log_buf);
+ 520   4                              }
+ 521   3      #endif  
+ 522   3                      
+ 523   3                              switch(statusPad){
+ 524   4                              
+ 525   4                                      case 1:{}break;
+ 526   4                                              
+ 527   4                                      case 2:{}break;
+ 528   4                                              
+ 529   4                                      case 4:{}break;
+ 530   4                                              
+ 531   4                                      default:{}break;
+ 532   4                              }
+ 533   3                              
+ 534   3                      }break;
+ 535   2                              
+ 536   2                      default:{}break;
+ 537   2              }
+ 538   1      }
+ 539          
+ 540          void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){ //触摸连按触发
+ 541   1              
+ 542   1              EACHCTRL_realesFLG = statusPad; //最后一次连按触发互控同步
+ 543   1              devActionPush_IF.push_IF = 1; //最后一次连按触发推送使能
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 10  
 
+ 544   1              
+ 545   1      #if(DEBUG_LOGOUT_EN == 1)                               
+ 546   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 547   2                      u8 xdata log_buf[64];
+ 548   2                      
+ 549   2                      sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
+ 550   2                      PrintString1_logOut(log_buf);
+ 551   2              }
+ 552   1      #endif  
+ 553   1      
+ 554   1              switch(statusPad){
+ 555   2              
+ 556   2                      case 1:{
+ 557   3                      
+ 558   3                              switch(loopCount){
+ 559   4                              
+ 560   4                                      case 3:{
+ 561   5                                      
+ 562   5                                      }break;
+ 563   4                                      
+ 564   4                                      case 4:{
+ 565   5                                      
+ 566   5                                              usrZigbNwkOpen(); //网络开放
+ 567   5                                              
+ 568   5                                      }break;
+ 569   4                                              
+ 570   4                                      default:{}break;
+ 571   4                              }
+ 572   3                              
+ 573   3                      }break;
+ 574   2                              
+ 575   2                      case 2:{
+ 576   3                      
+ 577   3                              switch(loopCount){
+ 578   4                              
+ 579   4                                      case 3:{}break;
+ 580   4                                              
+ 581   4                                      default:{}break;
+ 582   4                              }
+ 583   3                              
+ 584   3                      }break;
+ 585   2                              
+ 586   2                      case 4:{
+ 587   3                      
+ 588   3                              switch(loopCount){
+ 589   4                              
+ 590   4                                      case 3:{}break;
+ 591   4                                              
+ 592   4                                      case 4:{
+ 593   5                                      
+ 594   5                                              devHoldStop_makeInAdvance(); //设备网络挂起停止
+ 595   5                                      
+ 596   5                                      }break;
+ 597   4                                              
+ 598   4                                      default:{}break;
+ 599   4                              }
+ 600   3                              
+ 601   3                      }break;
+ 602   2                              
+ 603   2                      default:{}break;
+ 604   2              }
+ 605   1      }
+C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 11  
 
-C51 COMPILER V9.54   USRKIN                                                                09/07/2018 18:15:39 PAGE 10  
+ 606          
+ 607          void fun_Test(void){
+ 608   1      
+ 609   1              ;
+ 610   1      }
+ 611          
+ 612          void usrKeyFun_zigbNwkRejoin(void){
+ 613   1      
+ 614   1              devStatus_switch.statusChange_standBy = status_nwkREQ;
+ 615   1              devStatus_switch.statusChange_IF = 1;
+ 616   1              
+ 617   1              tips_statusChangeToZigbNwkFind(); //tips更新
+ 618   1      }
+
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1064    ----
-   CONSTANT SIZE    =    164    ----
-   XDATA SIZE       =      4     320
+   CODE SIZE        =   1097    ----
+   CONSTANT SIZE    =    202    ----
+   XDATA SIZE       =      4     384
    PDATA SIZE       =   ----    ----
    DATA SIZE        =      6      17
    IDATA SIZE       =      1    ----

@@ -11,8 +11,8 @@
 
 #define ZIGB_UTCTIME_START			946684800UL //zigbee时间戳从unix纪元946684800<2000/01/01 00:00:00>开始计算
 
-#define PERIOD_HEARTBEAT			6  //心跳包发送周期  单位：s
-#define PERIOD_SYSTIMEREALES		10 //系统时间更新周期  单位：s
+#define PERIOD_HEARTBEAT			6  	//心跳包发送周期  单位：s
+#define PERIOD_SYSTIMEREALES		10 	//系统时间更新周期  单位：s
 #define ZIGBNWK_OPNETIME_DEFAULT	12	//默认zigb网络开放时间 单位：s
 #define DEVHOLD_TIME_DEFAULT		240 //设备挂起默认时间，时间到后重启网络 单位：s
 

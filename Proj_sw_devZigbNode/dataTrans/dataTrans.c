@@ -998,8 +998,8 @@ void dataTransRequest_datsSend(void){
 	u8 		ASR_dats[zigbDatsSend_ASR_datsLen] = {0};
 	u8 code ASR_cmd[2] = {0x44,0x80};	//本地ZNP协议层确认发送响应
 	
-#define resCODE_datsSend_NOROUTER 0xCD	//数据发送协议层响应代码-路由失联
-#define resCODE_datsSend_NOREMOTE 0xE9	//数据发送协议层响应代码-对方不在线
+#define resCODE_datsSend_NOROUTER 0xCD	//数据发送协议层响应代码-路由失联，通讯媒介丢失
+#define resCODE_datsSend_NOREMOTE 0xE9	//数据发送协议层响应代码-对方不在线，目标地址节点设备不存在
 #define resCODE_datsSend_TIMEOUT  0x01  //数据发送协议层响应代码-发送超时
 #define resCODE_datsSend_SUCCESS  0x00  //数据发送协议层响应代码-发送成功
 	static u8 datsTrans_respondCode = 0; //发送完成响应码
@@ -1019,7 +1019,7 @@ void dataTransRequest_datsSend(void){
 	}
 	
 	//接收帧填装_本地
-	ASR_dats[0] = 0x00; //发送成功响应代码
+	ASR_dats[0] = resCODE_datsSend_SUCCESS; //发送成功响应代码
 	ASR_dats[1] = datsSend_request.portPoint;
 	ASR_dats[2] = zigbDatsDefault_TransID;
 	datsRX_Len = ZigB_TXFrameLoad(buf_datsRX, (u8 *)ASR_cmd, 2, ASR_dats, zigbDatsSend_ASR_datsLen);
@@ -1030,7 +1030,7 @@ void dataTransRequest_datsSend(void){
 	
 		case 0:{ //响应接收就绪，设置响应时间
 			
-			if(reactionLoop > 3){
+			if(reactionLoop > 3){ //重发次数已超出
 				
 				datsTrans_respondCode = resCODE_datsSend_TIMEOUT; //响应码改为超时
 				
@@ -1060,7 +1060,7 @@ void dataTransRequest_datsSend(void){
 				
 					uartRX_toutFLG = 0;
 
-					if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, buf_datsRX, datsRX_Len)){
+					if(memmem(datsRcv_ZIGB.rcvDats, COM_RX1_Lenth, buf_datsRX, datsRX_Len)){ //应答指令和应答码都正确
 					
 						if(datsRcv_respond.datsTrans.datsLen == 0){
 						
@@ -1074,7 +1074,11 @@ void dataTransRequest_datsSend(void){
 						
 					}else{	
 						
-						datsTrans_respondCode = datsRcv_ZIGB.rcvDats[4]; //错误响应码装载
+						if(!memcmp(&datsRcv_ZIGB.rcvDats[2], ASR_cmd, 2)){ //应答指令正确，但应答码错误，则取出错误码
+						
+							datsTrans_respondCode = datsRcv_ZIGB.rcvDats[4]; //错误响应码装载
+							step = 4; //有应答指令，跳至失败步骤
+						}
 						
 //#if(DEBUG_LOGOUT_EN == 1)
 //						{ //输出打印，谨记 用后注释，否则占用大量代码空间
@@ -1149,6 +1153,15 @@ void dataTransRequest_datsSend(void){
 			//针对数据传输失败响应代码情况进行选择性重连，否则仅时区协调器设备就gg
 			if(datsTrans_respondCode){ 
 				
+#if(DEBUG_LOGOUT_EN == 1)				
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					u8 xdata log_buf[64];
+					
+					sprintf(log_buf, "remote dataRequest fail, code:[0x%02X].\n", (int)datsTrans_respondCode);
+					PrintString1_logOut(log_buf);
+				}
+#endif	
+				
 				switch(datsTrans_respondCode){ //响应失败码分析
 				
 					case resCODE_datsSend_NOROUTER:
@@ -1217,7 +1230,7 @@ void function_devNwkHold(void){
 	
 	if(devNwkHoldTime_Param.devHoldTime_counter){ //直到挂起时间结束
 	
-		if(devNwkHoldTime_Param.zigbNwkSystemNote_IF){ //通知当前网络内子设备挂起,报两次
+		if(devNwkHoldTime_Param.zigbNwkSystemNote_IF){ //通知当前网络内子设备挂起,报一次
 			
 			u8 xdata dats_Note[3] = {ZIGB_SYSCMD_DEVHOLD, 1, 0}; //命令、数据长度、数据
 		
@@ -1336,6 +1349,15 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 			resultSet = ZigB_nwkOpen(1, dats.dats[0]); //功能触发
 			tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 			
+#if(DEBUG_LOGOUT_EN == 1)
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "master cmdComing:nwkOpen:%02ds.\n", (int)dats.dats[0]);
+				PrintString1_logOut(log_buf);
+			}			
+#endif		
+			
 		}break;
 		
 		case ZIGB_SYSCMD_TIMESET:{ //系统时间设定
@@ -1356,14 +1378,30 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 				coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);
 			}
 			
-			if(dats.dats[6])timeZoneAdjust_needIF = 1; //时区补偿使能
-			resultSet = zigB_sysTimeSet(time_Temp - ZIGB_UTCTIME_START, timeZoneAdjust_needIF); //zigbee UTC负补偿
+			if(dats.dats[6])timeZoneAdjust_needIF = 1; //时区补偿使能判断
+			if(time_Temp > ZIGB_UTCTIME_START)resultSet = zigB_sysTimeSet(time_Temp - ZIGB_UTCTIME_START, timeZoneAdjust_needIF); //zigbee 本地系统时间设置<UTC负补偿>
 			
+#if(DEBUG_LOGOUT_EN == 1)
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "master UTC coming:[0x%02X%02X%02X%02X].\n", (int)dats.dats[3], (int)dats.dats[2], (int)dats.dats[1], (int)dats.dats[0]);
+				PrintString1_logOut(log_buf);
+			}			
+#endif	
 		}break;
 		
-		case ZIGB_SYSCMD_DEVHOLD:{
-		
-			devStatusChangeTo_devHold(0); //设备网络挂起,不进行网络通知
+		case ZIGB_SYSCMD_DEVHOLD:{ //网络开放（用作网关切换）
+			
+#if(DEBUG_LOGOUT_EN == 1)
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				u8 xdata log_buf[64];
+				
+				sprintf(log_buf, "node cmdComing:devNwk hold.\n");
+				PrintString1_logOut(log_buf);
+			}			
+#endif	
+			devStatusChangeTo_devHold(0); //设备网络被动挂起,不进行网络通知
 			
 		}break;
 			
@@ -1614,7 +1652,7 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 									if(datsParam[14 + loop * 3] == 0x80){	/*一次性定时判断*///周占位为空，而定时器被打开，说明是一次性
 									
 										swTim_onShoot_FLAG 	|= (1 << loop);	//一次性定时标志开启
-										datsParam[14 + loop * 3] |= (1 << (datsParam[31] - 1)); //强行进行当前周占位，当次执行完毕后清除
+										datsParam[14 + loop * 3] |= (1 << (systemTime_current.time_Week - 1)); //强行进行当前周占位，当次执行完毕后清除
 									}
 								}
 								coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, &datsParam[14], 12);	//定时表
@@ -1869,29 +1907,29 @@ void thread_dataTrans(void){
 				heartBeatCycle_FLG = 0;
 				heartBeat_cmdFLG = !heartBeat_cmdFLG;
 				
+				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans); //清缓存
+				
 				paramTX_temp[0] = ZIGB_FRAMEHEAD_HEARTBEAT;
 				paramTX_temp[1] = 14;
 				(heartBeat_cmdFLG)?(paramTX_temp[2] = FRAME_HEARTBEAT_cmdOdd):(paramTX_temp[2] = FRAME_HEARTBEAT_cmdEven);
 				memcpy(&paramTX_temp[4], &MAC_ID[1], 5);
 				
-				if(heartBeat_cmdFLG){
+				if(heartBeat_cmdFLG){ //奇包
 				
 					
 				
-				}else{
+				}else{ //偶包
 				
 					
 				}
 				
-				datsSend_request.nwkAddr = 0;
-				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL;
+				datsSend_request.nwkAddr = 0; //仅对网关发送，进行数据转发
+				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL; //常规数据转发专用端口
 				memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
 				memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 14);
 				datsSend_request.datsTrans.datsLen = 14;
 				datsRcv_respond.datsTrans.datsLen = 0;
 				devRunning_Status = status_dataTransRequestDatsSend;
-				
-				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
 				
 				return;
 			}
@@ -1905,6 +1943,8 @@ void thread_dataTrans(void){
 				u8 xdata datsTX_Len = 0;
 				
 				devActionPush_IF.push_IF = 0;
+				
+				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans); //清缓存
 				
 				paramTX_temp[11] = devActionPush_IF.dats_Push; //推送信息填装
 
@@ -1923,17 +1963,15 @@ void thread_dataTrans(void){
 												   FRAME_MtoZIGBCMD_cmdControl,
 												   specialCmd_IF);
 			
-				datsSend_request.nwkAddr = 0;
-				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL;
+				datsSend_request.nwkAddr = 0; //仅对网关发送，进行数据转发
+				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLNORMAL; //常规数据转发专用端口
 				memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
 				memcpy(datsSend_request.datsTrans.dats, paramTX_temp, datsTX_Len);
 				datsSend_request.datsTrans.datsLen = datsTX_Len;
-				datsRcv_respond.datsTrans.datsLen = 0;
-				devRunning_Status = status_dataTransRequestDatsSend;
-				
-				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+				datsRcv_respond.datsTrans.datsLen = 0; //无需远端应答
+				devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
 
-				return;
+				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 			}
 			
 			//--------------------------------主状态：互控同步---------------------------------------------------//
@@ -1953,20 +1991,20 @@ void thread_dataTrans(void){
 							
 							if((CTRLEATHER_PORT[loop] > 0x10) && CTRLEATHER_PORT[loop] < 0xFF){ //是否为有效互控端口
 							
-								datsSend_request.nwkAddr = 0xffff;
-								datsSend_request.portPoint = CTRLEATHER_PORT[loop];
+								datsSend_request.nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+								datsSend_request.portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
 								memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
 								memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 1);
 								datsSend_request.datsTrans.datsLen = 1;
-								datsRcv_respond.datsTrans.datsLen = 0;
-								devRunning_Status = status_dataTransRequestDatsSend;
+								datsRcv_respond.datsTrans.datsLen = 0; //无需远端应答
+								devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
 								
-								break; //顺序执行，先执行先break，每个总调度周期执行一个有效互控
+								return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 							}
 						}
 					}
 				}	
-			}memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
+			}
 			
 			//--------------------------------主状态：数据解析响应-----------------------------------------------//
 			if(uartRX_toutFLG){ //数据接收(帧超时)
@@ -2013,7 +2051,7 @@ void thread_dataTrans(void){
 						
 						devActionPush_IF.push_IF = 1; //推送使能
 					
-					}else{ /*非互控端口*///剩下就是专用的15个端口
+					}else{ /*非互控端口*///剩下就是系统专用的15个端口
 					
 						switch(srcPoint){
 							

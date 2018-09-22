@@ -12,8 +12,6 @@
 #include "USART.h"
 #include "delay.h"
 
-extern bit devZigbOnline_IF;
-
 void bsp_Init(void){
 
 	appTimer0_Init();
@@ -58,6 +56,8 @@ int main(void){
 		thread_dataTrans();
 		
 		thread_Tips();
+		
+		P36 = 0;
 	}
 	
 	return 0;

@@ -25,10 +25,89 @@ u16	xdata touchPadContinueCnt	= 0;  //触摸盘连按计时
 extern tips_Status devTips_status;
 
 /*------------------------------------------------------------------------------------------------------------*/
-//funKey_Callback xdata funKey[10] = {0};
+///*按键回调函数缓存*///为减少代码冗余，此段弃用
+//static fun_KeyTrigger xdata funTrig_keyTouch_1 = {0}; //连按可用 
+//static fun_KeyTrigger xdata funTrig_keyTouch_2 = {0}; //连按可用
+//static fun_KeyTrigger xdata funTrig_keyTouch_3 = {0}; //连按可用
+//static fun_KeyTrigger xdata funTrig_keyButton  = {0}; //连按不可用
 
 static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
 static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
+
+///*按键触发回调函数注册*///为减少代码冗余，此函数弃用
+//void funKeyTrigger_register(funKey_Callback funTrigger, objKey key, trig_Method mTrig, u8 pressCnt_num){ //回调函数，按键对象，触发方式，连按次数（大于2且 触发方式为连按 有效）
+
+//	switch(key){
+//	
+//		case kinObj_touch_1:{
+//		
+//			switch(mTrig){
+//			
+//				case method_pressShort:	funTrig_keyTouch_1.press_Short = funTrigger;break;
+//				case method_pressCnt:	if(pressCnt_num >= 2)funTrig_keyTouch_1.press_Continue[pressCnt_num] = funTrigger;break;
+//				case method_pressLong_A:funTrig_keyTouch_1.press_Long_A = funTrigger;break;
+//				case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
+//					
+//				default:break;
+//			}
+//		}break;
+//			
+//		case kinObj_touch_2:{
+//			
+//			switch(mTrig){
+//			
+//				case method_pressShort:	funTrig_keyTouch_2.press_Short = funTrigger;break;
+//				case method_pressCnt:	if(pressCnt_num >= 2)funTrig_keyTouch_2.press_Continue[pressCnt_num] = funTrigger;break;
+//				case method_pressLong_A:funTrig_keyTouch_2.press_Long_A = funTrigger;break;
+//				case method_pressLong_B:funTrig_keyTouch_2.press_Long_B = funTrigger;break;
+//					
+//				default:break;
+//			}
+//		}break;
+//			
+//		case kinObj_touch_3:{
+//			
+//			switch(mTrig){
+//			
+//				case method_pressShort:	funTrig_keyButton.press_Short = funTrigger;break;
+//				case method_pressLong_A:funTrig_keyButton.press_Long_A = funTrigger;break;
+//				case method_pressLong_B:funTrig_keyButton.press_Long_B = funTrigger;break;
+//				
+//				case method_pressCnt: //连按不可用
+//				default:break;
+//			}
+//		}break;
+//			
+//		case kinObj_button:{
+//		
+//			switch(mTrig){
+//			
+//				case method_pressShort:	funTrig_keyTouch_3.press_Short = funTrigger;break;
+//				case method_pressCnt:	if(pressCnt_num >= 2)funTrig_keyTouch_3.press_Continue[pressCnt_num] = funTrigger;break;
+//				case method_pressLong_A:funTrig_keyTouch_3.press_Long_A = funTrigger;break;
+//				case method_pressLong_B:funTrig_keyTouch_3.press_Long_B = funTrigger;break;
+//					
+//				default:break;
+//			}
+//		}break;
+//			
+//		default:break;
+//	}
+//}
+
+void usrZigbNwkOpen(void){
+
+	ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
+	tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
+#if(DEBUG_LOGOUT_EN == 1)
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
+		PrintString1_logOut(log_buf);
+	}			
+#endif	
+}
 
 void usrKin_pinInit(void){
 
@@ -39,12 +118,6 @@ void usrKin_pinInit(void){
 	P0M0 &= ~(0x04);
 	
 	if(!Dcode2)relayStatus_ifSave = statusSave_enable;
-}
-
-void usrZigbNwkOpen(void){
-
-	ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
-	tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 }
 
 u8 DcodeScan_oneShoot(void){

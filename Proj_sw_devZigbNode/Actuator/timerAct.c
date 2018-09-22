@@ -140,6 +140,8 @@ void thread_Timing(void){
 	
 	timing_Dats xdata timDatsTemp_CalibrateTab[4] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
 	timing_Dats xdata nightDatsTemp_CalibrateTab[2] = {0};	/*夜间模式起始时刻表缓存*///起始时刻及属性
+	
+	bit idata timeUp_actionDone_flg = 0; //同一分钟内定时器响应动作完成标志<避免重复响应>
 
 #if(DEBUG_LOGOUT_EN == 1)	
 	{ //调试log代码-当前时间输出
@@ -255,12 +257,21 @@ void thread_Timing(void){
 //							uartObjWIFI_Send_String(log_dats, strlen(log_dats));
 //						}
 //					}
+
+					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
+					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,不对则动作完成标志复位
+					   (timeUp_actionDone_flg)){
+					   
+						timeUp_actionDone_flg = 0;
+					}				
 					
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
-					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对
-					   ((u16)systemTime_current.time_Second <= 10)){	 //时刻比对时间限在前10秒
+					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,整分钟都是响应期
+					   (!timeUp_actionDone_flg)){	 //时刻比对时间
 						   
 //						uartObjWIFI_Send_String("time_UP!!!", 11);
+						   
+						timeUp_actionDone_flg = 1; //动作完成标志置位
 						
 						//一次性定时判断
 						if(swTim_onShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息

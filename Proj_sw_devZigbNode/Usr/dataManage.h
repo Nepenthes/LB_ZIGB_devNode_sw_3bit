@@ -12,7 +12,7 @@
 #define		SW_SCENCRAIO_ACTINVALID			0xF0 //场景号对应开关响应状态位无效值
 
 #define 	SWITCH_TYPE_SWBIT1	 			 (0x01 + 0x38) //设备类型，一位开关
-#define 	SWITCH_TYPE_SWBIT2	 			 (0x02 + 0x38) //设备类型；二位开关
+#define 	SWITCH_TYPE_SWBIT2	 			 (0x02 + 0x38) //设备类型，二位开关
 #define 	SWITCH_TYPE_SWBIT3	 			 (0x03 + 0x38) //设备类型，三位开关
 
 //#define 	ROMADDR_ROM_STC_ID		 		 0x3ff8		//STC单片机 全球ID地址

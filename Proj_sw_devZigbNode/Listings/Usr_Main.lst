@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USR_MAIN                                                              09/07/2018 18:15:39 PAGE 1   
+C51 COMPILER V9.54   USR_MAIN                                                              09/21/2018 11:10:00 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USR_MAIN
@@ -23,54 +23,54 @@ line level    source
   12          #include "USART.h"
   13          #include "delay.h"
   14          
-  15          extern bit devZigbOnline_IF;
-  16          
-  17          void bsp_Init(void){
-  18   1      
-  19   1              appTimer0_Init();
-  20   1              zigbUart_pinInit();
-  21   1              uartObjZigb_Init();
-  22   1              tipLED_pinInit();
-  23   1              usrKin_pinInit();
-  24   1              relay_pinInit();
-  25   1      }
-  26          
-  27          void bsp_datsReales(void){
-  28   1      
-  29   1              MAC_ID_Relaes();
-  30   1              portCtrlEachOther_Reales();
-  31   1              ledBKGColorSw_Reales();
-  32   1              timeZone_Reales();
-  33   1      }
-  34          
-  35          int main(void){
-  36   1              
-  37   1              bsp_Init();
-  38   1              bsp_datsReales();
-  39   1              birthDay_Judge();
+  15          void bsp_Init(void){
+  16   1      
+  17   1              appTimer0_Init();
+  18   1              zigbUart_pinInit();
+  19   1              uartObjZigb_Init();
+  20   1              tipLED_pinInit();
+  21   1              usrKin_pinInit();
+  22   1              relay_pinInit();
+  23   1      }
+  24          
+  25          void bsp_datsReales(void){
+  26   1      
+  27   1              MAC_ID_Relaes();
+  28   1              portCtrlEachOther_Reales();
+  29   1              ledBKGColorSw_Reales();
+  30   1              timeZone_Reales();
+  31   1      }
+  32          
+  33          int main(void){
+  34   1              
+  35   1              bsp_Init();
+  36   1              bsp_datsReales();
+  37   1              birthDay_Judge();
+  38   1              
+  39   1      //      while(1)tips_warning();
   40   1              
-  41   1      //      while(1)tips_warning();
-  42   1              
-  43   1              devStatus_switch.statusChange_standBy = status_nwkReconnect;
-  44   1              devStatus_switch.statusChange_IF = 1;
+  41   1              devStatus_switch.statusChange_standBy = status_nwkReconnect;
+  42   1              devStatus_switch.statusChange_IF = 1;
+  43   1              
+  44   1      //      while(1)PIN_RELAY_1 = touchPad_1;
   45   1              
-  46   1      //      while(1)PIN_RELAY_1 = touchPad_1;
-  47   1              
-  48   1              while(1){
-  49   2                      
-  50   2                      touchPad_Scan();
-  51   2                      UsrKEYScan(usrKeyFun_zigbNwkRejoin, fun_Test, fun_Test);
-  52   2                      DcodeScan();
+  46   1              while(1){
+  47   2                      
+  48   2                      touchPad_Scan();
+  49   2                      UsrKEYScan(usrKeyFun_zigbNwkRejoin, fun_Test, fun_Test);
+  50   2                      DcodeScan();
+  51   2                      
+  52   2                      thread_Timing();
   53   2                      
-C51 COMPILER V9.54   USR_MAIN                                                              09/07/2018 18:15:39 PAGE 2   
+C51 COMPILER V9.54   USR_MAIN                                                              09/21/2018 11:10:00 PAGE 2   
 
-  54   2                      thread_Timing();
+  54   2                      thread_Relay();
   55   2                      
-  56   2                      thread_Relay();
+  56   2                      thread_dataTrans();
   57   2                      
-  58   2                      thread_dataTrans();
+  58   2                      thread_Tips();
   59   2                      
-  60   2                      thread_Tips();
+  60   2                      P36 = 0;
   61   2              }
   62   1              
   63   1              return 0;
@@ -79,7 +79,7 @@ line level    source
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     99    ----
+   CODE SIZE        =    101    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
