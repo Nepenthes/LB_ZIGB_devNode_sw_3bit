@@ -39,6 +39,7 @@ extern status_ifSave xdata relayStatus_ifSave;
 extern u8 xdata status_Relay;
 extern relay_Command xdata swCommand_fromUsr;
 extern u8 xdata EACHCTRL_realesFLG;
+extern bit		EACHCTRL_reportFLG;
 extern relayStatus_PUSH xdata devActionPush_IF;
 
 void relay_pinInit(void);

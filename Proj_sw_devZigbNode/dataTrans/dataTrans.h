@@ -15,6 +15,7 @@
 #define PERIOD_SYSTIMEREALES		10 	//系统时间更新周期  单位：s
 #define ZIGBNWK_OPNETIME_DEFAULT	12	//默认zigb网络开放时间 单位：s
 #define DEVHOLD_TIME_DEFAULT		240 //设备挂起默认时间，时间到后重启网络 单位：s
+#define COLONYCTRLGET_QUERYPERIOD	3	//集群受控状态信息周期性轮询周期 单位：s
 
 #define ZIGB_FRAMEHEAD_CTRLLOCAL	0xAA
 #define ZIGB_FRAMEHEAD_CTRLREMOTE	0xCC
@@ -58,19 +59,27 @@
 #define cmdConfigTim_closeLoopSwConfig		0xA2	/*数据1*///循环关闭辨识-数据2
 #define cmdConfigTim_nightModeSwConfig		0xA3	/*数据1*///夜间模式辨识-数据2
 
-#define ZIGB_SYSCMD_NWKOPEN	0x68  //zigb系统控制指令，开放网络
-#define ZIGB_SYSCMD_TIMESET	0x69  //zigb系统控制指令，时间设定
-#define ZIGB_SYSCMD_DEVHOLD	0x6A  //zigb系统控制指令，设备挂起
-
 #define ZIGB_BAUND	 115200UL   //串口波特率->ZIGB模块通讯
 
 #define rxBuff_WIFI	 RX1_Buffer
 
 #define NORMALDATS_DEFAULT_LENGTH	80 //默认数据发送缓存长度
 
+#define STATUSLOCALEACTRL_VALMASKRESERVE_ON		0x0A //互控本地轮询更新值，操作状态掩码 - 开
+#define STATUSLOCALEACTRL_VALMASKRESERVE_OFF	0x0B //互控本地轮询更新值，操作状态掩码 - 关
+
 #define ZIGB_ENDPOINT_CTRLSECENARIO		12 //场景集群控制专用端口
 #define ZIGB_ENDPOINT_CTRLNORMAL		13 //常规数据转发专用端口
 #define ZIGB_ENDPOINT_CTRLSYSZIGB		14 //zigb系统交互专用端口
+
+#define CTRLEATHER_PORT_NUMSTART		0x10 //互控端口起始编号
+#define CTRLEATHER_PORT_NUMTAIL			0xFF //互控端口起始编号
+
+#define ZIGB_SYSCMD_NWKOPEN					0x68  //zigb系统控制指令，开放网络
+#define ZIGB_SYSCMD_TIMESET					0x69  //zigb系统控制指令，时间设定
+#define ZIGB_SYSCMD_DEVHOLD					0x6A  //zigb系统控制指令，设备挂起
+#define ZIGB_SYSCMD_EACHCTRL_REPORT			0x6B  //zigb系统控制指令，子设备向网关上报互控初发状态
+#define ZIGB_SYSCMD_COLONYPARAM_REQPERIOD	0x6C  //zigb集群控制本地受控状态周期轮询应答(包括场景和互控)
 
 #define zigbDatsDefault_GroupID		13
 #define zigbDatsDefault_ClustID		13

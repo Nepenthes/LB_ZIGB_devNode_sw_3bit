@@ -24,6 +24,8 @@ extern u16 xdata 		zigbNwkAction_counter; //zigb网络重连专用动作时间计数
 extern bit 				heartBeatCycle_FLG;	//心跳周期触发标志
 extern u8 				heartBeatCount;	//心跳计数
 
+extern u8	xdata 		colonyCtrlGet_queryCounter; 
+
 //***************按键输入变量引用区***************************/
 extern bit		 		usrKeyCount_EN;
 extern u16		 		usrKeyCount;
@@ -150,6 +152,9 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		
 		/*设备网络挂起时间倒计时*/
 		if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
+		
+		/*集群受控状态周期性轮询周期计时*/
+		if(colonyCtrlGet_queryCounter)colonyCtrlGet_queryCounter --;
 	}
 
 	//***************串口接收超时时长计数*******************************//

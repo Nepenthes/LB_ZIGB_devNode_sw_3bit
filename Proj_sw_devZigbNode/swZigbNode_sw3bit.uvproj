@@ -377,6 +377,11 @@
               <FileType>1</FileType>
               <FilePath>.\Actuator\timerAct.c</FilePath>
             </File>
+            <File>
+              <FileName>touchPad.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Actuator\touchPad.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

@@ -7,9 +7,12 @@
 
 #define COLORGRAY_MAX 	32 //32级灰度
 
-#define TIPS_SWFREELOOP_TIME	10 //开关释放时长空闲定义 单位：s
+#define TIPS_SWFREELOOP_TIME	60 //开关释放时长空闲定义 单位：s
 
-#define TIPS_SWBKCOLOR_TYPENUM	10
+#define TIPS_SWBKCOLOR_TYPENUM	10 //色值表数目
+
+#define TIPSBKCOLOR_DEFAULT_ON	8  //默认开关触摸背景色：开启
+#define TIPSBKCOLOR_DEFAULT_OFF 5  //默认开关触摸背景色：关闭
 
 #define PIN_TIPS_RELAY1_R 	P20
 #define PIN_TIPS_RELAY2_R 	P26
@@ -25,13 +28,6 @@
 #define PIN_TIPS_RELAY2_B 	P24
 #define PIN_TIPS_RELAY3_B 	P27
 #define PIN_TIPS_ZIGBNWK_B 	P03
-
-typedef struct{
-
-	u8 tips_Period:3;
-	u8 tips_time;
-	u8 tips_loop:5;
-}sound_Attr;
 
 typedef struct{
 
@@ -69,6 +65,13 @@ typedef enum{
 	nwkZigb_hold, //网络挂起
 }tips_nwkZigbStatus;
 
+typedef struct{
+
+	u8 tips_Period:3;
+	u8 tips_time;
+	u8 tips_loop:5;
+}sound_Attr;
+
 typedef enum beepsMode{
 
 	beepsMode_null = 0,
@@ -91,7 +94,7 @@ extern color_Attr code color_Tab[10];
 extern u8 xdata counter_ifTipsFree;
 extern u8 xdata timeCount_zigNwkOpen;
 
-extern enum_beeps dev_statusBeeps;
+extern enum_beeps xdata dev_statusBeeps;
 extern sound_Attr xdata devTips_beep;
 
 extern tips_Status devTips_status;

@@ -14,6 +14,7 @@ u8 				xdata status_Relay 		 = 0;
 relay_Command	xdata swCommand_fromUsr	 = {0, actionNull};
 
 u8				xdata EACHCTRL_realesFLG = 0; //互控动作更新使能标志（发码）标志<bit0：一位开关互控更新; bit1：二位开关互控更新; bit2：三位开关互控更新;>
+bit					  EACHCTRL_reportFLG = 0; //互控触发后向网关上报状态使能
 
 relayStatus_PUSH xdata devActionPush_IF = {0};
 

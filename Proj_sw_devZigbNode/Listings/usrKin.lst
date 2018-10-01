@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -62,7 +62,7 @@ line level    source
   48          //                              case method_pressLong_A:funTrig_keyTouch_1.press_Long_A = funTrigger;break;
   49          //                              case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
   50          //                                      
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 2   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 2   
 
   51          //                              default:break;
   52          //                      }
@@ -126,7 +126,7 @@ line level    source
  108   2              }                       
  109   1      #endif  
  110   1      }
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 3   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 3   
 
  111          
  112          void usrKin_pinInit(void){
@@ -190,7 +190,7 @@ line level    source
  170   1                         u8   val_Dcode_differ        = 0;
  171   1              
  172   1                         bit  val_CHG                         = 0;
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 4   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 4   
 
  173   1              
  174   1              val_DcodeCfm = DcodeScan_oneShoot();
@@ -254,7 +254,7 @@ line level    source
  232   4                              
  233   4                                      case 0:{
  234   5                                      
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 5   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 5   
 
  235   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
  236   5                                              
@@ -318,7 +318,7 @@ line level    source
  294   3                              LongB_FLG = 1;
  295   3                      }
  296   2                      
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 6   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 6   
 
  297   2              }else{          
  298   2                      
@@ -382,7 +382,7 @@ line level    source
  356   4      //                                      
  357   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)conterTemp);
  358   4      //                                      PrintString1_logOut(log_buf);
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 7   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 7   
 
  359   4      //                              }
  360   4                              
@@ -446,7 +446,7 @@ line level    source
  417   2                      touchPadActCounter = 0;
  418   2                      keyPress_FLG = 0;
  419   2              }
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 8   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 8   
 
  420   1      }
  421          
@@ -510,7 +510,7 @@ line level    source
  479   3                      }break;
  480   2                      
  481   2                      case press_LongA:{
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 9   
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 9   
 
  482   3                              
  483   3      #if(DEBUG_LOGOUT_EN == 1)                               
@@ -574,7 +574,7 @@ line level    source
  541   1              
  542   1              EACHCTRL_realesFLG = statusPad; //最后一次连按触发互控同步
  543   1              devActionPush_IF.push_IF = 1; //最后一次连按触发推送使能
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 10  
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 10  
 
  544   1              
  545   1      #if(DEBUG_LOGOUT_EN == 1)                               
@@ -638,7 +638,7 @@ line level    source
  603   2                      default:{}break;
  604   2              }
  605   1      }
-C51 COMPILER V9.54   USRKIN                                                                09/21/2018 11:10:01 PAGE 11  
+C51 COMPILER V9.54   USRKIN                                                                09/30/2018 16:43:38 PAGE 11  
 
  606          
  607          void fun_Test(void){

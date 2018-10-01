@@ -34,6 +34,11 @@ attr_devNwkHold	xdata devNwkHoldTime_Param = {0};
 bit heartBeatCycle_FLG = 0;	//心跳周期触发
 u8 	heartBeatCount	   = 0;	//心跳周期计数
 
+//集群受控周期轮询-<包括有互控和场景>
+u8	xdata colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群受控状态周期性轮询计时计数值 
+u8	xdata colonyCtrlGet_statusLocalEaCtrl[clusterNum_usr] = {0}; //集群控制-本地互控状态位记录
+u8	xdata colonyCtrlGet_statusLocalScene = 0; //集群控制-本地场景状态位记录
+
 //串口接收超时标志
 bit uartRX_toutFLG 	= 0;
 //串口接收超时计数
@@ -1077,7 +1082,7 @@ void dataTransRequest_datsSend(void){
 						if(!memcmp(&datsRcv_ZIGB.rcvDats[2], ASR_cmd, 2)){ //应答指令正确，但应答码错误，则取出错误码
 						
 							datsTrans_respondCode = datsRcv_ZIGB.rcvDats[4]; //错误响应码装载
-							step = 4; //有应答指令，跳至失败步骤
+							step = 4; //有应答指令，但应答数据错误，跳至失败步骤
 						}
 						
 //#if(DEBUG_LOGOUT_EN == 1)
@@ -1115,6 +1120,19 @@ void dataTransRequest_datsSend(void){
 						(datsRcv_respond.portPoint == dstPoint)){
 					
 						step = 3;
+							
+					}else{
+					
+#if(DEBUG_LOGOUT_EN == 1)
+						{ //输出打印，谨记 用后注释，否则占用大量代码空间
+							u8 xdata log_buf[64]; //数据传输失败协议层响应代码打印
+							
+//							sprintf(log_buf, "data remoteRcv is %02X %02X %02X.\n", (int)datsRcv_ZIGB.rcvDats[21], (int)datsRcv_ZIGB.rcvDats[22], (int)datsRcv_ZIGB.rcvDats[23]);
+							sprintf(log_buf, "rcvPort is %02X, rcvNwkAddr is %04X.\n", (int)dstPoint, (int)datsFrom_addr);
+//							sprintf(log_buf, "rcvPort is %02X, rcvNwkAddr is %04X.\n", (int)datsRcv_respond.portPoint, (int)datsRcv_respond.nwkAddr);
+							PrintString1_logOut(log_buf);
+						}	
+#endif	
 					}
 				}
 			}
@@ -1320,6 +1338,8 @@ void dataParing_scenarioCtrl(u8 datsFrame[]){
 	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
 	swCommand_fromUsr.actMethod = relay_OnOff;
 	
+	colonyCtrlGet_statusLocalScene = datsFrame[0]; //本地场景控制轮询值更新(场景控制仅来自于手机控制)
+	
 #if(DEBUG_LOGOUT_EN == 1)
 	{ //输出打印，谨记 用后注释，否则占用大量代码空间
 		u8 xdata log_buf[64];
@@ -1334,6 +1354,13 @@ void dataParing_scenarioCtrl(u8 datsFrame[]){
 static 
 void dataParing_zigbSysCtrl(u8 datsFrame[]){
 
+	/*>>>>>>>>>>>>>>frame reference<<<<<<<<<<<<<<<<<*/
+	/*----------------------------------------------*/
+	/*  frame_CMD	|	frame_dataLen|	frame_data	|
+	/*----------------------------------------------*/
+	/*	1byte		|	1byte		 |	< 256byte	|	
+	/*----------------------------------------------*/
+	
 	frame_zigbSysCtrl xdata dats = {0};
 	
 	dats.command = datsFrame[0];
@@ -1402,6 +1429,80 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 			}			
 #endif	
 			devStatusChangeTo_devHold(0); //设备网络被动挂起,不进行网络通知
+			
+		}break;
+		
+		case ZIGB_SYSCMD_COLONYPARAM_REQPERIOD:{
+		
+			/*>>>>>>>>>>>>>>>>>>>frame_data reference<<<<<<<<<<<<<<<*/
+			/*------------------------------------------------------*/
+			/*  frame_data[0]			|	frame_data[1...3]		|
+			/*------------------------------------------------------*/
+			/*	最近一次场景控制状态值	|	最近一次互控更新状态值	|
+			/*------------------------------------------------------*/
+			
+			u8 idata statusRelay_temp = status_Relay; //开关动作执行缓存
+			
+//#if(DEBUG_LOGOUT_EN == 1)
+//				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+//					u8 xdata log_buf[64];
+//					
+//					sprintf(log_buf, "curRealy_Val:%02X, dataQuery result:%02X %02X %02X %02X.\n",
+//									 (int)status_Relay,
+//									 (int)dats.dats[0],
+//									 (int)dats.dats[1],
+//									 (int)dats.dats[2],
+//									 (int)dats.dats[3]);
+//					PrintString1_logOut(log_buf);
+//				}			
+//#endif		
+			if(dats.dats[0] != colonyCtrlGet_statusLocalScene){ //场景状态值轮询更新
+			
+#if(DEBUG_LOGOUT_EN == 1)
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					u8 xdata log_buf[64];
+					
+					sprintf(log_buf, "differ scene detect from poling.\n");
+					PrintString1_logOut(log_buf);
+				}			
+#endif	
+				
+				//上一次场景控制若没有收到，则进行补偿操作
+				colonyCtrlGet_statusLocalScene = dats.dats[0];
+				
+				if(colonyCtrlGet_statusLocalScene <= 0x07){ //3bit以内操作为有效值，便于初始化操作抛弃无效值
+				
+					swCommand_fromUsr.actMethod = relay_OnOff;
+					swCommand_fromUsr.objRelay = colonyCtrlGet_statusLocalScene;
+				}
+			}
+			
+			if(memcmp(&dats.dats[1], colonyCtrlGet_statusLocalEaCtrl, clusterNum_usr)){ //互控状态值值轮询更新
+				
+				u8 idata loop;
+				
+#if(DEBUG_LOGOUT_EN == 1)
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					u8 xdata log_buf[64];
+					
+					sprintf(log_buf, "differ eachCtrl detect from poling, currentVal is: %02X %02X %02X.\n", (int)colonyCtrlGet_statusLocalEaCtrl[0],
+																											 (int)colonyCtrlGet_statusLocalEaCtrl[1],
+																											 (int)colonyCtrlGet_statusLocalEaCtrl[2]);
+					PrintString1_logOut(log_buf);
+				}			
+#endif
+				//上一次互控若没有收到，则进行补偿操作
+				memcpy(colonyCtrlGet_statusLocalEaCtrl, &dats.dats[1], clusterNum_usr);
+				
+				for(loop = 0; loop < clusterNum_usr; loop ++){ //掩码判断操作位，便于初始化操作抛弃无效值
+				
+					if(colonyCtrlGet_statusLocalEaCtrl[loop] == STATUSLOCALEACTRL_VALMASKRESERVE_ON)statusRelay_temp |= (1 << loop);
+					if(colonyCtrlGet_statusLocalEaCtrl[loop] == STATUSLOCALEACTRL_VALMASKRESERVE_OFF)statusRelay_temp &= ~(1 << loop);
+					
+					swCommand_fromUsr.actMethod = relay_OnOff;
+					swCommand_fromUsr.objRelay = statusRelay_temp;
+				}
+			}
 			
 		}break;
 			
@@ -1931,7 +2032,36 @@ void thread_dataTrans(void){
 				datsRcv_respond.datsTrans.datsLen = 0;
 				devRunning_Status = status_dataTransRequestDatsSend;
 				
-				return;
+				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
+			}
+			
+			//------------------------------主状态：本地开关受集群控制状态位周期性轮询<包括有互控和场景>---------//
+			if(!colonyCtrlGet_queryCounter){
+			
+				colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD;
+				
+				/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>frame reference<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+				/*--------------------------------------------------------------------------------------------------------------------------*/
+				/*	frame_data[0]		|	frame_data[1]		|	frame_data[2...6]	|	frame_data[7]			|	frame_data[8...10]	|
+				/*--------------------------------------------------------------------------------------------------------------------------*/
+				/*	命令				|	数据长度			|	本机MAC地址			|	场景说明(暂无说明)		|	互控说明(当前组号)	|		
+				/*--------------------------------------------------------------------------------------------------------------------------*/
+				memset(paramTX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans); //清缓存
+				paramTX_temp[0] = ZIGB_SYSCMD_COLONYPARAM_REQPERIOD; //命令
+				paramTX_temp[1] = clusterNum_usr + 5 + 1; //数据长度说明
+				memcpy(&paramTX_temp[2], &MAC_ID[1], 5); //MAC地址填装
+				paramTX_temp[7] = 0; //场景说明装载(无说明，0填充)
+				memcpy(&paramTX_temp[8], CTRLEATHER_PORT, clusterNum_usr); //互控说明装载(说明端口号)
+				
+				datsSend_request.nwkAddr = 0; //仅对网关发送
+				datsSend_request.portPoint = ZIGB_ENDPOINT_CTRLSYSZIGB; //zigb系统交互专用端口
+				memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+				memcpy(datsSend_request.datsTrans.dats, paramTX_temp, paramTX_temp[1] + 2); 
+				datsSend_request.datsTrans.datsLen = paramTX_temp[1] + 2;
+				datsRcv_respond.datsTrans.datsLen = 0; //不需要远端应答
+				devRunning_Status = status_dataTransRequestDatsSend;
+				
+				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 			}
 			
 			//--------------------------------主状态：数据推送---------------------------------------------------//	
@@ -1975,13 +2105,13 @@ void thread_dataTrans(void){
 			}
 			
 			//--------------------------------主状态：互控同步---------------------------------------------------//
-			if(EACHCTRL_realesFLG){
+			if(EACHCTRL_realesFLG){ //广播互控值
 			
 				if(devRunning_Status == status_passiveDataRcv){
 				
 					u8 idata loop;
 					
-					for(loop = 0; loop < 3; loop ++){ //三个开关位分别判定
+					for(loop = 0; loop < clusterNum_usr; loop ++){ //三个开关位分别判定
 					
 						if(EACHCTRL_realesFLG & (1 << loop)){ //互控有效位判断
 						
@@ -1989,7 +2119,10 @@ void thread_dataTrans(void){
 							
 							paramTX_temp[0] = (status_Relay >> loop) & 0x01; //开关状态填装
 							
-							if((CTRLEATHER_PORT[loop] > 0x10) && CTRLEATHER_PORT[loop] < 0xFF){ //是否为有效互控端口
+							if((CTRLEATHER_PORT[loop] > CTRLEATHER_PORT_NUMSTART) && CTRLEATHER_PORT[loop] < CTRLEATHER_PORT_NUMTAIL){ //是否为有效互控端口
+								
+								(paramTX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控状态更新
+								colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 							
 								datsSend_request.nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
 								datsSend_request.portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
@@ -1997,13 +2130,63 @@ void thread_dataTrans(void){
 								memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 1);
 								datsSend_request.datsTrans.datsLen = 1;
 								datsRcv_respond.datsTrans.datsLen = 0; //无需远端应答
+								
 								devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
+								
+								EACHCTRL_reportFLG = 1; //向网关汇报
 								
 								return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 							}
 						}
 					}
 				}	
+			}
+			
+			if(EACHCTRL_reportFLG){ //向网关单播当前所有互控组号对应的开关状态值
+			
+				EACHCTRL_reportFLG = 0;
+				
+				/*>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>frame reference<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<*/
+				/*----------------------------------------------------------------------------------------------------------*/
+				/*	frame_data[0]		|	frame_data[1]		|	frame_data[2/4/6]	|		frame_data[3/5/7]			|
+				/*----------------------------------------------------------------------------------------------------------*/
+				/*	命令				|	数据长度			|	本地互控端口号		|	本地互控端口号对应开关状态值	|
+				/*----------------------------------------------------------------------------------------------------------*/
+				{
+					u8 code remote_responseFrame[3] = {ZIGB_SYSCMD_EACHCTRL_REPORT, 0x01, 0x00}; //远端响应帧<确保主机收到>
+					
+#if(DEBUG_LOGOUT_EN == 1)
+					{ //输出打印，谨记 用后注释，否则占用大量代码空间
+						u8 xdata log_buf[64];
+						
+						sprintf(log_buf, "current eaCtrl insrt[2] is: %02X.\n", (int)colonyCtrlGet_statusLocalEaCtrl[1]);
+						PrintString1_logOut(log_buf);
+					}			
+#endif	
+					
+					memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+					datsSend_request.datsTrans.dats[0] 	= ZIGB_SYSCMD_EACHCTRL_REPORT;
+					datsSend_request.datsTrans.dats[1] 	= 6;
+					datsSend_request.datsTrans.dats[2] 	= CTRLEATHER_PORT[0];
+					datsSend_request.datsTrans.dats[3] 	= colonyCtrlGet_statusLocalEaCtrl[0];
+					datsSend_request.datsTrans.dats[4] 	= CTRLEATHER_PORT[1];
+					datsSend_request.datsTrans.dats[5] 	= colonyCtrlGet_statusLocalEaCtrl[1];
+					datsSend_request.datsTrans.dats[6] 	= CTRLEATHER_PORT[2];
+					datsSend_request.datsTrans.dats[7] 	= colonyCtrlGet_statusLocalEaCtrl[2];
+					datsSend_request.datsTrans.datsLen 	= 8;
+					datsSend_request.nwkAddr 			= 0;
+					datsSend_request.portPoint 			= ZIGB_ENDPOINT_CTRLSYSZIGB;
+					
+					memset(datsRcv_respond.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8)); //需要远端响应
+					memcpy(datsRcv_respond.datsTrans.dats, remote_responseFrame, 3); //远端响应帧加载
+					datsRcv_respond.datsTrans.datsLen	= 3;
+					datsRcv_respond.nwkAddr 			= 0;
+					datsRcv_respond.portPoint 			= ZIGB_ENDPOINT_CTRLSYSZIGB;
+					
+					devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
+				}
+				
+				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 			}
 			
 			//--------------------------------主状态：数据解析响应-----------------------------------------------//
@@ -2024,15 +2207,26 @@ void thread_dataTrans(void){
 					memset(paramRX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
 					memcpy(paramRX_temp, &(datsRcv_ZIGB.rcvDats[21]), datsRcv_ZIGB.rcvDats[20]);
 						
-					if(srcPoint > 0x10 && srcPoint < 0xff){ /*互控端口*/
+					if(srcPoint > CTRLEATHER_PORT_NUMSTART && srcPoint < CTRLEATHER_PORT_NUMTAIL){ /*互控端口*/
 						
-						u8 statusRelay_temp = status_Relay; //当前开关状态缓存
-					
+						u8 idata statusRelay_temp = status_Relay; //当前开关状态缓存
+						
+						colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
+						
+#if(DEBUG_LOGOUT_EN == 1)
+						{ //输出打印，谨记 用后注释，否则占用大量代码空间
+							u8 xdata log_buf[64];
+							
+							sprintf(log_buf, "ctrl eachOther cmd coming, cluster:%02d.\n", (int)srcPoint);
+							PrintString1_logOut(log_buf);
+						}			
+#endif	
 						if((srcPoint == CTRLEATHER_PORT[0]) && (0 != CTRLEATHER_PORT[0])){ //开关位1 互控绑定判断
 						
 							swCommand_fromUsr.actMethod = relay_OnOff;
 							statusRelay_temp &= ~(1 << 0); //动作位缓存清零
 							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 0; //bit0 开关位动作响应
+							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[0] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[0] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
 						}
 						else
 						if((srcPoint == CTRLEATHER_PORT[1]) && (0 != CTRLEATHER_PORT[1])){ //开关位2 互控绑定判断
@@ -2040,6 +2234,7 @@ void thread_dataTrans(void){
 							swCommand_fromUsr.actMethod = relay_OnOff;
 							statusRelay_temp &= ~(1 << 1); //动作位缓存清零
 							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 1; //bit1 开关位动作响应
+							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[1] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[1] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
 						}
 						else
 						if((srcPoint == CTRLEATHER_PORT[2]) && (0 != CTRLEATHER_PORT[2])){ //开关位3 互控绑定判断
@@ -2047,6 +2242,7 @@ void thread_dataTrans(void){
 							swCommand_fromUsr.actMethod = relay_OnOff;
 							statusRelay_temp &= ~(1 << 2); //动作位缓存清零
 							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 2; //bit2 开关位动作响应
+							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[2] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[2] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
 						}
 						
 						devActionPush_IF.push_IF = 1; //推送使能

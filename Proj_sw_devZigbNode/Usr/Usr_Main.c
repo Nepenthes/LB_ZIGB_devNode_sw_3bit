@@ -8,6 +8,7 @@
 #include "usrKin.h"
 #include "Relay.h"
 #include "timerAct.h"
+#include "touchPad.h"
 
 #include "USART.h"
 #include "delay.h"
@@ -57,7 +58,7 @@ int main(void){
 		
 		thread_Tips();
 		
-		P36 = 0;
+		touchPad_processThread();
 	}
 	
 	return 0;

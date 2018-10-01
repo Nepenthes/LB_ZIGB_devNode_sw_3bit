@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 1   
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
@@ -35,292 +35,297 @@ line level    source
   24          extern bit                              heartBeatCycle_FLG;     //心跳周期触发标志
   25          extern u8                               heartBeatCount; //心跳计数
   26          
-  27          //***************按键输入变量引用区***************************/
-  28          extern bit                              usrKeyCount_EN;
-  29          extern u16                              usrKeyCount;
-  30          
-  31          extern u16 xdata                touchPadActCounter;
-  32          extern u16 xdata                touchPadContinueCnt;
-  33          
-  34          //***************Tips变量引用区***************************/
-  35          extern u16 xdata                counter_tipsAct;
-  36          
-  37          /*-----------------------------------------------------------------------------------------------*/
-  38          void appTimer0_Init(void){      //50us 中断@24.000M
-  39   1      
-  40   1              AUXR |= 0x80;           
-  41   1              TMOD &= 0xF0;           
-  42   1              TL0   = 0x50;           
-  43   1              TH0   = 0xFB;   
-  44   1              TF0   = 0;      
-  45   1              ET0       = 1;  //开中断
-  46   1              PT0   = 0;      //高优先级中断
-  47   1              
-  48   1              TR0   = 1;              
-  49   1      }
-  50          
-  51          void timer0_Rountine (void) interrupt TIMER0_VECTOR{
-  52   1              
-  53   1              u16 code period_1second = 20000;
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 2   
+  27          extern u8       xdata           colonyCtrlGet_queryCounter; 
+  28          
+  29          //***************按键输入变量引用区***************************/
+  30          extern bit                              usrKeyCount_EN;
+  31          extern u16                              usrKeyCount;
+  32          
+  33          extern u16 xdata                touchPadActCounter;
+  34          extern u16 xdata                touchPadContinueCnt;
+  35          
+  36          //***************Tips变量引用区***************************/
+  37          extern u16 xdata                counter_tipsAct;
+  38          
+  39          /*-----------------------------------------------------------------------------------------------*/
+  40          void appTimer0_Init(void){      //50us 中断@24.000M
+  41   1      
+  42   1              AUXR |= 0x80;           
+  43   1              TMOD &= 0xF0;           
+  44   1              TL0   = 0x50;           
+  45   1              TH0   = 0xFB;   
+  46   1              TF0   = 0;      
+  47   1              ET0       = 1;  //开中断
+  48   1              PT0   = 0;      //高优先级中断
+  49   1              
+  50   1              TR0   = 1;              
+  51   1      }
+  52          
+  53          void timer0_Rountine (void) interrupt TIMER0_VECTOR{
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 2   
 
-  54   1              static u16 counter_1second = 0; 
-  55   1              
-  56   1              u8 code period_1ms              = 20;
-  57   1              static u8 counter_1ms   = 0; 
-  58   1              
-  59   1              u8 code period_tipsColor = COLORGRAY_MAX * 3;
-  60   1              static u8 counter_tipsColor = 0; 
-  61   1              static color_Attr xdata cnt_relay1_Tips = {0};
-  62   1              static color_Attr xdata cnt_relay2_Tips = {0};
-  63   1              static color_Attr xdata cnt_relay3_Tips = {0};
-  64   1              static color_Attr xdata cnt_zigbNwk_Tips = {0};
-  65   1              
-  66   1              static u8 xdata period_beep = 3;                //beep专用
-  67   1              static u8 xdata count_beep      = 0;
-  68   1              
-  69   1              //****************1ms专用**********************************************/
-  70   1              if(counter_1ms < period_1ms)counter_1ms ++;
-  71   1              else{
-  72   2              
-  73   2                      counter_1ms = 0;
-  74   2                      
-  75   2                      /*zigb专用动作时间计数*/
-  76   2                      if(zigbNwkAction_counter)zigbNwkAction_counter --;
-  77   2                      
-  78   2                      /*用户按键动作专用时间计数*/
-  79   2                      if(usrKeyCount_EN)usrKeyCount ++;
-  80   2                      else usrKeyCount = 0;
-  81   2                      
-  82   2                      /*触摸按键动作专用时间计数*/
-  83   2                      if(touchPadActCounter)touchPadActCounter --;
-  84   2                      
-  85   2                      /*触摸按键连按专用时间计数*/
-  86   2                      if(touchPadContinueCnt)touchPadContinueCnt --;
-  87   2                      
-  88   2                      /*Tips动作专用时间计数*/
-  89   2                      if(counter_tipsAct)counter_tipsAct --;
-  90   2              }
-  91   1              
-  92   1              //****************1s专用**********************************************/
-  93   1              if(counter_1second < period_1second)counter_1second ++;
-  94   1              else{
-  95   2              
-  96   2                      counter_1second = 0;
-  97   2                      
-  98   2                      /*心跳包计时计数业务*/
-  99   2                      if(!heartBeatCycle_FLG){
- 100   3                      
- 101   3                              if(heartBeatCount < PERIOD_HEARTBEAT)heartBeatCount ++;
- 102   3                              else{
- 103   4                              
- 104   4                                      heartBeatCount = 0;
- 105   4                                      heartBeatCycle_FLG = 1;
- 106   4                              }
- 107   3                      }
- 108   2                      
- 109   2                      /*延时计时业务，到点动作*/
- 110   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
- 111   3                      
- 112   3                              if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
- 113   3                              else{
- 114   4                              
- 115   4                                      delayCnt_onoff = 0;
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 3   
+  54   1              
+  55   1              u16 code period_1second = 20000;
+  56   1              static u16 counter_1second = 0; 
+  57   1              
+  58   1              u8 code period_1ms              = 20;
+  59   1              static u8 counter_1ms   = 0; 
+  60   1              
+  61   1              u8 code period_tipsColor = COLORGRAY_MAX * 3;
+  62   1              static u8 counter_tipsColor = 0; 
+  63   1              static color_Attr xdata cnt_relay1_Tips = {0};
+  64   1              static color_Attr xdata cnt_relay2_Tips = {0};
+  65   1              static color_Attr xdata cnt_relay3_Tips = {0};
+  66   1              static color_Attr xdata cnt_zigbNwk_Tips = {0};
+  67   1              
+  68   1              static u8 xdata period_beep = 3;                //beep专用
+  69   1              static u8 xdata count_beep      = 0;
+  70   1              
+  71   1              //****************1ms专用**********************************************/
+  72   1              if(counter_1ms < period_1ms)counter_1ms ++;
+  73   1              else{
+  74   2              
+  75   2                      counter_1ms = 0;
+  76   2                      
+  77   2                      /*zigb专用动作时间计数*/
+  78   2                      if(zigbNwkAction_counter)zigbNwkAction_counter --;
+  79   2                      
+  80   2                      /*用户按键动作专用时间计数*/
+  81   2                      if(usrKeyCount_EN)usrKeyCount ++;
+  82   2                      else usrKeyCount = 0;
+  83   2                      
+  84   2                      /*触摸按键动作专用时间计数*/
+  85   2                      if(touchPadActCounter)touchPadActCounter --;
+  86   2                      
+  87   2                      /*触摸按键连按专用时间计数*/
+  88   2                      if(touchPadContinueCnt)touchPadContinueCnt --;
+  89   2                      
+  90   2                      /*Tips动作专用时间计数*/
+  91   2                      if(counter_tipsAct)counter_tipsAct --;
+  92   2              }
+  93   1              
+  94   1              //****************1s专用**********************************************/
+  95   1              if(counter_1second < period_1second)counter_1second ++;
+  96   1              else{
+  97   2              
+  98   2                      counter_1second = 0;
+  99   2                      
+ 100   2                      /*心跳包计时计数业务*/
+ 101   2                      if(!heartBeatCycle_FLG){
+ 102   3                      
+ 103   3                              if(heartBeatCount < PERIOD_HEARTBEAT)heartBeatCount ++;
+ 104   3                              else{
+ 105   4                              
+ 106   4                                      heartBeatCount = 0;
+ 107   4                                      heartBeatCycle_FLG = 1;
+ 108   4                              }
+ 109   3                      }
+ 110   2                      
+ 111   2                      /*延时计时业务，到点动作*/
+ 112   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
+ 113   3                      
+ 114   3                              if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
+ 115   3                              else{
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 3   
 
- 116   4                                      
- 117   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
+ 116   4                              
+ 117   4                                      delayCnt_onoff = 0;
  118   4                                      
- 119   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
- 120   4                                      swCommand_fromUsr.objRelay = delayUp_act;
- 121   4                                      devActionPush_IF.push_IF = 1; //推送使能
- 122   4                              }
- 123   3                      }
- 124   2                      
- 125   2                      /*绿色模式计时业务，循环关闭*/
- 126   2                      if((ifDelay_sw_running_FLAG & (1 << 0)) && status_Relay){
- 127   3                      
- 128   3                              if(delayCnt_closeLoop < ((u16)delayPeriod_closeLoop * 60))delayCnt_closeLoop ++;
- 129   3                              else{
- 130   4                                      
- 131   4                                      delayCnt_closeLoop = 0;
- 132   4                              
- 133   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
- 134   4                                      swCommand_fromUsr.objRelay = 0;
- 135   4                                      devActionPush_IF.push_IF = 1; //推送使能
- 136   4                              }
- 137   3                      }
- 138   2                      
- 139   2                      /*系统时间本地维持计数值更新*/
- 140   2                      sysTimeKeep_counter ++;
- 141   2                      
- 142   2                      /*tips空闲释放计时计数业务*/
- 143   2                      if(counter_ifTipsFree)counter_ifTipsFree --;
- 144   2                      
- 145   2                      /*系统时间周期新更新计时计数业务*/
- 146   2                      if(sysTimeReales_counter)sysTimeReales_counter --;
- 147   2                      
- 148   2                      /*zigb网络开放倒计时*/
- 149   2                      if(timeCount_zigNwkOpen)timeCount_zigNwkOpen --;
- 150   2                      
- 151   2                      /*设备网络挂起时间倒计时*/
- 152   2                      if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
- 153   2              }
- 154   1      
- 155   1              //***************串口接收超时时长计数*******************************//
- 156   1              if(rxTout_count_EN){
- 157   2              
- 158   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
- 159   2                      else{
- 160   3                              
- 161   3                              if(!uartRX_toutFLG){
- 162   4                              
- 163   4                                      uartRX_toutFLG = 1;
- 164   4                                      
- 165   4                                      memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
- 166   4                                      memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, COM_RX1_Lenth);
- 167   4                                      datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
- 168   4                              }
- 169   3                              rxTout_count_EN = 0;
- 170   3                      }
- 171   2              }
- 172   1              
- 173   1              //*******************beep计时计数业务**************************/
- 174   1              if(count_beep < period_beep)count_beep ++;
- 175   1              else{
- 176   2                      
- 177   2                      static u16 xdata        tips_Period = 20 * 50 / 2;
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 4   
+ 119   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
+ 120   4                                      
+ 121   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+ 122   4                                      swCommand_fromUsr.objRelay = delayUp_act;
+ 123   4                                      devActionPush_IF.push_IF = 1; //推送使能
+ 124   4                              }
+ 125   3                      }
+ 126   2                      
+ 127   2                      /*绿色模式计时业务，循环关闭*/
+ 128   2                      if((ifDelay_sw_running_FLAG & (1 << 0)) && status_Relay){
+ 129   3                      
+ 130   3                              if(delayCnt_closeLoop < ((u16)delayPeriod_closeLoop * 60))delayCnt_closeLoop ++;
+ 131   3                              else{
+ 132   4                                      
+ 133   4                                      delayCnt_closeLoop = 0;
+ 134   4                              
+ 135   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+ 136   4                                      swCommand_fromUsr.objRelay = 0;
+ 137   4                                      devActionPush_IF.push_IF = 1; //推送使能
+ 138   4                              }
+ 139   3                      }
+ 140   2                      
+ 141   2                      /*系统时间本地维持计数值更新*/
+ 142   2                      sysTimeKeep_counter ++;
+ 143   2                      
+ 144   2                      /*tips空闲释放计时计数业务*/
+ 145   2                      if(counter_ifTipsFree)counter_ifTipsFree --;
+ 146   2                      
+ 147   2                      /*系统时间周期新更新计时计数业务*/
+ 148   2                      if(sysTimeReales_counter)sysTimeReales_counter --;
+ 149   2                      
+ 150   2                      /*zigb网络开放倒计时*/
+ 151   2                      if(timeCount_zigNwkOpen)timeCount_zigNwkOpen --;
+ 152   2                      
+ 153   2                      /*设备网络挂起时间倒计时*/
+ 154   2                      if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
+ 155   2                      
+ 156   2                      /*集群受控状态周期性轮询周期计时*/
+ 157   2                      if(colonyCtrlGet_queryCounter)colonyCtrlGet_queryCounter --;
+ 158   2              }
+ 159   1      
+ 160   1              //***************串口接收超时时长计数*******************************//
+ 161   1              if(rxTout_count_EN){
+ 162   2              
+ 163   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
+ 164   2                      else{
+ 165   3                              
+ 166   3                              if(!uartRX_toutFLG){
+ 167   4                              
+ 168   4                                      uartRX_toutFLG = 1;
+ 169   4                                      
+ 170   4                                      memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 171   4                                      memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, COM_RX1_Lenth);
+ 172   4                                      datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
+ 173   4                              }
+ 174   3                              rxTout_count_EN = 0;
+ 175   3                      }
+ 176   2              }
+ 177   1              
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 4   
 
- 178   2                      static u16 xdata        tips_Count      = 0;
- 179   2                      static u8 xdata         tips_Loop       = 2 * 4;
- 180   2                      static bit                      beeps_en        = 1;
- 181   2              
- 182   2                      count_beep = 0;
- 183   2      
- 184   2                      switch(dev_statusBeeps){ //状态机
- 185   3                              
- 186   3                              case beepsMode_standBy:{
- 187   4                                      
- 188   4                                      period_beep = devTips_beep.tips_Period;
- 189   4                                      tips_Period = 20 * devTips_beep.tips_time / period_beep;
- 190   4                                      tips_Loop       = 2 * devTips_beep.tips_loop;
- 191   4                                      tips_Count      = 0;
- 192   4                                      beeps_en        = 1;
- 193   4                                      dev_statusBeeps = beepsWorking;
- 194   4              
- 195   4                              }break;
- 196   3                              
- 197   3                              case beepsWorking:{
- 198   4                              
- 199   4                                      if(tips_Loop){
- 200   5                                      
- 201   5                                              if(tips_Count < tips_Period){
- 202   6                                              
- 203   6                                                      tips_Count ++;
- 204   6                                                      (beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = 1);
- 205   6                                                      
- 206   6                                              }else{
+ 178   1              //*******************beep计时计数业务**************************/
+ 179   1              if(count_beep < period_beep)count_beep ++;
+ 180   1              else{
+ 181   2                      
+ 182   2                      static u16 xdata        tips_Period = 20 * 50 / 2;
+ 183   2                      static u16 xdata        tips_Count      = 0;
+ 184   2                      static u8 xdata         tips_Loop       = 2 * 4;
+ 185   2                      static bit                      beeps_en        = 1;
+ 186   2              
+ 187   2                      count_beep = 0;
+ 188   2      
+ 189   2                      switch(dev_statusBeeps){ //状态机
+ 190   3                              
+ 191   3                              case beepsMode_standBy:{
+ 192   4                                      
+ 193   4                                      period_beep = devTips_beep.tips_Period;
+ 194   4                                      tips_Period = 20 * devTips_beep.tips_time / period_beep;
+ 195   4                                      tips_Loop       = 2 * devTips_beep.tips_loop;
+ 196   4                                      tips_Count      = 0;
+ 197   4                                      beeps_en        = 1;
+ 198   4                                      dev_statusBeeps = beepsWorking;
+ 199   4              
+ 200   4                              }break;
+ 201   3                              
+ 202   3                              case beepsWorking:{
+ 203   4                              
+ 204   4                                      if(tips_Loop){
+ 205   5                                      
+ 206   5                                              if(tips_Count < tips_Period){
  207   6                                              
- 208   6                                                      tips_Count = 0;
- 209   6                                                      beeps_en = !beeps_en;
- 210   6                                                      tips_Loop --;
- 211   6                                              }
- 212   5                                              
- 213   5                                      }else{
- 214   5                                      
- 215   5                                              dev_statusBeeps = beepsComplete;
- 216   5                                      }
- 217   4                              
- 218   4                              }break;
- 219   3                              
- 220   3                              case beepsComplete:{
- 221   4                              
- 222   4                                      tips_Count = 0;
- 223   4                                      beeps_en = 1;
- 224   4                                      PIN_BEEP = 1;
- 225   4                                      dev_statusBeeps = beepsMode_null;
- 226   4                                      
- 227   4                              }break;
- 228   3                      
- 229   3                              default:{
- 230   4                              
- 231   4                                      PIN_BEEP = 1;
- 232   4                                      
- 233   4                              }break;
- 234   3                      }
- 235   2              }
- 236   1              
- 237   1              //***************tips_Led 刷新业务*******************************//
- 238   1              if(counter_tipsColor > period_tipsColor){       //灰度值值加载
- 239   2              
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 5   
+ 208   6                                                      tips_Count ++;
+ 209   6                                                      (beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = 1);
+ 210   6                                                      
+ 211   6                                              }else{
+ 212   6                                              
+ 213   6                                                      tips_Count = 0;
+ 214   6                                                      beeps_en = !beeps_en;
+ 215   6                                                      tips_Loop --;
+ 216   6                                              }
+ 217   5                                              
+ 218   5                                      }else{
+ 219   5                                      
+ 220   5                                              dev_statusBeeps = beepsComplete;
+ 221   5                                      }
+ 222   4                              
+ 223   4                              }break;
+ 224   3                              
+ 225   3                              case beepsComplete:{
+ 226   4                              
+ 227   4                                      tips_Count = 0;
+ 228   4                                      beeps_en = 1;
+ 229   4                                      PIN_BEEP = 1;
+ 230   4                                      dev_statusBeeps = beepsMode_null;
+ 231   4                                      
+ 232   4                              }break;
+ 233   3                      
+ 234   3                              default:{
+ 235   4                              
+ 236   4                                      PIN_BEEP = 1;
+ 237   4                                      
+ 238   4                              }break;
+ 239   3                      }
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 5   
 
- 240   2                      counter_tipsColor = 0;
- 241   2                      
- 242   2                      cnt_relay1_Tips.colorGray_R = relay1_Tips.colorGray_R;
- 243   2                      cnt_relay1_Tips.colorGray_G = relay1_Tips.colorGray_G;
- 244   2                      cnt_relay1_Tips.colorGray_B = relay1_Tips.colorGray_B;
- 245   2                      
- 246   2                      cnt_relay2_Tips.colorGray_R = relay2_Tips.colorGray_R;
- 247   2                      cnt_relay2_Tips.colorGray_G = relay2_Tips.colorGray_G;
- 248   2                      cnt_relay2_Tips.colorGray_B = relay2_Tips.colorGray_B;
- 249   2                      
- 250   2                      cnt_relay3_Tips.colorGray_R = relay3_Tips.colorGray_R;
- 251   2                      cnt_relay3_Tips.colorGray_G = relay3_Tips.colorGray_G;
- 252   2                      cnt_relay3_Tips.colorGray_B = relay3_Tips.colorGray_B;
- 253   2                      
- 254   2                      cnt_zigbNwk_Tips.colorGray_R = zigbNwk_Tips.colorGray_R;
- 255   2                      cnt_zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_G;
- 256   2                      cnt_zigbNwk_Tips.colorGray_B = zigbNwk_Tips.colorGray_B;
- 257   2              }
- 258   1              else{
- 259   2              
- 260   2                      counter_tipsColor ++;
- 261   2                      
- 262   2                      if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
- 263   3                              
- 264   3                              if(cnt_relay1_Tips.colorGray_R){cnt_relay1_Tips.colorGray_R --; PIN_TIPS_RELAY1_R = 0;}
- 265   3                              else PIN_TIPS_RELAY1_R = 1;
- 266   3                              if(cnt_relay2_Tips.colorGray_R){cnt_relay2_Tips.colorGray_R --; PIN_TIPS_RELAY2_R = 0;}
- 267   3                              else PIN_TIPS_RELAY2_R = 1;
- 268   3                              if(cnt_relay3_Tips.colorGray_R){cnt_relay3_Tips.colorGray_R --; PIN_TIPS_RELAY3_R = 0;}
- 269   3                              else PIN_TIPS_RELAY3_R = 1;
- 270   3                              if(cnt_zigbNwk_Tips.colorGray_R){cnt_zigbNwk_Tips.colorGray_R --; PIN_TIPS_ZIGBNWK_R = 0;}
- 271   3                              else PIN_TIPS_ZIGBNWK_R = 1;
- 272   3                              
- 273   3                      }else
- 274   2                      if((counter_tipsColor > (COLORGRAY_MAX * 1)) && (counter_tipsColor <= (COLORGRAY_MAX * 2))){
- 275   3                      
- 276   3                              if(cnt_relay1_Tips.colorGray_G){cnt_relay1_Tips.colorGray_G --; PIN_TIPS_RELAY1_G = 0;}
- 277   3                              else PIN_TIPS_RELAY1_G = 1;
- 278   3                              if(cnt_relay2_Tips.colorGray_G){cnt_relay2_Tips.colorGray_G --; PIN_TIPS_RELAY2_G = 0;}
- 279   3                              else PIN_TIPS_RELAY2_G = 1;
- 280   3                              if(cnt_relay3_Tips.colorGray_G){cnt_relay3_Tips.colorGray_G --; PIN_TIPS_RELAY3_G = 0;}
- 281   3                              else PIN_TIPS_RELAY3_G = 1;
- 282   3                              if(cnt_zigbNwk_Tips.colorGray_G){cnt_zigbNwk_Tips.colorGray_G --; PIN_TIPS_ZIGBNWK_G = 0;}
- 283   3                              else PIN_TIPS_ZIGBNWK_G = 1;
- 284   3                              
- 285   3                      }else
- 286   2                      if((counter_tipsColor > (COLORGRAY_MAX * 2)) && (counter_tipsColor <= (COLORGRAY_MAX * 3))){
- 287   3                      
- 288   3                              if(cnt_relay1_Tips.colorGray_B){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_RELAY1_B = 0;}
- 289   3                              else PIN_TIPS_RELAY1_B = 1;
- 290   3                              if(cnt_relay2_Tips.colorGray_B){cnt_relay2_Tips.colorGray_B --; PIN_TIPS_RELAY2_B = 0;}
- 291   3                              else PIN_TIPS_RELAY2_B = 1;
- 292   3                              if(cnt_relay3_Tips.colorGray_B){cnt_relay3_Tips.colorGray_B --; PIN_TIPS_RELAY3_B = 0;}
- 293   3                              else PIN_TIPS_RELAY3_B = 1;
- 294   3                              if(cnt_zigbNwk_Tips.colorGray_B){cnt_zigbNwk_Tips.colorGray_B --; PIN_TIPS_ZIGBNWK_B = 0;}
- 295   3                              else PIN_TIPS_ZIGBNWK_B = 1;
- 296   3                      }
- 297   2              }
- 298   1      }
+ 240   2              }
+ 241   1              
+ 242   1              //***************tips_Led 刷新业务*******************************//
+ 243   1              if(counter_tipsColor > period_tipsColor){       //灰度值值加载
+ 244   2              
+ 245   2                      counter_tipsColor = 0;
+ 246   2                      
+ 247   2                      cnt_relay1_Tips.colorGray_R = relay1_Tips.colorGray_R;
+ 248   2                      cnt_relay1_Tips.colorGray_G = relay1_Tips.colorGray_G;
+ 249   2                      cnt_relay1_Tips.colorGray_B = relay1_Tips.colorGray_B;
+ 250   2                      
+ 251   2                      cnt_relay2_Tips.colorGray_R = relay2_Tips.colorGray_R;
+ 252   2                      cnt_relay2_Tips.colorGray_G = relay2_Tips.colorGray_G;
+ 253   2                      cnt_relay2_Tips.colorGray_B = relay2_Tips.colorGray_B;
+ 254   2                      
+ 255   2                      cnt_relay3_Tips.colorGray_R = relay3_Tips.colorGray_R;
+ 256   2                      cnt_relay3_Tips.colorGray_G = relay3_Tips.colorGray_G;
+ 257   2                      cnt_relay3_Tips.colorGray_B = relay3_Tips.colorGray_B;
+ 258   2                      
+ 259   2                      cnt_zigbNwk_Tips.colorGray_R = zigbNwk_Tips.colorGray_R;
+ 260   2                      cnt_zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_G;
+ 261   2                      cnt_zigbNwk_Tips.colorGray_B = zigbNwk_Tips.colorGray_B;
+ 262   2              }
+ 263   1              else{
+ 264   2              
+ 265   2                      counter_tipsColor ++;
+ 266   2                      
+ 267   2                      if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
+ 268   3                              
+ 269   3                              if(cnt_relay1_Tips.colorGray_R){cnt_relay1_Tips.colorGray_R --; PIN_TIPS_RELAY1_R = 0;}
+ 270   3                              else PIN_TIPS_RELAY1_R = 1;
+ 271   3                              if(cnt_relay2_Tips.colorGray_R){cnt_relay2_Tips.colorGray_R --; PIN_TIPS_RELAY2_R = 0;}
+ 272   3                              else PIN_TIPS_RELAY2_R = 1;
+ 273   3                              if(cnt_relay3_Tips.colorGray_R){cnt_relay3_Tips.colorGray_R --; PIN_TIPS_RELAY3_R = 0;}
+ 274   3                              else PIN_TIPS_RELAY3_R = 1;
+ 275   3                              if(cnt_zigbNwk_Tips.colorGray_R){cnt_zigbNwk_Tips.colorGray_R --; PIN_TIPS_ZIGBNWK_R = 0;}
+ 276   3                              else PIN_TIPS_ZIGBNWK_R = 1;
+ 277   3                              
+ 278   3                      }else
+ 279   2                      if((counter_tipsColor > (COLORGRAY_MAX * 1)) && (counter_tipsColor <= (COLORGRAY_MAX * 2))){
+ 280   3                      
+ 281   3                              if(cnt_relay1_Tips.colorGray_G){cnt_relay1_Tips.colorGray_G --; PIN_TIPS_RELAY1_G = 0;}
+ 282   3                              else PIN_TIPS_RELAY1_G = 1;
+ 283   3                              if(cnt_relay2_Tips.colorGray_G){cnt_relay2_Tips.colorGray_G --; PIN_TIPS_RELAY2_G = 0;}
+ 284   3                              else PIN_TIPS_RELAY2_G = 1;
+ 285   3                              if(cnt_relay3_Tips.colorGray_G){cnt_relay3_Tips.colorGray_G --; PIN_TIPS_RELAY3_G = 0;}
+ 286   3                              else PIN_TIPS_RELAY3_G = 1;
+ 287   3                              if(cnt_zigbNwk_Tips.colorGray_G){cnt_zigbNwk_Tips.colorGray_G --; PIN_TIPS_ZIGBNWK_G = 0;}
+ 288   3                              else PIN_TIPS_ZIGBNWK_G = 1;
+ 289   3                              
+ 290   3                      }else
+ 291   2                      if((counter_tipsColor > (COLORGRAY_MAX * 2)) && (counter_tipsColor <= (COLORGRAY_MAX * 3))){
+ 292   3                      
+ 293   3                              if(cnt_relay1_Tips.colorGray_B){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_RELAY1_B = 0;}
+ 294   3                              else PIN_TIPS_RELAY1_B = 1;
+ 295   3                              if(cnt_relay2_Tips.colorGray_B){cnt_relay2_Tips.colorGray_B --; PIN_TIPS_RELAY2_B = 0;}
+ 296   3                              else PIN_TIPS_RELAY2_B = 1;
+ 297   3                              if(cnt_relay3_Tips.colorGray_B){cnt_relay3_Tips.colorGray_B --; PIN_TIPS_RELAY3_B = 0;}
+ 298   3                              else PIN_TIPS_RELAY3_B = 1;
+ 299   3                              if(cnt_zigbNwk_Tips.colorGray_B){cnt_zigbNwk_Tips.colorGray_B --; PIN_TIPS_ZIGBNWK_B = 0;}
+ 300   3                              else PIN_TIPS_ZIGBNWK_B = 1;
+ 301   3                      }
+C51 COMPILER V9.54   APPTIMER                                                              09/30/2018 16:43:38 PAGE 6   
+
+ 302   2              }
+ 303   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-C51 COMPILER V9.54   APPTIMER                                                              09/21/2018 11:10:00 PAGE 6   
-
-   CODE SIZE        =   1239    ----
+   CODE SIZE        =   1257    ----
    CONSTANT SIZE    =      4    ----
    XDATA SIZE       =     19    ----
    PDATA SIZE       =   ----    ----

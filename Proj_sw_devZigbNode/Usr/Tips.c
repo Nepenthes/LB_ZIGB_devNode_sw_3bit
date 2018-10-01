@@ -17,8 +17,8 @@ color_Attr xdata relay2_Tips 	= {0};
 color_Attr xdata relay3_Tips 	= {0};
 color_Attr xdata zigbNwk_Tips 	= {0};
 
-u8 tipsInsert_swLedBKG_ON 		= 1;
-u8 tipsInsert_swLedBKG_OFF 		= 0;
+u8 tipsInsert_swLedBKG_ON 		= TIPSBKCOLOR_DEFAULT_ON;
+u8 tipsInsert_swLedBKG_OFF 		= TIPSBKCOLOR_DEFAULT_OFF;
 color_Attr code  tips_relayUnused= {31, 0,  0};
 
 color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = {
@@ -29,8 +29,6 @@ color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = {
 	{ 0, 10, 31},
 };
 
-sound_Attr xdata devTips_beep  	= {0, 0, 0};
-
 tips_Status devTips_status 		= status_Null; //系统状态指示
 tips_nwkZigbStatus devTips_nwkZigb = nwkZigb_Normal; //zigbee网络状态指示灯
 
@@ -38,7 +36,8 @@ u16 xdata counter_tipsAct 		= 0; //tips 调色灯调色单周期
 u8  xdata counter_ifTipsFree 	= TIPS_SWFREELOOP_TIME;
 u8  xdata timeCount_zigNwkOpen	= 0; //zigb 网络开放时间计时
 
-enum_beeps dev_statusBeeps	 	= beepsMode_null; //状态机状态：蜂鸣器状态指示
+sound_Attr xdata devTips_beep  	= {0, 0, 0};
+enum_beeps xdata dev_statusBeeps= beepsMode_null; //状态机状态：蜂鸣器状态指示
 
 void tipLED_pinInit(void){
 
@@ -76,8 +75,11 @@ void ledBKGColorSw_Reales(void){
 	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
 	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
 	
-	if(tipsInsert_swLedBKG_ON > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_ON = 1;
-	if(tipsInsert_swLedBKG_OFF > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_OFF = 0;
+	if(tipsInsert_swLedBKG_ON > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_ON = TIPSBKCOLOR_DEFAULT_ON;
+	if(tipsInsert_swLedBKG_OFF > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_OFF = TIPSBKCOLOR_DEFAULT_OFF;
+	
+	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
+	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
 }
 
 /*触发非阻塞beeps_Tips*/
@@ -127,7 +129,11 @@ void thread_Tips(void){
 	
 	if(ifNightMode_sw_running_FLAG){ //夜间模式，背景灯tips模式强制切换
 	
-		devTips_status = status_Night;
+		if(devTips_status == status_Normal || //其它系统级tips不收夜间模式影响
+		   devTips_status == status_keyFree){
+
+			devTips_status = status_Night;
+		}
 		
 	}else{ //非夜间模式，其它花样切换开启
 		
@@ -419,7 +425,7 @@ void tips_fadeOut(void){
 				pwmType_C = 0,
 				pwmType_D = 0;
 	
-	u8 code speed = 1;
+	u8 code speed = 3;
 	u8 code step_period = 1;
 	
 	if(!localTips_Count && !count_FLG)(tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++); //步骤初始期期 切换到下一步骤

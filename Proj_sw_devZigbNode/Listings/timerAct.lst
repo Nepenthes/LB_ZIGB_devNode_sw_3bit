@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 1   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIMERACT
@@ -62,7 +62,7 @@ line level    source
   49   2                      timDats_tab[loop].if_Timing = (dats_Temp[loop * 3 + 0] & 0x80) >> 7;    /*ÊÇ·ñ¿ªÆô¶¨Ê±Æ÷Êý¾Ý*///¸ßÒ»Î»
   50   2                      timDats_tab[loop].Status_Act= (dats_Temp[loop * 3 + 1] & 0xe0) >> 5;    /*¶¨Ê±ÏìÓ¦×´Ì¬Êý¾Ý*///¸ßÈýÎ»
   51   2                      timDats_tab[loop].Hour          = (dats_Temp[loop * 3 + 1] & 0x1f) >> 0;        /*¶¨Ê±Ê±¿Ì_Ð¡Ê±*///µÍÎåÎ»
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 2   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 2   
 
   52   2                      timDats_tab[loop].Minute        = (dats_Temp[loop * 3 + 2] & 0xff) >> 0;        /*¶¨Ê±Ê±¿Ì_·Ö*///È«°ËÎ»
   53   2              }
@@ -126,7 +126,7 @@ line level    source
  110   1              sprintf(Log, 
  111   1              "\n>>===Ê±¼ä´Á===<<\n    20%d/%02d/%02d-W%01d\n", 
  112   1                              (int)timeDats.time_Year,
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 3   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 3   
 
  113   1                              (int)timeDats.time_Month,
  114   1                              (int)timeDats.time_Day,
@@ -190,7 +190,7 @@ line level    source
  172   3                              EEPROM_read_n(EEPROM_ADDR_periodCloseLoop, &delayPeriod_closeLoop, 1);
  173   3                      }
  174   2              }
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 4   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 4   
 
  175   1              
  176   1              /*ÏµÍ³Ê±¼äÎ¬³Ö¸üÐÂ*///zigb²éÑ¯sysTimeÖÜÆÚÖ®Íâ ±¾µØ×ÔÐÐÃ¿Ãë¸üÐÂ
@@ -254,7 +254,7 @@ line level    source
  228   2                      ifTim_sw_running_FLAG = 0; 
  229   2                        
  230   2              }else{  //·ÇÈ«¹Ø£¬ÖÃ±êÖ¾Î»£¬²¢Ö´ÐÐ¶¨Ê±Âß¼­
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 5   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 5   
 
  231   2                      
  232   2                      ifTim_sw_running_FLAG = 1; 
@@ -318,7 +318,7 @@ line level    source
  287   6                                                      swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
  288   6                                                      devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ
  289   6                                                      
-C51 COMPILER V9.54   TIMERACT                                                              09/21/2018 11:10:01 PAGE 6   
+C51 COMPILER V9.54   TIMERACT                                                              09/30/2018 16:43:38 PAGE 6   
 
  290   6                                              }else
  291   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >     //µ±Ç°Ê±¼ä´óÓÚ¶¨Ê

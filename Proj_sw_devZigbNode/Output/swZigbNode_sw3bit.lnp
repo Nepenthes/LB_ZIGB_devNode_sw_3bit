@@ -6,6 +6,7 @@
 ".\Output\usrKin.obj",
 ".\Output\Relay.obj",
 ".\Output\timerAct.obj",
+".\Output\touchPad.obj",
 ".\Output\USART.obj",
 ".\Output\delay.obj",
 ".\Output\EEPROM.obj",
