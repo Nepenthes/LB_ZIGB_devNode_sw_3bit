@@ -4,6 +4,7 @@
 
 #include "eeprom.h"
 #include "delay.h"
+#include "USART.h"
 
 #include "stdio.h"
 #include "string.h"
@@ -15,6 +16,10 @@ u8 DEV_actReserve = 0x01;
 
 //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
 u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
+
+#if(DEBUG_LOGOUT_EN == 1)	
+ u8 xdata log_buf[LOGBUFF_LEN] = {0};
+#endif		
 
 /********************本地文件变量创建区******************/
 unsigned char xdata MAC_ID[6] 		= {0}; 
@@ -28,7 +33,18 @@ void MAC_ID_Relaes(void){
 	
 	u8 code *id_ptr = ROMADDR_ROM_STC_ID;
 
-	memcpy(MAC_ID, id_ptr - 6, 6); //顺序向前，往前读，只取后六位
+	memcpy(MAC_ID, id_ptr - 5, 6); //起点在前，向后读，只取后六位
+	
+#if(DEBUG_LOGOUT_EN == 1)	
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
+		PrintString1_logOut(log_buf);
+		sprintf(log_buf, "%02X %02X %02X.\n", (int)MAC_ID[3], (int)MAC_ID[4], (int)MAC_ID[5]);
+		PrintString1_logOut(log_buf);
+	}
+#endif
 
 //	memcpy(MAC_ID, id_ptr - 6, 6); 
 //	memcpy(MAC_ID, MACID_test, 6); 
@@ -187,9 +203,11 @@ void Factory_recover(void){
 	datsTemp[0] = 0;
 	coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
 	
+	memset(CTRLEATHER_PORT, 0, clusterNum_usr); //运行缓存清空
+	
 	delayMs(10);
 	
-//	((void(code *)(void))0x0000)(); //重启
+	((void(code *)(void))0x0000)(); //重启
 }
 
 void birthDay_Judge(void){

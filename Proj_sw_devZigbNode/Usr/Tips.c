@@ -233,8 +233,7 @@ void thread_Tips(void){
 				tips_statusChangeToNormal();
 #if(DEBUG_LOGOUT_EN == 1)
 				{ //输出打印，谨记 用后注释，否则占用大量代码空间
-					u8 xdata log_buf[64];
-					
+					memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 					sprintf(log_buf, "zigbNwk Close.\n");
 					PrintString1_logOut(log_buf);
 				}			
@@ -604,22 +603,33 @@ void tips_specified(u8 tips_Type){ //tips类别
 						
 						if(localTips_Count < 46){
 						
-							if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_B = 31;else zigbNwk_Tips.colorGray_B = 0;
+//							if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_B = 31;else zigbNwk_Tips.colorGray_B = 0;
+							if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_G = 31;else zigbNwk_Tips.colorGray_G = 0;
 						
 						}else{
 						
-							if(localTips_Count > 45)relay1_Tips.colorGray_B = 31;
-							if(localTips_Count > 50)relay2_Tips.colorGray_B = 31;
-							if(localTips_Count > 60)relay3_Tips.colorGray_B = 31;
-							if(localTips_Count > 70)zigbNwk_Tips.colorGray_B = 31;
+//							if(localTips_Count > 45)relay1_Tips.colorGray_B = 31;
+//							if(localTips_Count > 50)relay2_Tips.colorGray_B = 31;
+//							if(localTips_Count > 60)relay3_Tips.colorGray_B = 31;
+//							if(localTips_Count > 70)zigbNwk_Tips.colorGray_B = 31;
+							
+							if(localTips_Count > 45)relay1_Tips.colorGray_G = 31;
+							if(localTips_Count > 50)relay2_Tips.colorGray_G = 31;
+							if(localTips_Count > 60)relay3_Tips.colorGray_G = 31;
+							if(localTips_Count > 70)zigbNwk_Tips.colorGray_G = 31;
 						}
 						
 					}else{ 
 						
-						relay1_Tips.colorGray_B = pwmType_D;
-						relay2_Tips.colorGray_B = pwmType_C;
-						relay3_Tips.colorGray_B = pwmType_B;
-						zigbNwk_Tips.colorGray_B = pwmType_A;
+//						relay1_Tips.colorGray_B = pwmType_D;
+//						relay2_Tips.colorGray_B = pwmType_C;
+//						relay3_Tips.colorGray_B = pwmType_B;
+//						zigbNwk_Tips.colorGray_B = pwmType_A;
+						
+						relay1_Tips.colorGray_G = pwmType_D;
+						relay2_Tips.colorGray_G = pwmType_C;
+						relay3_Tips.colorGray_G = pwmType_B;
+						zigbNwk_Tips.colorGray_G = pwmType_A;
 					}
 					
 				}break;
@@ -648,7 +658,7 @@ void tips_sysStandBy(void){
 	
 	if(!counter_tipsAct){
 		
-		counter_tipsAct = 6; //更新单周期时间
+		counter_tipsAct = 12; //更新单周期时间(@50us中断，中断频率为主机两倍)
 	
 		if(localTips_Count > localTips_Period){
 		

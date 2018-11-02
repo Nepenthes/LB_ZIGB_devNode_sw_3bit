@@ -2,6 +2,7 @@
 ".\Output\appTimer.obj",
 ".\Output\dataManage.obj",
 ".\Output\Tips.obj",
+".\Output\devlopeDebug.obj",
 ".\Output\dataTrans.obj",
 ".\Output\usrKin.obj",
 ".\Output\Relay.obj",

@@ -17,12 +17,12 @@ u8 	 	 xdata	sysTimeZone_M					= 0;
 
 u16		 idata  sysTimeKeep_counter				= 0;	//系统时间维持计数，一秒递增，用于系统时间查询周期到达之前维持系统时间运转
 
-u8 		 idata	swTim_onShoot_FLAG				= 0;	//普通开关定时一次性标志——低四位标识四个定时器
+u8 		 idata	swTim_onShoot_FLAG				= 0;	//普通开关定时一次性标志——八位标识八个定时器，本地控制只作用到前四个
 bit		 idata	ifTim_sw_running_FLAG			= 0;	//普通开关定时运行标志位
 
 bit		 idata	ifNightMode_sw_running_FLAG		= 0;	//普通开关夜间模式运行标志位
 
-u8 		 idata	ifDelay_sw_running_FLAG			= 0;	//延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0定时关闭运行使能标志）
+u8 		 idata	ifDelay_sw_running_FLAG			= 0;	//延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0绿色模式(定时关闭运行使能)标志）
 u16		 idata	delayCnt_onoff					= 0;	//延时动作计时计数
 u8		 idata	delayPeriod_onoff				= 0;	//延时动作周期
 u8		 idata	delayUp_act						= 0;	//延时动作具体动作
@@ -36,14 +36,14 @@ void timeZone_Reales(void){
 	EEPROM_read_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);
 }
 
-void datsTiming_read_eeprom(timing_Dats timDats_tab[4]){
+void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]){
 
-	u8 dats_Temp[12] = {0};
+	u8 dats_Temp[TIMEER_TABLENGTH * 3] = {0};
 	u8 loop = 0;
 	
-	EEPROM_read_n(EEPROM_ADDR_swTimeTab, dats_Temp, 12);
+	EEPROM_read_n(EEPROM_ADDR_swTimeTab, dats_Temp, TIMEER_TABLENGTH * 3);
 	
-	for(loop = 0; loop < 4; loop ++){
+	for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
 	
 		timDats_tab[loop].Week_Num	= (dats_Temp[loop * 3 + 0] & 0x7f) >> 0;	/*周占位数据*///低七位
 		timDats_tab[loop].if_Timing = (dats_Temp[loop * 3 + 0] & 0x80) >> 7;	/*是否开启定时器数据*///高一位
@@ -108,7 +108,7 @@ void time_Logout(stt_Time code timeDats){
 //	PrintString1_logOut(Log);
 	
 	sprintf(Log, 
-	"\n>>===时间戳===<<\n    20%d/%02d/%02d-W%01d\n", 
+	"\n>>===时间戳===<<\n    20%02d/%02d/%02d-W%01d\n", 
 			(int)timeDats.time_Year,
 			(int)timeDats.time_Month,
 			(int)timeDats.time_Day,
@@ -138,7 +138,7 @@ void thread_Timing(void){
 
 	u8 loop = 0;
 	
-	timing_Dats xdata timDatsTemp_CalibrateTab[4] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
+	timing_Dats xdata timDatsTemp_CalibrateTab[TIMEER_TABLENGTH] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
 	timing_Dats xdata nightDatsTemp_CalibrateTab[2] = {0};	/*夜间模式起始时刻表缓存*///起始时刻及属性
 	
 	bit idata timeUp_actionDone_flg = 0; //同一分钟内定时器响应动作完成标志<避免重复响应>
@@ -218,46 +218,50 @@ void thread_Timing(void){
 	
 	/*普通开关定时*///四段数据=======================================================================================================<<<
 	datsTiming_read_eeprom(timDatsTemp_CalibrateTab);	/*普通开关*///时刻表读取
-	/*判断是否所有普通开关定时都为关*/
-	if((timDatsTemp_CalibrateTab[0].if_Timing == 0) &&	//全关，置标志位
-	   (timDatsTemp_CalibrateTab[1].if_Timing == 0) &&
-	   (timDatsTemp_CalibrateTab[2].if_Timing == 0) &&
-	   (timDatsTemp_CalibrateTab[3].if_Timing == 0)
-	  ){
-	  
-		ifTim_sw_running_FLAG = 0; 
-		  
-	}else{	//非全关，置标志位，并执行定时逻辑
-		
-		ifTim_sw_running_FLAG = 1; 
 	
-		for(loop = 0; loop < 4; loop ++){
+	for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
+	
+		if(timDatsTemp_CalibrateTab[loop].if_Timing){ //判断是否有定时段开启
+		
+			ifTim_sw_running_FLAG = 1; //只要有一个定时段开启则定时运行标志置位
+			break;
+			
+		}else{
+		
+			ifTim_sw_running_FLAG = 0;
+		}
+	}
+	
+	/*判断是否所有普通开关定时都为关*/
+	if(ifTim_sw_running_FLAG){	//非全关，置标志位，并执行定时逻辑
+	
+		for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
 			
 			if(weekend_judge(systemTime_current.time_Week, timDatsTemp_CalibrateTab[loop].Week_Num)){	//周占位比对，成功才进行下一步
 			
 				if(timCount_ENABLE == timDatsTemp_CalibrateTab[loop].if_Timing){	//是否开启定时
-					
+//#if(DEBUG_LOGOUT_EN == 1)					
 //					{ //调试log代码-当前有效定时信息输出
 //						
-//						u8 xdata log_dats[80] = {0};
-//						u8 code log_period = 200;
-//						static u8 log_Count = 0;
+//						u8 xdata log_buf[80] = {0};
+//						u16 code log_period = 3000;
+//						static u16 log_Count = 0;
 //						
 //						if(log_Count < log_period)log_Count ++;
 //						else{
 //						
 //							log_Count = 0;
 //							
-//							sprintf(log_dats, 
-//									"有效定时：%d号, 定_时:%d, 定_分:%d \n", 
+//							sprintf(log_buf, 
+//									"timer_%d is running, up time: %02dhour-%02dminute.\n", 
 //									(int)loop, 
 //									(int)timDatsTemp_CalibrateTab[loop].Hour, 
 //									(int)timDatsTemp_CalibrateTab[loop].Minute);
 //							/*log调试打印*///普通定时定时信息
-//							uartObjWIFI_Send_String(log_dats, strlen(log_dats));
+//							PrintString1_logOut(log_buf);
 //						}
 //					}
-
+//#endif
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,不对则动作完成标志复位
 					   (timeUp_actionDone_flg)){
@@ -268,9 +272,14 @@ void thread_Timing(void){
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,整分钟都是响应期
 					   (!timeUp_actionDone_flg)){	 //时刻比对时间
-						   
-//						uartObjWIFI_Send_String("time_UP!!!", 11);
-						   
+#if(DEBUG_LOGOUT_EN == 1)							   
+						{ //输出打印，谨记 用后注释，否则占用大量代码空间
+							u8 xdata log_buf[64];
+							
+							sprintf(log_buf, ">>>>>>>>timer-%02d_UP!!!.\n", (int)loop);
+							PrintString1_logOut(log_buf);
+						}	
+#endif						   
 						timeUp_actionDone_flg = 1; //动作完成标志置位
 						
 						//一次性定时判断
@@ -286,6 +295,7 @@ void thread_Timing(void){
 						swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 						swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
 						devActionPush_IF.push_IF = 1; //推送使能
+						dev_agingCmd_sndInitative.agingCmd_timerSetOpreat = 1; //对应主动上传时效占位置一
 						
 					}else
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >	//当前时间大于定时时间，直接清除一次性标志

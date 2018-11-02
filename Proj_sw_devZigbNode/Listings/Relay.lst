@@ -1,11 +1,10 @@
-C51 COMPILER V9.54   RELAY                                                                 09/30/2018 16:43:38 PAGE 1   
+C51 COMPILER V9.54   RELAY                                                                 11/02/2018 15:47:42 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE RELAY
 OBJECT MODULE PLACED IN .\Output\Relay.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\Relay.c OMF2 ROM(COMPACT) OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Usr
-                    -;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.lst) OBJECT(.\Output\Relay
-                    -.obj)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\Relay.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\
+                    -std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.lst) OBJECT(.\Output\Relay.obj)
 
 line level    source
 
@@ -62,9 +61,9 @@ line level    source
   50   2                      statusTemp = 0;
   51   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
   52   2                      relay_statusReales(); //硬件加载
-C51 COMPILER V9.54   RELAY                                                                 09/30/2018 16:43:38 PAGE 2   
-
   53   2              }
+C51 COMPILER V9.54   RELAY                                                                 11/02/2018 15:47:42 PAGE 2   
+
   54   1      }
   55          
   56          /*开关动作*/
@@ -126,8 +125,8 @@ line level    source
  109   2              }
  110   1      }
 
-C51 COMPILER V9.54   RELAY                                                                 09/30/2018 16:43:38 PAGE 3   
 
+C51 COMPILER V9.54   RELAY                                                                 11/02/2018 15:47:42 PAGE 3   
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =    405    ----

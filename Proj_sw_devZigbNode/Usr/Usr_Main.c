@@ -9,6 +9,7 @@
 #include "Relay.h"
 #include "timerAct.h"
 #include "touchPad.h"
+#include "devlopeDebug.h"
 
 #include "USART.h"
 #include "delay.h"
@@ -59,6 +60,8 @@ int main(void){
 		thread_Tips();
 		
 		touchPad_processThread();
+		
+		thread_devlopeDebug();
 	}
 	
 	return 0;

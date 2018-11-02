@@ -12,6 +12,8 @@
 #include "dataTrans.h"
 #include "Tips.h"
 
+#include "devlopeDebug.h"
+
 //***************数据传输变量引用区***************************/
 extern bit 				rxTout_count_EN;	
 extern u8  				rxTout_count;	//串口接收超时计数
@@ -22,9 +24,12 @@ extern uartTout_datsRcv xdata datsRcv_ZIGB;
 extern u16 xdata 		zigbNwkAction_counter; //zigb网络重连专用动作时间计数
 
 extern bit 				heartBeatCycle_FLG;	//心跳周期触发标志
-extern u8 				heartBeatCount;	//心跳计数
+extern u8 xdata			heartBeatCount;	//心跳计数
+extern u8 xdata			heartBeatPeriod; //心跳周期
+extern u8 xdata 		heartBeatHang_timeCnt;
 
-extern u8	xdata 		colonyCtrlGet_queryCounter; 
+extern u8 xdata 		colonyCtrlGet_queryCounter; 
+extern u8 xdata 		colonyCtrlGetHang_timeCnt;
 
 //***************按键输入变量引用区***************************/
 extern bit		 		usrKeyCount_EN;
@@ -100,7 +105,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		/*心跳包计时计数业务*/
 		if(!heartBeatCycle_FLG){
 		
-			if(heartBeatCount < PERIOD_HEARTBEAT)heartBeatCount ++;
+			if(heartBeatCount < heartBeatPeriod)heartBeatCount ++;
 			else{
 			
 				heartBeatCount = 0;
@@ -114,13 +119,14 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 			if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
 			else{
 			
-				delayCnt_onoff = 0;
+				delayPeriod_onoff = delayCnt_onoff = 0; 
 				
 				ifDelay_sw_running_FLAG &= ~(1 << 1);	//一次性标志清除
 				
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = delayUp_act;
 				devActionPush_IF.push_IF = 1; //推送使能
+				dev_agingCmd_sndInitative.agingCmd_delaySetOpreat = 1; //对应主动上传时效占位置一
 			}
 		}
 		
@@ -135,8 +141,15 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = 0;
 				devActionPush_IF.push_IF = 1; //推送使能
+				dev_agingCmd_sndInitative.agingCmd_greenModeSetOpreat = 1; //对应主动上传时效占位置一
 			}
 		}
+		
+		/*场景周期询查挂起计时值更新*///挂起作用<<
+		if(heartBeatHang_timeCnt)heartBeatHang_timeCnt --;
+		
+		/*心跳挂起计时值更新*///挂起作用<<
+		if(colonyCtrlGetHang_timeCnt)colonyCtrlGetHang_timeCnt --;
 		
 		/*系统时间本地维持计数值更新*/
 		sysTimeKeep_counter ++;
@@ -150,7 +163,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		/*zigb网络开放倒计时*/
 		if(timeCount_zigNwkOpen)timeCount_zigNwkOpen --;
 		
-		/*设备网络挂起时间倒计时*/
+		/*设备网络挂起时间倒计时*///挂起作用<<
 		if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
 		
 		/*集群受控状态周期性轮询周期计时*/
@@ -158,18 +171,31 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 	}
 
 	//***************串口接收超时时长计数*******************************//
-	if(rxTout_count_EN){
+	if(rxTout_count_EN){ //接收超时计时使能判断
 	
 		if(rxTout_count < TimeOutSet1)rxTout_count ++;
 		else{
 			
-			if(!uartRX_toutFLG){
+			if(!uartRX_toutFLG && datsRcv_length >= 5){ //超时时间判断及最小帧长判断
 			
 				uartRX_toutFLG = 1;
-				
+			
 				memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
 				memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, COM_RX1_Lenth);
 				datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
+				
+				/*>>>usr_debug<<<*/
+				if(datsRcv_length != (datsRcv_ZIGB.rcvDats[1] + 5)){  //标的帧长判断，是否超长
+				
+					//usr_debug数据填装
+					frameDebug_data.frameIllegal_FLG = 1;
+					frameDebug_data.frame_aLength = RX1_Buffer[1];
+					frameDebug_data.frame_rLength = datsRcv_length;
+					
+				}else{
+				
+
+				}
 			}
 			rxTout_count_EN = 0;
 		}
@@ -260,7 +286,7 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		cnt_zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_G;
 		cnt_zigbNwk_Tips.colorGray_B = zigbNwk_Tips.colorGray_B;
 	}
-	else{
+	else{ //pwm执行
 	
 		counter_tipsColor ++;
 		

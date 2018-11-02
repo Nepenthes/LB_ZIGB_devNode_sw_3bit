@@ -6,6 +6,8 @@
 #define timCount_ENABLE		0x01
 #define timCount_DISABLE	0x00
 
+#define TIMEER_TABLENGTH	8 //定时时段数量
+
 typedef struct{
 
 	u8 time_Year;
@@ -32,8 +34,9 @@ extern u8 		xdata sysTimeZone_H;
 extern u8 		xdata sysTimeZone_M;
 extern u16		idata sysTimeKeep_counter;
 
-extern u8 		idata ifDelay_sw_running_FLAG;	//延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0定时关闭运行使能标志）
 extern bit		idata ifNightMode_sw_running_FLAG;
+
+extern u8 		idata ifDelay_sw_running_FLAG;	//延时动作_是否运行标志位（bit 1延时开关运行使能标志，bit 0定时关闭运行使能标志）
 extern u16		idata delayCnt_onoff;
 extern u8		idata delayPeriod_onoff;
 extern u8		idata delayUp_act;
@@ -45,5 +48,8 @@ extern bit		idata ifTim_sw_running_FLAG;
 
 void timeZone_Reales(void);
 void thread_Timing(void);
+
+void datsTimNight_read_eeprom(timing_Dats timDats_tab[2]);
+void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]);
 
 #endif

@@ -101,8 +101,7 @@ void usrZigbNwkOpen(void){
 	tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 #if(DEBUG_LOGOUT_EN == 1)
 	{ //输出打印，谨记 用后注释，否则占用大量代码空间
-		u8 xdata log_buf[64];
-		
+		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 		sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
 		PrintString1_logOut(log_buf);
 	}			
@@ -386,7 +385,7 @@ void touchPad_Scan(void){
 				if(touchPadContinueCnt)pressContinueGet ++;
 				if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //非连按短按触发互控同步，若为连按则最后一次触发同步
 				else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
-				beeps_usrActive(3, 50, 3);
+				beeps_usrActive(3, 50, 2);
 			}
 		}
 	
@@ -427,8 +426,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 			
 #if(DEBUG_LOGOUT_EN == 1)				
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				u8 xdata log_buf[64];
-				
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 				sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
 				PrintString1_logOut(log_buf);
 			}
@@ -455,8 +453,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 			
 #if(DEBUG_LOGOUT_EN == 1)				
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				u8 xdata log_buf[64];
-				
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 				sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
 				PrintString1_logOut(log_buf);
 			}
@@ -482,8 +479,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 			
 #if(DEBUG_LOGOUT_EN == 1)				
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				u8 xdata log_buf[64];
-				
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 				sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
 				PrintString1_logOut(log_buf);
 			}
@@ -513,8 +509,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 			
 #if(DEBUG_LOGOUT_EN == 1)				
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				u8 xdata log_buf[64];
-				
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 				sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
 				PrintString1_logOut(log_buf);
 			}
@@ -544,8 +539,7 @@ void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 	
 #if(DEBUG_LOGOUT_EN == 1)				
 	{ //输出打印，谨记 用后注释，否则占用大量代码空间
-		u8 xdata log_buf[64];
-		
+		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 		sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
 		PrintString1_logOut(log_buf);
 	}

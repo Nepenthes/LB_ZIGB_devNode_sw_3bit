@@ -3,26 +3,47 @@
 
 #include "STC15Fxxxx.H"
 #include "USART.h"
+
+#include "dataManage.h"
 #include "timerAct.h"
 
-#define zigbPin_RESET				P23
+#define zigbPin_RESET	P23
+
+#define DATATRANS_WORKMODE_HEARTBEAT	0x0A
+#define DATATRANS_WORKMODE_KEEPACESS	0x0B
+
+#define ZIGB_DATATRANS_WORKMODE			DATATRANS_WORKMODE_KEEPACESS //定时类通讯模式选择
+#define COLONYINFO_QUERYPERIOD_EN		DISABLE //集控信息周期性获取使能（集群控制信息查询周期为较短，失能将给通讯减负）
+
+#define DTMODEKEEPACESS_FRAMEHEAD_ONLINE	0xFA	//定时寻访模式通讯帧头_在线
+#define DTMODEKEEPACESS_FRAMEHEAD_OFFLINE	0xFB	//定时寻访模式通讯帧头_离线
+#define	DTMODEKEEPACESS_FRAMECMD_ASR		0xA1	//定时寻访模式通讯帧命令——被动 远端控制应答/上传
+#define	DTMODEKEEPACESS_FRAMECMD_PST		0xA2	//定时寻访模式通讯帧命令——主动 本地控制更新/上传
 
 #define ZIGB_FRAME_HEAD 			0xFE
 
 #define ZIGB_UTCTIME_START			946684800UL //zigbee时间戳从unix纪元946684800<2000/01/01 00:00:00>开始计算
 
-#define PERIOD_HEARTBEAT			6  	//心跳包发送周期  单位：s
+#if(ZIGB_DATATRANS_WORKMODE == DATATRANS_WORKMODE_HEARTBEAT) //根据宏判做定义
+	#define PERIOD_HEARTBEAT_ASR		6  	//心跳包发送周期  单位：s
+#elif(ZIGB_DATATRANS_WORKMODE == DATATRANS_WORKMODE_KEEPACESS)
+	#define PERIOD_HEARTBEAT_ASR		20  //周期询访数据询访周期_主动  单位：s
+	#define PERIOD_HEARTBEAT_PST		2	//周期询访数据询访周期_被动	 单位：s
+#endif
+
 #define PERIOD_SYSTIMEREALES		10 	//系统时间更新周期  单位：s
-#define ZIGBNWK_OPNETIME_DEFAULT	12	//默认zigb网络开放时间 单位：s
+#define ZIGBNWK_OPNETIME_DEFAULT	30	//默认zigb网络开放时间 单位：s
 #define DEVHOLD_TIME_DEFAULT		240 //设备挂起默认时间，时间到后重启网络 单位：s
 #define COLONYCTRLGET_QUERYPERIOD	3	//集群受控状态信息周期性轮询周期 单位：s
+#define REMOTE_DATAREQ_TIMEOUT		1000//远端数据请求系统响应超时时间  单位：ms
+#define REMOTE_RESPOND_TIMEOUT		500 //远端数据请求节点响应超时时间  单位：ms
 
 #define ZIGB_FRAMEHEAD_CTRLLOCAL	0xAA
 #define ZIGB_FRAMEHEAD_CTRLREMOTE	0xCC
 #define ZIGB_FRAMEHEAD_HEARTBEAT	0xAB
 #define ZIGB_FRAMEHEAD_HBOFFLINE	0xBB
 
-#define ZIGB_NWKADDR_CORDINATER		0
+#define ZIGB_NWKADDR_CORDINATER		0 	//主机网络短地址，即协调器短地址 为0
 
 //#define FRAME_TYPE_MtoZIGB_CMD			0xA1	/*数据类型*///手机至开关
 //#define FRAME_TYPE_ZIGBtoM_RCVsuccess		0x1A	/*数据类型*///开关至手机
@@ -133,6 +154,12 @@ typedef struct{
 
 typedef struct{
 
+	u16 keepTxUntilCmp_IF:1; // 0:持续发送直到有响应码(无论对错) / 1：持续发送直到收到正确响应码(直到正确)，即是否死磕
+	u16 datsTxKeep_Period:15; // 持续发送周期/频次 单位：ms
+}remoteDataReq_method;
+
+typedef struct{
+
 	datsAttr_datsBase datsTrans;
 	u8 	portPoint;
 	u16	nwkAddr;
@@ -163,6 +190,9 @@ typedef struct ZigB_Init_datsAttr{
 extern attr_devNwkHold	xdata devNwkHoldTime_Param;
 extern stt_statusChange xdata devStatus_switch;
 extern u8 xdata devNwkHoldTime_counter;
+
+extern stt_agingDataSet_bitHold xdata dev_agingCmd_rcvPassive;
+extern stt_agingDataSet_bitHold xdata dev_agingCmd_sndInitative;
 
 void zigbUart_pinInit(void);
 void uartObjZigb_Init(void);
