@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 1   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIMERACT
@@ -62,7 +62,7 @@ line level    source
   48   2                      timDats_tab[loop].Week_Num      = (dats_Temp[loop * 3 + 0] & 0x7f) >> 0;        /*周占位数据*///低七位
   49   2                      timDats_tab[loop].if_Timing = (dats_Temp[loop * 3 + 0] & 0x80) >> 7;    /*是否开启定时器数据*///高一位
   50   2                      timDats_tab[loop].Status_Act= (dats_Temp[loop * 3 + 1] & 0xe0) >> 5;    /*定时响应状态数据*///高三位
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 2   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 2   
 
   51   2                      timDats_tab[loop].Hour          = (dats_Temp[loop * 3 + 1] & 0x1f) >> 0;        /*定时时刻_小时*///低五位
   52   2                      timDats_tab[loop].Minute        = (dats_Temp[loop * 3 + 2] & 0xff) >> 0;        /*定时时刻_分*///全八位
@@ -126,7 +126,7 @@ line level    source
  109   1              
  110   1              sprintf(Log, 
  111   1              "\n>>===时间戳===<<\n    20%02d/%02d/%02d-W%01d\n", 
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 3   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 3   
 
  112   1                              (int)timeDats.time_Year,
  113   1                              (int)timeDats.time_Month,
@@ -190,7 +190,7 @@ line level    source
  170   3                              
  171   3                              EEPROM_read_n(EEPROM_ADDR_swDelayFLAG, &ifDelay_sw_running_FLAG, 1);
  172   3                              EEPROM_read_n(EEPROM_ADDR_periodCloseLoop, &delayPeriod_closeLoop, 1);
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 4   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 4   
 
  173   3                      }
  174   2              }
@@ -254,7 +254,7 @@ line level    source
  226   3                              ifTim_sw_running_FLAG = 1; //只要有一个定时段开启则定时运行标志置位
  227   3                              break;
  228   3                              
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 5   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 5   
 
  229   3                      }else{
  230   3                      
@@ -318,7 +318,7 @@ line level    source
  285   6                                                      //一次性定时判断
  286   6                                                      if(swTim_onShoot_FLAG & (1 << loop)){   //是否为一次性定时，是则清空本段定时信息
  287   7                                                              
-C51 COMPILER V9.54   TIMERACT                                                              11/02/2018 15:47:42 PAGE 6   
+C51 COMPILER V9.54   TIMERACT                                                              11/09/2018 14:49:55 PAGE 6   
 
  288   7                                                              u8 code dats_Temp = 0;
  289   7                                                              

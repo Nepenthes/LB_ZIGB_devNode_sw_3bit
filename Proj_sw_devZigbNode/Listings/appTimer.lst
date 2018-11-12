@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 1   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
@@ -62,7 +62,7 @@ line level    source
   52   1              ET0       = 1;  //开中断
   53   1              PT0   = 0;      //高优先级中断
   54   1              
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 2   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 2   
 
   55   1              TR0   = 1;              
   56   1      }
@@ -126,7 +126,7 @@ line level    source
  114   3                      }
  115   2                      
  116   2                      /*延时计时业务，到点动作*/
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 3   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 3   
 
  117   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
  118   3                      
@@ -190,7 +190,7 @@ line level    source
  176   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
  177   2                      else{
  178   3                              
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 4   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 4   
 
  179   3                              if(!uartRX_toutFLG && datsRcv_length >= 5){ //超时时间判断及最小帧长判断
  180   4                              
@@ -254,7 +254,7 @@ line level    source
  238   6                                              
  239   6                                                      tips_Count = 0;
  240   6                                                      beeps_en = !beeps_en;
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 5   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 5   
 
  241   6                                                      tips_Loop --;
  242   6                                              }
@@ -318,7 +318,7 @@ line level    source
  300   3                              else PIN_TIPS_RELAY3_R = 1;
  301   3                              if(cnt_zigbNwk_Tips.colorGray_R){cnt_zigbNwk_Tips.colorGray_R --; PIN_TIPS_ZIGBNWK_R = 0;}
  302   3                              else PIN_TIPS_ZIGBNWK_R = 1;
-C51 COMPILER V9.54   APPTIMER                                                              11/02/2018 15:47:41 PAGE 6   
+C51 COMPILER V9.54   APPTIMER                                                              11/09/2018 14:49:54 PAGE 6   
 
  303   3                              
  304   3                      }else

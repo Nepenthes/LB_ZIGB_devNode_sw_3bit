@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -62,7 +62,7 @@ line level    source
   49          //                              case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
   50          //                                      
   51          //                              default:break;
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 2   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 2   
 
   52          //                      }
   53          //              }break;
@@ -126,7 +126,7 @@ line level    source
  109   1      }
  110          
  111          void usrKin_pinInit(void){
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 3   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 3   
 
  112   1      
  113   1              P1M1 &= ~(0xE0);
@@ -190,7 +190,7 @@ line level    source
  171   1                         bit  val_CHG                         = 0;
  172   1              
  173   1              val_DcodeCfm = DcodeScan_oneShoot();
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 4   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 4   
 
  174   1              
  175   1              DEV_actReserve = switchTypeReserve_GET(); //当前开关类型对应有效操作位刷新
@@ -254,7 +254,7 @@ line level    source
  233   5                                      
  234   5                                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
  235   5                                              
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 5   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 5   
 
  236   5                                      }break;
  237   4                                              
@@ -318,7 +318,7 @@ line level    source
  295   2                      
  296   2              }else{          
  297   2                      
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 6   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 6   
 
  298   2                      usrKeyCount_EN = 0;
  299   2                      
@@ -382,7 +382,7 @@ line level    source
  357   4      //                                      PrintString1_logOut(log_buf);
  358   4      //                              }
  359   4                              
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 7   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 7   
 
  360   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
  361   5                                      
@@ -446,7 +446,7 @@ line level    source
  418   2              }
  419   1      }
  420          
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 8   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 8   
 
  421          void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触摸触发
  422   1      
@@ -510,7 +510,7 @@ line level    source
  480   3      #if(DEBUG_LOGOUT_EN == 1)                               
  481   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
  482   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 9   
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 9   
 
  483   4                                      sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
  484   4                                      PrintString1_logOut(log_buf);
@@ -574,7 +574,7 @@ line level    source
  542   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
  543   2                      sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
  544   2                      PrintString1_logOut(log_buf);
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 10  
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 10  
 
  545   2              }
  546   1      #endif  
@@ -638,7 +638,7 @@ line level    source
  604   1      }
  605          
  606          void usrKeyFun_zigbNwkRejoin(void){
-C51 COMPILER V9.54   USRKIN                                                                11/02/2018 15:47:41 PAGE 11  
+C51 COMPILER V9.54   USRKIN                                                                11/09/2018 14:49:55 PAGE 11  
 
  607   1      
  608   1              devStatus_switch.statusChange_standBy = status_nwkREQ;

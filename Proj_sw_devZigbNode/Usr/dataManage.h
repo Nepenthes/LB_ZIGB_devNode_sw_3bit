@@ -48,7 +48,7 @@
 
 /*=======================↓↓↓↓↓定时询访机制专用数据结构↓↓↓↓↓=============================*/
 
-typedef struct agingDataSet_bitHold{ //使用指针强转时注意，agingCmd_swOpreat对应单字节最低位bit0, 依此类推<tips,根据平台大小端不同区分bit0左对齐还是右对齐>
+typedef struct agingDataSet_bitHold{ //数据结构_时效占位;	使用指针强转时注意，agingCmd_swOpreat对应单字节最低位bit0, 依此类推<tips,根据平台大小端不同区分bit0左对齐还是右对齐>
 
 	u8 agingCmd_swOpreat:1; //时效_开关操作 -bit0
 	u8 agingCmd_devLock:1; //时效_设备锁设置 -bit1
@@ -60,13 +60,14 @@ typedef struct agingDataSet_bitHold{ //使用指针强转时注意，agingCmd_swOpreat对应
 	u8 agingCmd_devResetOpreat:1; //时效_开关复位恢复出厂操作 -bit7
 	
 	u8 agingCmd_horsingLight:1; //时效_跑马灯设置 -bit0
-	u8 statusRef_bitReserve:7; //时效_bit保留 -bit1...bit7
+	u8 agingCmd_switchBitBindSetOpreat:1; //时效_开关位互控组设置 -bit1
+	u8 statusRef_bitReserve:6; //时效_bit保留 -bit1...bit7
 	
 	u8 agingCmd_byteReserve[4];	//5字节占位保留
 	
 }stt_agingDataSet_bitHold; //standard_length = 6Bytes
 
-typedef struct swDevStatus_reference{
+typedef struct swDevStatus_reference{ //数据结构_设备运行状态
 
 	u8 statusRef_swStatus:3; //状态_设备开关状态 -bit0...bit2
 	u8 statusRef_reserve:2; //状态_reserve -bit3...bit4
@@ -78,13 +79,13 @@ typedef struct swDevStatus_reference{
 	u8 statusRef_greenMode:1; //状态_绿色模式运行 -bit3
 	u8 statusRef_nightMode:1; //状态_夜间模式运行 -bit4
 	u8 statusRef_horsingLight:1; //状态_跑马灯运行 -bit5
-	u8 statusRef_bitReserve:2;  //状态_reserve -bit6...bit7
+	u8 statusRef_bitReserve:2; //状态_reserve -bit6...bit7
 	
 	u8 statusRef_byteReserve[2];   //状态_reserve -bytes2...3
 	
 }stt_swDevStatusReference_bitHold; //standard_length = 4Bytes
 
-typedef struct dataPonit{
+typedef struct dataPonit{ //数据结构_数据点
 
 	stt_agingDataSet_bitHold 			devAgingOpreat_agingReference; //时效操作占位, 6Bytes
 	stt_swDevStatusReference_bitHold	devStatus_Reference; //设备状态占位, 4Bytes 			
@@ -95,8 +96,9 @@ typedef struct dataPonit{
 	u8									devData_nightMode[6]; //夜间模式数据, 6Bytes
 	u8									devData_bkLight[2]; //背光灯颜色数据, 2Bytes
 	u8									devData_devReset; //开关复位数据, 1Bytes
+	u8									devData_switchBitBind[3]; //开关位互控绑定数据, 3Bytes
 	
-}stt_devOpreatDataPonit; //standard_length = 46Bytes
+}stt_devOpreatDataPonit; //standard_length = 49Bytes
 
 /*=======================↑↑↑↑↑定时询访机制专用数据结构↑↑↑↑↑=============================*/
 #if(DEBUG_LOGOUT_EN == 1)	

@@ -84,10 +84,12 @@
 
 #define rxBuff_WIFI	 RX1_Buffer
 
-#define NORMALDATS_DEFAULT_LENGTH	80 //默认数据发送缓存长度
+#define NORMALDATS_DEFAULT_LENGTH	96 //默认数据发送缓存长度
 
 #define STATUSLOCALEACTRL_VALMASKRESERVE_ON		0x0A //互控本地轮询更新值，操作状态掩码 - 开
 #define STATUSLOCALEACTRL_VALMASKRESERVE_OFF	0x0B //互控本地轮询更新值，操作状态掩码 - 关
+
+#define CTRLSECENARIO_RESPCMD_SPECIAL			0xCE //场景控制回复专用数据
 
 #define ZIGB_ENDPOINT_CTRLSECENARIO		12 //场景集群控制专用端口
 #define ZIGB_ENDPOINT_CTRLNORMAL		13 //常规数据转发专用端口
@@ -101,6 +103,7 @@
 #define ZIGB_SYSCMD_DEVHOLD					0x6A  //zigb系统控制指令，设备挂起
 #define ZIGB_SYSCMD_EACHCTRL_REPORT			0x6B  //zigb系统控制指令，子设备向网关上报互控初发状态
 #define ZIGB_SYSCMD_COLONYPARAM_REQPERIOD	0x6C  //zigb集群控制本地受控状态周期轮询应答(包括场景和互控)
+#define ZIGB_SYSCMD_DATATRANS_HOLD			0x6D  //zigb系统控制指令，定时挂起周期性通信，进行通讯避障
 
 #define zigbDatsDefault_GroupID		13
 #define zigbDatsDefault_ClustID		13

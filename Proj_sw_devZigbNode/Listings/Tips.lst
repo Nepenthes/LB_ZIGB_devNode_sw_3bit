@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 1   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIPS
@@ -62,7 +62,7 @@ line level    source
   52   1              
   53   1              devTips_status = status_Normal;
   54   1              
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 2   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 2   
 
   55   1              tipsLED_colorSet(obj_Relay1, 0, 0, 0);
   56   1              tipsLED_colorSet(obj_Relay2, 0, 0, 0);
@@ -126,7 +126,7 @@ line level    source
  112          /*led状态指示模式切换至zigb网络开放*/
  113          void tips_statusChangeToZigbNwkOpen(u8 timeopen){
  114   1      
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 3   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 3   
 
  115   1              timeCount_zigNwkOpen = timeopen;
  116   1              devTips_status = status_tipsNwkOpen;
@@ -190,7 +190,7 @@ line level    source
              -, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):(tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_rel
              -ayUnused.colorGray_G, tips_relayUnused.colorGray_B));
  172   3                              (DEV_actReserve & 0x02)?((status_Relay & 0x02)?(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLed
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 4   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 4   
 
              -BKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):(tip
              -sLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G
@@ -254,7 +254,7 @@ line level    source
  219   7                                                              devTips_nwkZigb = nwkZigb_Normal;
  220   7                                                      
  221   7                                                      }break;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 5   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 5   
 
  222   6                                              }
  223   5                                      }
@@ -318,7 +318,7 @@ line level    source
  281   3                              case obj_Relay1:{
  282   4                              
  283   4                                      relay1_Tips.colorGray_R = gray_R;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 6   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 6   
 
  284   4                                      relay1_Tips.colorGray_G = gray_G;
  285   4                                      relay1_Tips.colorGray_B = gray_B;
@@ -382,7 +382,7 @@ line level    source
  343   5                                      
  344   5                                              zigbNwk_Tips.colorGray_R = \
  345   5                                              relay3_Tips.colorGray_R = \
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 7   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 7   
 
  346   5                                              relay2_Tips.colorGray_R = \
  347   5                                              relay1_Tips.colorGray_R = 0;
@@ -446,7 +446,7 @@ line level    source
  403   3                              zigbNwk_Tips.colorGray_G = 31 - localTips_Count;
  404   3                              
  405   3                      }break;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 8   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 8   
 
  406   2                      
  407   2                      case 2:{
@@ -510,7 +510,7 @@ line level    source
  463   4                                      relay3_Tips.colorGray_R = 31 - pwmType_B;
  464   4                                      relay2_Tips.colorGray_R = 31 - pwmType_C;
  465   4                                      relay1_Tips.colorGray_R = 31 - pwmType_D;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 9   
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 9   
 
  466   4                                      
  467   4                              }else{ 
@@ -574,7 +574,7 @@ line level    source
  525   1              u8 code speed_Mol = 5,
  526   1                      speed_Den = 4;
  527   1              u8 code step_period = 0;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 10  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 10  
 
  528   1              
  529   1              if(!localTips_Count && !count_FLG){
@@ -638,7 +638,7 @@ line level    source
  586   6                                                      relay1_Tips.colorGray_B = pwmType_A;
  587   6                                              }
  588   5                                              
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 11  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 11  
 
  589   5                                      }break;
  590   4                                              
@@ -702,7 +702,7 @@ line level    source
  648   1      //      u8 code timUnit_period = 0;
  649   1      //      static u8 timUnit_count = 0;
  650   1              
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 12  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 12  
 
  651   1              static u8 localTips_Count = 0;
  652   1              u8 code localTips_Period = 128;
@@ -766,7 +766,7 @@ line level    source
  710   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
  711   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
  712   2      //                      
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 13  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 13  
 
  713   2      //                      zigbNwk_Tips.colorGray_B        = 7 - pwmType_A / 2;
  714   2      //                      relay3_Tips.colorGray_B         = 7 - pwmType_B / 2;
@@ -830,7 +830,7 @@ line level    source
  772   2      //              
  773   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A;
  774   2      //                      relay3_Tips.colorGray_B         = pwmType_B;
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 14  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 14  
 
  775   2      //                      relay2_Tips.colorGray_B         = pwmType_C;
  776   2      //                      relay1_Tips.colorGray_B         = pwmType_D;
@@ -894,7 +894,7 @@ line level    source
  834   2                      
  835   2                      case 4:{ /*蓝*///红消
  836   3                      
-C51 COMPILER V9.54   TIPS                                                                  11/02/2018 15:47:41 PAGE 15  
+C51 COMPILER V9.54   TIPS                                                                  11/09/2018 14:49:55 PAGE 15  
 
  837   3                              zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
  838   3                              relay3_Tips.colorGray_R = 31 - pwmType_B;

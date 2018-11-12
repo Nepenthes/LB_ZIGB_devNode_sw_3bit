@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   DATAMANAGE                                                            11/02/2018 15:47:41 PAGE 1   
+C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DATAMANAGE
@@ -62,7 +62,7 @@ line level    source
   51   1      }
   52          
   53          void portCtrlEachOther_Reales(void){
-C51 COMPILER V9.54   DATAMANAGE                                                            11/02/2018 15:47:41 PAGE 2   
+C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 2   
 
   54   1      
   55   1              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, CTRLEATHER_PORT, 3);
@@ -126,7 +126,7 @@ line level    source
  113          //      }else{
  114          //      
  115          //              return SW_SCENCRAIO_INSERTINVALID; //索引不可查 返回无效值
-C51 COMPILER V9.54   DATAMANAGE                                                            11/02/2018 15:47:41 PAGE 3   
+C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 3   
 
  116          //      }
  117          //}
@@ -190,7 +190,7 @@ line level    source
  175          //      u8 insert = 0;
  176          //      
  177          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
-C51 COMPILER V9.54   DATAMANAGE                                                            11/02/2018 15:47:41 PAGE 4   
+C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 4   
 
  178          //      
  179          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则执行删除
