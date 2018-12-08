@@ -8,6 +8,7 @@
 #include "Relay.h"
 #include "dataManage.h"
 #include "timerAct.h"
+#include "usrKin.h"
 
 #include "eeprom.h"
 #include "delay.h"
@@ -19,7 +20,9 @@ color_Attr xdata zigbNwk_Tips 	= {0};
 
 u8 tipsInsert_swLedBKG_ON 		= TIPSBKCOLOR_DEFAULT_ON;
 u8 tipsInsert_swLedBKG_OFF 		= TIPSBKCOLOR_DEFAULT_OFF;
-color_Attr code  tips_relayUnused= {31, 0,  0};
+color_Attr code  tips_relayUnused= {0, 0, 0};
+
+bit	idata ifHorsingLight_running_FLAG = 1;	//跑马灯运行标志位  默认开
 
 color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = {
 
@@ -33,8 +36,11 @@ tips_Status devTips_status 		= status_Null; //系统状态指示
 tips_nwkZigbStatus devTips_nwkZigb = nwkZigb_Normal; //zigbee网络状态指示灯
 
 u16 xdata counter_tipsAct 		= 0; //tips 调色灯调色单周期
-u8  xdata counter_ifTipsFree 	= TIPS_SWFREELOOP_TIME;
-u8  xdata timeCount_zigNwkOpen	= 0; //zigb 网络开放时间计时
+u8  xdata counter_ifTipsFree 	= TIPS_SWFREELOOP_TIME; //触摸空闲释放计时变量
+bit idata countEN_ifTipsFree	= 0; //触摸空闲释放计时使能
+u8  xdata tipsTimeCount_zigNwkOpen	= 0; //zigb 网络开放tips时间计时变量
+u8	xdata tipsTimeCount_touchReset	= 0; //触摸IC复位tips计时变量
+u8	xdata tipsTimeCount_factoryRecover = 0; //恢复出厂tips倒计时变量
 
 sound_Attr xdata devTips_beep  	= {0, 0, 0};
 enum_beeps xdata dev_statusBeeps= beepsMode_null; //状态机状态：蜂鸣器状态指示
@@ -107,21 +113,43 @@ void tips_statusChangeToNormal(void){
 
 	counter_ifTipsFree = TIPS_SWFREELOOP_TIME;
 	devTips_status = status_Normal;
+	if(tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_nwkOpen;
 }
 
 /*led状态指示模式切换至zigb网络开放*/
 void tips_statusChangeToZigbNwkOpen(u8 timeopen){
 
-	timeCount_zigNwkOpen = timeopen;
+	beeps_usrActive(3, 40, 2);
+	tipsTimeCount_zigNwkOpen = timeopen;
 	devTips_status = status_tipsNwkOpen;
+	devTips_nwkZigb = nwkZigb_nwkOpen;
 	thread_tipsGetDark(0x0F);
 }
 
 /*led状态指示模式切换至zigb网络加入请求*/
 void tips_statusChangeToZigbNwkFind(void){
 
+	beeps_usrActive(3, 40, 2);
 	devTips_status = status_tipsNwkFind;
 	thread_tipsGetDark(0x0F);
+}
+
+/*led状态指示模式切换至触摸IC复位模式*/
+void tips_statusChangeToTouchReset(u8 timeHold){
+
+	tipsTimeCount_touchReset = timeHold;
+	devTips_status = status_touchReset;
+	thread_tipsGetDark(0x0F);
+	beeps_usrActive(3, 40, 2);
+}
+
+/*led状态指示模式切换至恢复出厂模式*/
+void tips_statusChangeToFactoryRecover(u8 timeHold){
+
+	tipsTimeCount_factoryRecover = timeHold;
+	devTips_status = status_sysStandBy;
+	thread_tipsGetDark(0x0F);
+	beeps_usrActive(3, 255, 3);
 }
 
 /*tips主线程*///状态机
@@ -129,9 +157,9 @@ void thread_Tips(void){
 	
 	if(ifNightMode_sw_running_FLAG){ //夜间模式，背景灯tips模式强制切换
 	
-		if(devTips_status == status_Normal || //其它系统级tips不收夜间模式影响
+		if(devTips_status == status_Normal || //其它系统级tips不受夜间模式影响
 		   devTips_status == status_keyFree){
-
+			
 			devTips_status = status_Night;
 		}
 		
@@ -140,7 +168,8 @@ void thread_Tips(void){
 		if(devTips_status == status_Night)tips_statusChangeToNormal(); //当前若为夜间模式则切回正常模式
 	
 		if( !counter_ifTipsFree &&  //指定时间没有硬件操作，led状态指示切换至空闲模式
-		    (devTips_status == status_Normal) ){ //正常模式下才可以切，其他模式不能
+		    (devTips_status == status_Normal) &&  //正常模式下才可以切，其他模式不能
+			ifHorsingLight_running_FLAG ){ //标志位置位才可以切
 		    
 			thread_tipsGetDark(0x0F);
 			devTips_status = status_keyFree;
@@ -151,13 +180,13 @@ void thread_Tips(void){
 	
 		case status_sysStandBy:{
 		
-			
+			tips_sysStandBy();
 			
 		}break;
 			
 		case status_keyFree:{
 		
-			tips_sysStandBy();
+			tips_sysButtonReales();
 		
 		}break;
 		
@@ -165,12 +194,103 @@ void thread_Tips(void){
 		case status_Normal:{
 			
 			static u16 tips_Counter = 0;
-			u16 code tips_Period = 200;
+			u16 code tips_Period = 500;
+			u8 relayStatus_tipsTemp = status_Relay;
+			
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){ //随继电器
+			
+				relayStatus_tipsTemp |= status_Relay & 0x01; //显存1加载
+				relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //显存1处理
+
+			}else
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){ //随继电器
+
+				relayStatus_tipsTemp |= status_Relay & 0x02; //显存2加载
+				relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //显存2处理
+				relayStatus_tipsTemp |= status_Relay & 0x01; //显存1加载
+
+			}else
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT3){ //随继电器
+
+				relayStatus_tipsTemp = status_Relay; //直接加载，不处理
+				
+			}else
+			if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){ //随继电器
+				
+				relayStatus_tipsTemp = status_Relay;
+				
+			}else
+			if(SWITCH_TYPE == SWITCH_TYPE_FANS || SWITCH_TYPE == SWITCH_TYPE_dIMMER){ //随触摸
+				
+				relayStatus_tipsTemp = touchPadScan_oneShoot();
+			}
 
 			/*继电器状态指示*/
-			(DEV_actReserve & 0x01)?((status_Relay & 0x01)?(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):(tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));
-			(DEV_actReserve & 0x02)?((status_Relay & 0x02)?(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):(tipsLED_colorSet(obj_Relay2, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));			
-			(DEV_actReserve & 0x04)?((status_Relay & 0x04)?(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):(tipsLED_colorSet(obj_Relay3, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));	
+			switch(SWITCH_TYPE){
+			
+				case SWITCH_TYPE_CURTAIN:{
+				
+					switch(relayStatus_tipsTemp){ //非占位指示
+					
+						case 0x01:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+						
+						}break;
+							
+						case 0x04:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
+						
+						}break;
+						
+						default:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+						
+						}break;
+					}
+				
+				}break;
+				
+				case SWITCH_TYPE_FANS:
+				case SWITCH_TYPE_SWBIT1:
+				case SWITCH_TYPE_SWBIT2:
+				case SWITCH_TYPE_SWBIT3:
+				default:{ //占位指示
+					
+					(DEV_actReserve & 0x01)?\
+						((relayStatus_tipsTemp & 0x01)?\
+							(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+						(tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));
+					
+					(DEV_actReserve & 0x02)?\
+						((relayStatus_tipsTemp & 0x02)?\
+							(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+						(tipsLED_colorSet(obj_Relay2, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));	
+					
+					(DEV_actReserve & 0x04)?\
+						((relayStatus_tipsTemp & 0x04)?\
+							(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+						(tipsLED_colorSet(obj_Relay3, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));	
+					
+				}break;
+			}
+			
+			/*过期tips处理*/
+			{
+			
+				if((devTips_nwkZigb == nwkZigb_nwkOpen) && !tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_Normal; //网络开放后台tips过期恢复
+			}
 			
 			/*zigb网络状态指示*/
 			{
@@ -188,6 +308,12 @@ void thread_Tips(void){
 						
 							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)); //常绿
 						
+						}break;
+						
+						case nwkZigb_nwkOpen:{
+						
+							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //绿闪
+							
 						}break;
 						
 						case nwkZigb_outLine:{
@@ -227,7 +353,7 @@ void thread_Tips(void){
 		
 		case status_tipsNwkOpen:{
 			
-			if(timeCount_zigNwkOpen)tips_specified(1);
+			if(tipsTimeCount_zigNwkOpen)tips_specified(1);
 			else{
 
 				tips_statusChangeToNormal();
@@ -251,6 +377,23 @@ void thread_Tips(void){
 		case status_devHold:{
 		
 			tips_warning();
+			
+		}break;
+		
+		case status_touchReset:{
+		
+			if(tipsTimeCount_touchReset)tips_sysTouchReset();
+			else{
+			
+				tips_statusChangeToNormal();
+#if(DEBUG_LOGOUT_EN == 1)
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+					sprintf(log_buf, "touch reset complete.\n");
+					PrintString1_logOut(log_buf);
+				}			
+#endif	
+			}
 			
 		}break;
 			
@@ -568,22 +711,36 @@ void tips_specified(u8 tips_Type){ //tips类别
 						
 						if(localTips_Count < 46){
 						
-							if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_B = 31;else zigbNwk_Tips.colorGray_B = 0;
+							if(localTips_Count % 15 > 10){
+							
+								zigbNwk_Tips.colorGray_R = 31;
+								zigbNwk_Tips.colorGray_G = 10;
+								
+							}else{
+							
+								zigbNwk_Tips.colorGray_R = 0;
+								zigbNwk_Tips.colorGray_G = 0;
+							}
 						
 						}else{
 						
-							if(localTips_Count > 45)zigbNwk_Tips.colorGray_B = 31;
-							if(localTips_Count > 50)relay3_Tips.colorGray_B = 31;
-							if(localTips_Count > 60)relay2_Tips.colorGray_B = 31;
-							if(localTips_Count > 70)relay1_Tips.colorGray_B = 31;
+							if(localTips_Count > 45){zigbNwk_Tips.colorGray_R = 31; zigbNwk_Tips.colorGray_G = 10;}
+							if(localTips_Count > 50){relay3_Tips.colorGray_R = 31; relay3_Tips.colorGray_G = 10;}
+							if(localTips_Count > 60){relay2_Tips.colorGray_R = 31; relay2_Tips.colorGray_G = 10;}
+							if(localTips_Count > 70){relay1_Tips.colorGray_R = 31; relay1_Tips.colorGray_G = 10;}
 						}
 						
 					}else{ 
 						
-						zigbNwk_Tips.colorGray_B = pwmType_D;
-						relay3_Tips.colorGray_B = pwmType_C;
-						relay2_Tips.colorGray_B = pwmType_B;
-						relay1_Tips.colorGray_B = pwmType_A;
+						zigbNwk_Tips.colorGray_R = pwmType_D;
+						relay3_Tips.colorGray_R = pwmType_C;
+						relay2_Tips.colorGray_R = pwmType_B;
+						relay1_Tips.colorGray_R = pwmType_A;
+						
+						zigbNwk_Tips.colorGray_G = pwmType_D / 3;
+						relay3_Tips.colorGray_G = pwmType_C / 3;
+						relay2_Tips.colorGray_G = pwmType_B / 3;
+						relay1_Tips.colorGray_G = pwmType_A / 3;
 					}
 					
 				}break;
@@ -643,7 +800,43 @@ void tips_specified(u8 tips_Type){ //tips类别
 	}
 }
 
+void tips_sysTouchReset(void){
+	
+	static bit tipsStep = 0;
+
+	if(counter_tipsAct){
+	
+		if(tipsStep){
+		
+			zigbNwk_Tips.colorGray_R = 0;
+			relay1_Tips.colorGray_R = 0;
+			relay2_Tips.colorGray_R = 0;
+			relay3_Tips.colorGray_R = 0;
+			
+		}else{
+		
+			zigbNwk_Tips.colorGray_R = 31;
+			relay1_Tips.colorGray_R = 31;
+			relay2_Tips.colorGray_R = 31;
+			relay3_Tips.colorGray_R = 31;
+		}
+		
+	}else{
+	
+		counter_tipsAct = 400;
+		tipsStep = !tipsStep;
+	}
+}
+
 void tips_sysStandBy(void){
+
+	zigbNwk_Tips.colorGray_R = 31;
+	relay1_Tips.colorGray_R = 31;
+	relay2_Tips.colorGray_R = 31;
+	relay3_Tips.colorGray_R = 31;
+}
+
+void tips_sysButtonReales(void){
 
 //	u8 code timUnit_period = 0;
 //	static u8 timUnit_count = 0;
@@ -658,7 +851,7 @@ void tips_sysStandBy(void){
 	
 	if(!counter_tipsAct){
 		
-		counter_tipsAct = 12; //更新单周期时间(@50us中断，中断频率为主机两倍)
+		counter_tipsAct = 12; //更新单周期时间(@50us中断，中断频率为网关主机两倍)
 	
 		if(localTips_Count > localTips_Period){
 		

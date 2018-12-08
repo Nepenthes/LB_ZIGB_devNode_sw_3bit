@@ -43,7 +43,7 @@ extern u8		idata delayUp_act;
 extern u16		idata delayCnt_closeLoop;
 extern u8		idata delayPeriod_closeLoop;
 
-extern u8 		idata swTim_onShoot_FLAG;	
+extern u8 		idata swTim_oneShoot_FLAG;	
 extern bit		idata ifTim_sw_running_FLAG;
 
 void timeZone_Reales(void);
@@ -51,5 +51,7 @@ void thread_Timing(void);
 
 void datsTimNight_read_eeprom(timing_Dats timDats_tab[2]);
 void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]);
+void itrf_datsTiming_read_eeprom(void);
+void itrf_datsTimNight_read_eeprom(void);
 
 #endif

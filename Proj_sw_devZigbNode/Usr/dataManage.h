@@ -12,16 +12,30 @@
 #define		SW_SCENCRAIO_INSERTINVALID		0xFF //场景号索引无效值
 #define		SW_SCENCRAIO_ACTINVALID			0xF0 //场景号对应开关响应状态位无效值
 
-#define 	SWITCH_TYPE_SWBIT1	 			 (0x01 + 0x38) //设备类型，一位开关
-#define 	SWITCH_TYPE_SWBIT2	 			 (0x02 + 0x38) //设备类型，二位开关
-#define 	SWITCH_TYPE_SWBIT3	 			 (0x03 + 0x38) //设备类型，三位开关
+#define 	DEVICE_VERSION_NUM				 7 //设备版本号：L7
+#define 	SWITCH_TYPE_SWBIT1	 			 (0x38 + 0x01) //设备类型，一位开关
+#define 	SWITCH_TYPE_SWBIT2	 			 (0x38 + 0x02) //设备类型，二位开关
+#define 	SWITCH_TYPE_SWBIT3	 			 (0x38 + 0x03) //设备类型，三位开关
+#define		SWITCH_TYPE_CURTAIN				 (0x38 + 0x08) //设备类型，窗帘
+
+#define 	SWITCH_TYPE_FANS				 (0x38 + 0x05) //设备类型，风扇
+#define 	SWITCH_TYPE_SOCKETS				 (0x38 + 0x07) //设备类型，插座
+#define 	SWITCH_TYPE_dIMMER				 (0x38 + 0x04) //设备类型，调光
+
+#define 	SWITCH_TYPE_FORCEDEF			 0 //强制开关类型定义,硬件不同,写 0 时则是非强制定义
 
 //#define 	ROMADDR_ROM_STC_ID		 		 0x3ff8		//STC单片机 全球ID地址
 #define 	ROMADDR_ROM_STC_ID		 		 0x7ff8		//STC单片机 全球ID地址
 
-#define 	EEPROM_ADDR_START	 			 0x0000		//起始地址
+#define 	EEPROM_ADDR_START	 			 0x0000		//正常参数起始扇区地址
+#define		EEPROM_ADDR_STATUSRELAY			 0x0200		//继电器状态独立记录起始扇区地址
 
 #define 	EEPROM_USE_OF_NUMBER 			 0x0080	
+
+#define 	DATASAVE_INTLESS_ENABLEIF	 1	//是否将继电器状态进行独立实时记录<在开关状态记忆使能的情况下，开启此功能可有效避免触摸时闪烁>
+#if(DATASAVE_INTLESS_ENABLEIF)
+ #define 	RECORDPERIOD_OPREATION_LOOP	100	//继电器实时状态记录 单循环 存储扇区单元擦除周期
+#endif
 	
 #define		BIRTHDAY_FLAG					 0xA1		//产品出生标记
 	
@@ -35,6 +49,7 @@
 #define  	EEPROM_ADDR_swDelayFLAG			 0x0030		//30H - 30H 开关延时标志位集合						01_Byte
 #define 	EEPROM_ADDR_periodCloseLoop		 0x0031		//31H - 31H	循环关闭时间间隔						01_Byte
 #define 	EEPROM_ADDR_TimeTabNightMode	 0x0032		//32H - 37H 夜间模式定时表							06_Byte
+#define 	EEPROM_ADDR_curtainActPeriod	 0x0033		//33H - 33H 窗帘导轨周期时间						01_Byte
 #define 	EEPROM_ADDR_ledSWBackGround		 0x0040		//40H - 41H	开关背景灯色索引						02_Byte
 #define		EEPROM_ADDR_swScenarioNum		 0x0050		//50H - 6FH 场景编号								31_Byte
 #define		EEPROM_ADDR_swScenarioAct	     0x0070		//70H - 8FH 场景响应动作							31_Byte
@@ -60,8 +75,9 @@ typedef struct agingDataSet_bitHold{ //数据结构_时效占位;	使用指针强转时注意，ag
 	u8 agingCmd_devResetOpreat:1; //时效_开关复位恢复出厂操作 -bit7
 	
 	u8 agingCmd_horsingLight:1; //时效_跑马灯设置 -bit0
-	u8 agingCmd_switchBitBindSetOpreat:1; //时效_开关位互控组设置 -bit1
-	u8 statusRef_bitReserve:6; //时效_bit保留 -bit1...bit7
+	u8 agingCmd_switchBitBindSetOpreat:3; //时效_开关位互控组设置_针对三个开关位进行设置 -bit1...bit3
+	u8 agingCmd_curtainOpPeriodSetOpreat:1; //时效_针对窗帘导轨运行周期时间设置 -bit4
+	u8 statusRef_bitReserve:3; //时效_bit保留 -bit5...bit7
 	
 	u8 agingCmd_byteReserve[4];	//5字节占位保留
 	
@@ -105,9 +121,10 @@ typedef struct dataPonit{ //数据结构_数据点
  extern u8 xdata log_buf[LOGBUFF_LEN];
 #endif		
 
-extern u8 SWITCH_TYPE;
-extern u8 DEV_actReserve;
-extern u8 CTRLEATHER_PORT[3];
+extern u8 	SWITCH_TYPE;
+extern u8 	DEV_actReserve;
+extern u8 	CTRLEATHER_PORT[3];
+extern u16 	dev_currentPanid;
 
 extern unsigned char xdata MAC_ID[6];
 extern unsigned char xdata MAC_ID_DST[6];
@@ -124,5 +141,8 @@ u8 swScenario_oprateCheck(u8 scenarioNum);
 
 void Factory_recover(void);
 void birthDay_Judge(void);
+
+void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus);
+u8 devDataRecovery_relayStatus(void);
 
 #endif

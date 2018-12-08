@@ -11,11 +11,22 @@
 
 #include "Tips.h"
 
-u8 SWITCH_TYPE = SWITCH_TYPE_SWBIT3;
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ u8 SWITCH_TYPE = SWITCH_TYPE_FANS;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+ u8 SWITCH_TYPE = SWITCH_TYPE_dIMMER;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ u8 SWITCH_TYPE = SWITCH_TYPE_SOCKETS;
+#else
+ u8 SWITCH_TYPE = SWITCH_TYPE_CURTAIN;
+#endif
+
 u8 DEV_actReserve = 0x01;
 
 //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
 u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
+
+u16 dev_currentPanid = 0;
 
 #if(DEBUG_LOGOUT_EN == 1)	
  u8 xdata log_buf[LOGBUFF_LEN] = {0};
@@ -24,6 +35,10 @@ u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
 /********************本地文件变量创建区******************/
 unsigned char xdata MAC_ID[6] 		= {0}; 
 unsigned char xdata MAC_ID_DST[6] 	= {1,1,1,1,1,1};  //远端MAC地址默认全是1，全是0的话影响服务器解析
+
+#if(DATASAVE_INTLESS_ENABLEIF)
+ u8 xdata loopInsert_relayStatusRealTime_record = 0; //继电器状态实时记录游标
+#endif
 
 //设备锁标志
 bit	deviceLock_flag	= false;
@@ -37,7 +52,8 @@ void MAC_ID_Relaes(void){
 	
 #if(DEBUG_LOGOUT_EN == 1)	
 	{ //输出打印，谨记 用后注释，否则占用大量代码空间
-		u8 xdata log_buf[64];
+
+		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 		
 		sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
 		PrintString1_logOut(log_buf);
@@ -46,7 +62,7 @@ void MAC_ID_Relaes(void){
 	}
 #endif
 
-//	memcpy(MAC_ID, id_ptr - 6, 6); 
+//	memcpy(MAC_ID, id_ptr - 5, 6); 
 //	memcpy(MAC_ID, MACID_test, 6); 
 }
 
@@ -68,20 +84,29 @@ void devLockInfo_Reales(void){
 u8 switchTypeReserve_GET(void){
 
 	u8 act_Reserve = 0x07;
-
-	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT3){
-		
-		act_Reserve = 0x07;
-		
-	}else
-	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
-		
-		act_Reserve = 0x03;
 	
-	}else
-	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
+	switch(SWITCH_TYPE){
 	
-		act_Reserve = 0x01;
+		case SWITCH_TYPE_SWBIT1:{
+		
+			act_Reserve = 0x02;
+		
+		}break;
+		
+		case SWITCH_TYPE_SWBIT2:{
+		
+			act_Reserve = 0x05;
+		
+		}break;
+		
+		case SWITCH_TYPE_SWBIT3:
+		case SWITCH_TYPE_FANS:
+		case SWITCH_TYPE_dIMMER:
+		case SWITCH_TYPE_CURTAIN:{
+		
+			act_Reserve = 0x07;
+		
+		}break;
 	}
 	
 	return act_Reserve;
@@ -217,6 +242,54 @@ void birthDay_Judge(void){
 	EEPROM_read_n(EEPROM_ADDR_BirthdayMark, &datsTemp, 1);
 	if(datsTemp != BIRTHDAY_FLAG){
 	
-		Factory_recover();//首次启动EEPROM擦除
+		Factory_recover(); //首次启动EEPROM擦除
 	}
 }
+
+#if(DATASAVE_INTLESS_ENABLEIF)
+void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
+	
+	u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+	
+	if(loopInsert_relayStatusRealTime_record >= RECORDPERIOD_OPREATION_LOOP){
+	
+		loopInsert_relayStatusRealTime_record = 0;
+		EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+	}
+	
+	dataRead_temp[loopInsert_relayStatusRealTime_record ++] = currentRelayStatus;
+	
+	EEPROM_write_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
+}
+
+u8 devDataRecovery_relayStatus(void){
+
+	u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+	u8 xdata loop = 0;
+	u8 xdata res = 0;
+	
+	EEPROM_read_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
+	
+	for(loop = 0; loop < RECORDPERIOD_OPREATION_LOOP; loop ++){
+	
+		if(dataRead_temp[loop] == 0xff){
+		
+			(!loop)?(res = 0):(res = dataRead_temp[loop - 1]);
+#if(DEBUG_LOGOUT_EN == 1)	
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+				
+				sprintf(log_buf, "insert catch: %d, val:%02X.\n", (int)loop, (int)res);
+				PrintString1_logOut(log_buf);
+			}
+#endif
+			break;
+		}
+	}
+	
+	EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+	
+	return res;
+}
+#endif

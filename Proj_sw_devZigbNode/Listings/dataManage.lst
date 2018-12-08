@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 1   
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DATAMANAGE
@@ -22,229 +22,306 @@ line level    source
   11          
   12          #include "Tips.h"
   13          
-  14          u8 SWITCH_TYPE = SWITCH_TYPE_SWBIT3;
-  15          u8 DEV_actReserve = 0x01;
-  16          
-  17          //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
-  18          u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
-  19          
-  20          #if(DEBUG_LOGOUT_EN == 1)       
-  21           u8 xdata log_buf[LOGBUFF_LEN] = {0};
-  22          #endif          
+  14          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+               u8 SWITCH_TYPE = SWITCH_TYPE_FANS;
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+               u8 SWITCH_TYPE = SWITCH_TYPE_dIMMER;
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+               u8 SWITCH_TYPE = SWITCH_TYPE_SOCKETS;
+              #else
+  21           u8 SWITCH_TYPE = SWITCH_TYPE_CURTAIN;
+  22          #endif
   23          
-  24          /********************本地文件变量创建区******************/
-  25          unsigned char xdata MAC_ID[6]           = {0}; 
-  26          unsigned char xdata MAC_ID_DST[6]       = {1,1,1,1,1,1};  //远端MAC地址默认全是1，全是0的话影响服务器解析
-  27          
-  28          //设备锁标志
-  29          bit     deviceLock_flag = false;
+  24          u8 DEV_actReserve = 0x01;
+  25          
+  26          //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
+  27          u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
+  28          
+  29          u16 dev_currentPanid = 0;
   30          
-  31          /*MAC更新*/
-  32          void MAC_ID_Relaes(void){
-  33   1              
-  34   1              u8 code *id_ptr = ROMADDR_ROM_STC_ID;
-  35   1      
-  36   1              memcpy(MAC_ID, id_ptr - 5, 6); //起点在前，向后读，只取后六位
-  37   1              
-  38   1      #if(DEBUG_LOGOUT_EN == 1)       
-  39   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
-  40   2                      u8 xdata log_buf[64];
-  41   2                      
-  42   2                      sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
-  43   2                      PrintString1_logOut(log_buf);
-  44   2                      sprintf(log_buf, "%02X %02X %02X.\n", (int)MAC_ID[3], (int)MAC_ID[4], (int)MAC_ID[5]);
-  45   2                      PrintString1_logOut(log_buf);
-  46   2              }
-  47   1      #endif
-  48   1      
-  49   1      //      memcpy(MAC_ID, id_ptr - 6, 6); 
-  50   1      //      memcpy(MAC_ID, MACID_test, 6); 
-  51   1      }
-  52          
-  53          void portCtrlEachOther_Reales(void){
-C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 2   
+  31          #if(DEBUG_LOGOUT_EN == 1)       
+  32           u8 xdata log_buf[LOGBUFF_LEN] = {0};
+  33          #endif          
+  34          
+  35          /********************本地文件变量创建区******************/
+  36          unsigned char xdata MAC_ID[6]           = {0}; 
+  37          unsigned char xdata MAC_ID_DST[6]       = {1,1,1,1,1,1};  //远端MAC地址默认全是1，全是0的话影响服务器解析
+  38          
+  39          #if(DATASAVE_INTLESS_ENABLEIF)
+  40           u8 xdata loopInsert_relayStatusRealTime_record = 0; //继电器状态实时记录游标
+  41          #endif
+  42          
+  43          //设备锁标志
+  44          bit     deviceLock_flag = false;
+  45          
+  46          /*MAC更新*/
+  47          void MAC_ID_Relaes(void){
+  48   1              
+  49   1              u8 code *id_ptr = ROMADDR_ROM_STC_ID;
+  50   1      
+  51   1              memcpy(MAC_ID, id_ptr - 5, 6); //起点在前，向后读，只取后六位
+  52   1              
+  53   1      #if(DEBUG_LOGOUT_EN == 1)       
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 2   
 
-  54   1      
-  55   1              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, CTRLEATHER_PORT, 3);
-  56   1      }
-  57          
-  58          void devLockInfo_Reales(void){
-  59   1      
-  60   1              u8 xdata deviceLock_IF = 0;
-  61   1      
-  62   1              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
-  63   1              
-  64   1              (deviceLock_IF)?(deviceLock_flag = 1):(deviceLock_flag = 0);
-  65   1      }
-  66          
-  67          /*获取当前开关类型对应有效操作位*/
-  68          u8 switchTypeReserve_GET(void){
-  69   1      
-  70   1              u8 act_Reserve = 0x07;
-  71   1      
-  72   1              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT3){
-  73   2                      
-  74   2                      act_Reserve = 0x07;
-  75   2                      
-  76   2              }else
-  77   1              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
-  78   2                      
-  79   2                      act_Reserve = 0x03;
-  80   2              
-  81   2              }else
-  82   1              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
-  83   2              
-  84   2                      act_Reserve = 0x01;
-  85   2              }
-  86   1              
-  87   1              return act_Reserve;
-  88   1      }
-  89          
-  90          ///*场景号对应EEPROM存储索引号查找*/
-  91          //u8 swScenarioNum_findFromEEPROM(bit vacancyFind_IF, u8 scenarioNum){ //是否为空位查找 否则指定场景号查找
-  92          
-  93          //      u8 loop = 0;
-  94          //      u8 xdata datsTemp[SW_SCENCRAIO_LEN] = {0};
-  95          //      
-  96          //      EEPROM_read_n(EEPROM_ADDR_swScenarioNum, datsTemp, SW_SCENCRAIO_LEN);
-  97          //      for(loop = 0; loop < SW_SCENCRAIO_LEN; loop ++){
-  98          //      
-  99          //              if(vacancyFind_IF){ //查找空位
- 100          //              
- 101          //                      if(0 == datsTemp[loop] || 0xff == datsTemp[loop])break;
- 102          //              
- 103          //              }else{  //查找指定场景编号
- 104          //              
- 105          //                      if(scenarioNum == datsTemp[loop])break;
- 106          //              }
- 107          //      }
- 108          //      
- 109          //      if(loop < SW_SCENCRAIO_LEN){
- 110          //      
- 111          //              return loop; //索引可查 返回索引
- 112          //              
- 113          //      }else{
- 114          //      
- 115          //              return SW_SCENCRAIO_INSERTINVALID; //索引不可查 返回无效值
-C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 3   
+  54   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
+  55   2      
+  56   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+  57   2                      
+  58   2                      sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
+  59   2                      PrintString1_logOut(log_buf);
+  60   2                      sprintf(log_buf, "%02X %02X %02X.\n", (int)MAC_ID[3], (int)MAC_ID[4], (int)MAC_ID[5]);
+  61   2                      PrintString1_logOut(log_buf);
+  62   2              }
+  63   1      #endif
+  64   1      
+  65   1      //      memcpy(MAC_ID, id_ptr - 5, 6); 
+  66   1      //      memcpy(MAC_ID, MACID_test, 6); 
+  67   1      }
+  68          
+  69          void portCtrlEachOther_Reales(void){
+  70   1      
+  71   1              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, CTRLEATHER_PORT, 3);
+  72   1      }
+  73          
+  74          void devLockInfo_Reales(void){
+  75   1      
+  76   1              u8 xdata deviceLock_IF = 0;
+  77   1      
+  78   1              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+  79   1              
+  80   1              (deviceLock_IF)?(deviceLock_flag = 1):(deviceLock_flag = 0);
+  81   1      }
+  82          
+  83          /*获取当前开关类型对应有效操作位*/
+  84          u8 switchTypeReserve_GET(void){
+  85   1      
+  86   1              u8 act_Reserve = 0x07;
+  87   1              
+  88   1              switch(SWITCH_TYPE){
+  89   2              
+  90   2                      case SWITCH_TYPE_SWBIT1:{
+  91   3                      
+  92   3                              act_Reserve = 0x02;
+  93   3                      
+  94   3                      }break;
+  95   2                      
+  96   2                      case SWITCH_TYPE_SWBIT2:{
+  97   3                      
+  98   3                              act_Reserve = 0x05;
+  99   3                      
+ 100   3                      }break;
+ 101   2                      
+ 102   2                      case SWITCH_TYPE_SWBIT3:
+ 103   2                      case SWITCH_TYPE_FANS:
+ 104   2                      case SWITCH_TYPE_dIMMER:
+ 105   2                      case SWITCH_TYPE_CURTAIN:{
+ 106   3                      
+ 107   3                              act_Reserve = 0x07;
+ 108   3                      
+ 109   3                      }break;
+ 110   2              }
+ 111   1              
+ 112   1              return act_Reserve;
+ 113   1      }
+ 114          
+ 115          ///*场景号对应EEPROM存储索引号查找*/
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 3   
 
- 116          //      }
- 117          //}
- 118          
- 119          ///*场景存储*/
- 120          //bit swScenario_oprateSave(u8 scenarioNum, u8 swAct){
- 121          
- 122          //      u8 datsTemp = 0;
- 123          //      u8 insert = 0;
- 124          //      
- 125          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
- 126          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则更改对应响应状态
- 127          //      
- 128          //              datsTemp = swAct;
- 129          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 130          //              
- 131          //      }else{ //场景编号不可查到则新增
- 132          //              
- 133          //              insert = swScenarioNum_findFromEEPROM(1, 0); //查空位
- 134          //              if(SW_SCENCRAIO_INSERTINVALID != insert){ //有空位则新增
- 135          //              
- 136          //                      datsTemp = swAct;
- 137          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
- 138          //                      datsTemp = scenarioNum;
- 139          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 140          //              
- 141          //              }else{ //无空位返回失败
- 142          //              
- 143          //                      return 0;
- 144          //              }
- 145          //      }
- 146          //      
- 147          //      return 1;
- 148          //}
- 149          
- 150          ///*场景删除*/
- 151          //bit swScenario_oprateDele(u8 scenarioNum){
- 152          
- 153          //      u8 datsTemp = 0;
- 154          //      u8 insert = 0;
- 155          //      
- 156          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
- 157          //      
- 158          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则执行删除
- 159          //      
- 160          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
- 161          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 162          //              
- 163          //              return 1;
- 164          //              
- 165          //      }else{
- 166          //      
- 167          //              return 0;
- 168          //      }
- 169          //}
- 170          
- 171          ///*场景对应响应动作查询*/
- 172          //u8 swScenario_oprateCheck(u8 scenarioNum){
- 173          
- 174          //      u8 datsTemp = 0;
- 175          //      u8 insert = 0;
- 176          //      
- 177          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
-C51 COMPILER V9.54   DATAMANAGE                                                            11/09/2018 14:49:55 PAGE 4   
+ 116          //u8 swScenarioNum_findFromEEPROM(bit vacancyFind_IF, u8 scenarioNum){ //是否为空位查找 否则指定场景号查找
+ 117          
+ 118          //      u8 loop = 0;
+ 119          //      u8 xdata datsTemp[SW_SCENCRAIO_LEN] = {0};
+ 120          //      
+ 121          //      EEPROM_read_n(EEPROM_ADDR_swScenarioNum, datsTemp, SW_SCENCRAIO_LEN);
+ 122          //      for(loop = 0; loop < SW_SCENCRAIO_LEN; loop ++){
+ 123          //      
+ 124          //              if(vacancyFind_IF){ //查找空位
+ 125          //              
+ 126          //                      if(0 == datsTemp[loop] || 0xff == datsTemp[loop])break;
+ 127          //              
+ 128          //              }else{  //查找指定场景编号
+ 129          //              
+ 130          //                      if(scenarioNum == datsTemp[loop])break;
+ 131          //              }
+ 132          //      }
+ 133          //      
+ 134          //      if(loop < SW_SCENCRAIO_LEN){
+ 135          //      
+ 136          //              return loop; //索引可查 返回索引
+ 137          //              
+ 138          //      }else{
+ 139          //      
+ 140          //              return SW_SCENCRAIO_INSERTINVALID; //索引不可查 返回无效值
+ 141          //      }
+ 142          //}
+ 143          
+ 144          ///*场景存储*/
+ 145          //bit swScenario_oprateSave(u8 scenarioNum, u8 swAct){
+ 146          
+ 147          //      u8 datsTemp = 0;
+ 148          //      u8 insert = 0;
+ 149          //      
+ 150          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
+ 151          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则更改对应响应状态
+ 152          //      
+ 153          //              datsTemp = swAct;
+ 154          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 155          //              
+ 156          //      }else{ //场景编号不可查到则新增
+ 157          //              
+ 158          //              insert = swScenarioNum_findFromEEPROM(1, 0); //查空位
+ 159          //              if(SW_SCENCRAIO_INSERTINVALID != insert){ //有空位则新增
+ 160          //              
+ 161          //                      datsTemp = swAct;
+ 162          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
+ 163          //                      datsTemp = scenarioNum;
+ 164          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 165          //              
+ 166          //              }else{ //无空位返回失败
+ 167          //              
+ 168          //                      return 0;
+ 169          //              }
+ 170          //      }
+ 171          //      
+ 172          //      return 1;
+ 173          //}
+ 174          
+ 175          ///*场景删除*/
+ 176          //bit swScenario_oprateDele(u8 scenarioNum){
+ 177          
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 4   
 
- 178          //      
- 179          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则执行删除
- 180          //              
- 181          //              EEPROM_read_n(EEPROM_ADDR_swScenarioAct, &datsTemp, 1); //读取场景对应动作并返回
- 182          //              return datsTemp;
- 183          //              
- 184          //      }else{
- 185          //      
- 186          //              return SW_SCENCRAIO_ACTINVALID; //场景号无效不可查 返回无效响应动作值
- 187          //      }
- 188          //}
- 189          
- 190          void Factory_recover(void){
- 191   1              
- 192   1              u8 xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
- 193   1              
- 194   1              coverEEPROM_write_n(EEPROM_ADDR_START, datsTemp, EEPROM_USE_OF_NUMBER); //首次启动EEPROM擦除
- 195   1              datsTemp[0] = BIRTHDAY_FLAG;
- 196   1              coverEEPROM_write_n(EEPROM_ADDR_BirthdayMark, &datsTemp[0], 1); //打出生标记
- 197   1              
- 198   1              datsTemp[0] = TIPSBKCOLOR_DEFAULT_ON; //背光初始化
- 199   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &datsTemp[0], 1);
- 200   1              datsTemp[0] = TIPSBKCOLOR_DEFAULT_OFF;
- 201   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &datsTemp[0], 1);  
- 202   1              
- 203   1              datsTemp[0] = 0;
- 204   1              coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
- 205   1              
- 206   1              memset(CTRLEATHER_PORT, 0, clusterNum_usr); //运行缓存清空
- 207   1              
- 208   1              delayMs(10);
- 209   1              
- 210   1              ((void(code *)(void))0x0000)(); //重启
- 211   1      }
- 212          
- 213          void birthDay_Judge(void){
- 214   1      
- 215   1              u8 xdata datsTemp = 0;
+ 178          //      u8 datsTemp = 0;
+ 179          //      u8 insert = 0;
+ 180          //      
+ 181          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
+ 182          //      
+ 183          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则执行删除
+ 184          //      
+ 185          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
+ 186          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 187          //              
+ 188          //              return 1;
+ 189          //              
+ 190          //      }else{
+ 191          //      
+ 192          //              return 0;
+ 193          //      }
+ 194          //}
+ 195          
+ 196          ///*场景对应响应动作查询*/
+ 197          //u8 swScenario_oprateCheck(u8 scenarioNum){
+ 198          
+ 199          //      u8 datsTemp = 0;
+ 200          //      u8 insert = 0;
+ 201          //      
+ 202          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //查场景编号
+ 203          //      
+ 204          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //场景编号可查到则执行删除
+ 205          //              
+ 206          //              EEPROM_read_n(EEPROM_ADDR_swScenarioAct, &datsTemp, 1); //读取场景对应动作并返回
+ 207          //              return datsTemp;
+ 208          //              
+ 209          //      }else{
+ 210          //      
+ 211          //              return SW_SCENCRAIO_ACTINVALID; //场景号无效不可查 返回无效响应动作值
+ 212          //      }
+ 213          //}
+ 214          
+ 215          void Factory_recover(void){
  216   1              
- 217   1              EEPROM_read_n(EEPROM_ADDR_BirthdayMark, &datsTemp, 1);
- 218   1              if(datsTemp != BIRTHDAY_FLAG){
- 219   2              
- 220   2                      Factory_recover();//首次启动EEPROM擦除
- 221   2              }
- 222   1      }
+ 217   1              u8 xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
+ 218   1              
+ 219   1              coverEEPROM_write_n(EEPROM_ADDR_START, datsTemp, EEPROM_USE_OF_NUMBER); //首次启动EEPROM擦除
+ 220   1              datsTemp[0] = BIRTHDAY_FLAG;
+ 221   1              coverEEPROM_write_n(EEPROM_ADDR_BirthdayMark, &datsTemp[0], 1); //打出生标记
+ 222   1              
+ 223   1              datsTemp[0] = TIPSBKCOLOR_DEFAULT_ON; //背光初始化
+ 224   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &datsTemp[0], 1);
+ 225   1              datsTemp[0] = TIPSBKCOLOR_DEFAULT_OFF;
+ 226   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &datsTemp[0], 1);  
+ 227   1              
+ 228   1              datsTemp[0] = 0;
+ 229   1              coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
+ 230   1              
+ 231   1              memset(CTRLEATHER_PORT, 0, clusterNum_usr); //运行缓存清空
+ 232   1              
+ 233   1              delayMs(10);
+ 234   1              
+ 235   1              ((void(code *)(void))0x0000)(); //重启
+ 236   1      }
+ 237          
+ 238          void birthDay_Judge(void){
+ 239   1      
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 5   
+
+ 240   1              u8 xdata datsTemp = 0;
+ 241   1              
+ 242   1              EEPROM_read_n(EEPROM_ADDR_BirthdayMark, &datsTemp, 1);
+ 243   1              if(datsTemp != BIRTHDAY_FLAG){
+ 244   2              
+ 245   2                      Factory_recover(); //首次启动EEPROM擦除
+ 246   2              }
+ 247   1      }
+ 248          
+ 249          #if(DATASAVE_INTLESS_ENABLEIF)
+ 250          void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
+ 251   1              
+ 252   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+ 253   1              
+ 254   1              if(loopInsert_relayStatusRealTime_record >= RECORDPERIOD_OPREATION_LOOP){
+ 255   2              
+ 256   2                      loopInsert_relayStatusRealTime_record = 0;
+ 257   2                      EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+ 258   2              }
+ 259   1              
+ 260   1              dataRead_temp[loopInsert_relayStatusRealTime_record ++] = currentRelayStatus;
+ 261   1              
+ 262   1              EEPROM_write_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
+ 263   1      }
+ 264          
+ 265          u8 devDataRecovery_relayStatus(void){
+ 266   1      
+ 267   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+ 268   1              u8 xdata loop = 0;
+ 269   1              u8 xdata res = 0;
+ 270   1              
+ 271   1              EEPROM_read_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
+ 272   1              
+ 273   1              for(loop = 0; loop < RECORDPERIOD_OPREATION_LOOP; loop ++){
+ 274   2              
+ 275   2                      if(dataRead_temp[loop] == 0xff){
+ 276   3                      
+ 277   3                              (!loop)?(res = 0):(res = dataRead_temp[loop - 1]);
+ 278   3      #if(DEBUG_LOGOUT_EN == 1)       
+ 279   3                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+ 280   4      
+ 281   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 282   4                                      
+ 283   4                                      sprintf(log_buf, "insert catch: %d, val:%02X.\n", (int)loop, (int)res);
+ 284   4                                      PrintString1_logOut(log_buf);
+ 285   4                              }
+ 286   3      #endif
+ 287   3                              break;
+ 288   3                      }
+ 289   2              }
+ 290   1              
+ 291   1              EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+ 292   1              
+ 293   1              return res;
+ 294   1      }
+ 295          #endif
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    401    ----
-   CONSTANT SIZE    =    172    ----
-   XDATA SIZE       =     76     194
+   CODE SIZE        =    685    ----
+   CONSTANT SIZE    =    401    ----
+   XDATA SIZE       =     77     332
+C51 COMPILER V9.54   DATAMANAGE                                                            12/07/2018 17:31:28 PAGE 6   
+
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      5    ----
+   DATA SIZE        =      7       2
    IDATA SIZE       =   ----    ----
    BIT SIZE         =      1    ----
    EDATA SIZE       =   ----    ----

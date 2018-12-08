@@ -17,6 +17,7 @@
 void bsp_Init(void){
 
 	appTimer0_Init();
+	appTimer4_Init();
 	zigbUart_pinInit();
 	uartObjZigb_Init();
 	tipLED_pinInit();
@@ -38,7 +39,7 @@ int main(void){
 	bsp_datsReales();
 	birthDay_Judge();
 	
-//	while(1)tips_warning();
+//	while(1)tips_specified(0);
 	
 	devStatus_switch.statusChange_standBy = status_nwkReconnect;
 	devStatus_switch.statusChange_IF = 1;
@@ -48,7 +49,7 @@ int main(void){
 	while(1){
 		
 		touchPad_Scan();
-		UsrKEYScan(usrKeyFun_zigbNwkRejoin, fun_Test, fun_Test);
+		UsrKEYScan(fun_touchReset, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
 		DcodeScan();
 		
 		thread_Timing();

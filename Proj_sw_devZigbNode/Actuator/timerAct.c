@@ -17,7 +17,7 @@ u8 	 	 xdata	sysTimeZone_M					= 0;
 
 u16		 idata  sysTimeKeep_counter				= 0;	//系统时间维持计数，一秒递增，用于系统时间查询周期到达之前维持系统时间运转
 
-u8 		 idata	swTim_onShoot_FLAG				= 0;	//普通开关定时一次性标志——八位标识八个定时器，本地控制只作用到前四个
+u8 		 idata	swTim_oneShoot_FLAG				= 0;	//普通开关定时一次性标志——八位标识八个定时器，本地控制只作用到前四个
 bit		 idata	ifTim_sw_running_FLAG			= 0;	//普通开关定时运行标志位
 
 bit		 idata	ifNightMode_sw_running_FLAG		= 0;	//普通开关夜间模式运行标志位
@@ -28,6 +28,9 @@ u8		 idata	delayPeriod_onoff				= 0;	//延时动作周期
 u8		 idata	delayUp_act						= 0;	//延时动作具体动作
 u16		 idata	delayCnt_closeLoop				= 0;	//绿色模式计时计数
 u8		 idata	delayPeriod_closeLoop			= 0;	//绿色模式动作周期
+
+static	timing_Dats xdata timDatsTemp_CalibrateTab[TIMEER_TABLENGTH] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
+static	timing_Dats xdata nightDatsTemp_CalibrateTab[2] = {0};	/*夜间模式起始时刻表缓存*///起始时刻及属性
 
 /*-----------------------------------------------------------------------------------------------*/
 void timeZone_Reales(void){
@@ -53,6 +56,11 @@ void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]){
 	}
 }
 
+void itrf_datsTiming_read_eeprom(void){
+
+	datsTiming_read_eeprom(timDatsTemp_CalibrateTab);
+}
+
 void datsTimNight_read_eeprom(timing_Dats timDats_tab[2]){
 
 	u8 dats_Temp[6] = {0};
@@ -68,6 +76,11 @@ void datsTimNight_read_eeprom(timing_Dats timDats_tab[2]){
 		timDats_tab[loop].Hour		= (dats_Temp[loop * 3 + 1] & 0x1f) >> 0;	/*定时时刻_小时*///低五位
 		timDats_tab[loop].Minute	= (dats_Temp[loop * 3 + 2] & 0xff) >> 0;	/*定时时刻_分*///全八位
 	}
+}
+
+void itrf_datsTimNight_read_eeprom(void){
+
+	datsTimNight_read_eeprom(nightDatsTemp_CalibrateTab);
 }
 
 /*周占位判断*///判断当前周值是否在占位字节中
@@ -138,15 +151,12 @@ void thread_Timing(void){
 
 	u8 loop = 0;
 	
-	timing_Dats xdata timDatsTemp_CalibrateTab[TIMEER_TABLENGTH] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
-	timing_Dats xdata nightDatsTemp_CalibrateTab[2] = {0};	/*夜间模式起始时刻表缓存*///起始时刻及属性
-	
-	bit idata timeUp_actionDone_flg = 0; //同一分钟内定时器响应动作完成标志<避免重复响应>
+	static idata timeUp_actionDone_flg = 0; //静态值, 同一分钟内定时器响应动作完成标志<避免重复响应>, bit0对应定时段0, bit7对应定时段7, 以此类推
 
 #if(DEBUG_LOGOUT_EN == 1)	
 	{ //调试log代码-当前时间输出
 		
-		u16 code log_period = 5000;
+		u16 code log_period = 10000;
 		static u16 xdata log_Count = 0;
 		
 		if(log_Count < log_period)log_Count ++;
@@ -170,6 +180,9 @@ void thread_Timing(void){
 			
 			EEPROM_read_n(EEPROM_ADDR_swDelayFLAG, &ifDelay_sw_running_FLAG, 1);
 			EEPROM_read_n(EEPROM_ADDR_periodCloseLoop, &delayPeriod_closeLoop, 1);
+	
+			datsTiming_read_eeprom(timDatsTemp_CalibrateTab);  //普通开关定时表更新<<<
+			datsTimNight_read_eeprom(nightDatsTemp_CalibrateTab); //夜间模式定时表更新<<<
 		}
 	}
 	
@@ -189,8 +202,6 @@ void thread_Timing(void){
 		}
 	}
 	
-	/*夜间模式定时*///两段数据=======================================================================================================<<<
-	datsTimNight_read_eeprom(nightDatsTemp_CalibrateTab);
 	/*判断是否为夜间模式*/
 	if((nightDatsTemp_CalibrateTab[0].Week_Num & 0x7F) == 0x7F){ //全天判断，如果第一段周占位全满则为全天
 	
@@ -198,16 +209,26 @@ void thread_Timing(void){
 		
 	}else{
 		
-		if(nightDatsTemp_CalibrateTab[0].if_Timing){ //使能判断
+		bit idata timeTab_reserveFLG = 0;
+		u16 xdata minutesTemp_CalibrateTab_A 	= ((u16)nightDatsTemp_CalibrateTab[0].Hour * 60 + (u16)nightDatsTemp_CalibrateTab[0].Minute),
+				  minutesTemp_CalibrateTab_B 	= ((u16)nightDatsTemp_CalibrateTab[1].Hour * 60 + (u16)nightDatsTemp_CalibrateTab[1].Minute),
+				  minutesTemp_CalibrateTab_cur	= ((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute);
 		
-			if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >  ((u16)nightDatsTemp_CalibrateTab[0].Hour * 60 + (u16)nightDatsTemp_CalibrateTab[0].Minute) && //定时区间判断
-			   ((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) <= ((u16)nightDatsTemp_CalibrateTab[1].Hour * 60 + (u16)nightDatsTemp_CalibrateTab[1].Minute)){
-			   
-				ifNightMode_sw_running_FLAG = 1;
-				   
-			}else{
+		(minutesTemp_CalibrateTab_A < minutesTemp_CalibrateTab_B)?(timeTab_reserveFLG = 0):(timeTab_reserveFLG = 1); //时间表是否反序定义
+		
+		if(nightDatsTemp_CalibrateTab[0].if_Timing){ //使能判断
 			
-				ifNightMode_sw_running_FLAG = 0;
+			if(!timeTab_reserveFLG){ //时段反序判断 -顺序
+			
+				((minutesTemp_CalibrateTab_cur >  minutesTemp_CalibrateTab_A)&&\
+			     (minutesTemp_CalibrateTab_cur <= minutesTemp_CalibrateTab_B))?\
+					(ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
+			
+			}else{ //时段反序判断 -反序
+			
+				((minutesTemp_CalibrateTab_cur >  minutesTemp_CalibrateTab_A)||\
+			     (minutesTemp_CalibrateTab_cur <= minutesTemp_CalibrateTab_B))?\
+					(ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
 			}
 			
 		}else{
@@ -215,9 +236,6 @@ void thread_Timing(void){
 			ifNightMode_sw_running_FLAG = 0;
 		}
 	}
-	
-	/*普通开关定时*///四段数据=======================================================================================================<<<
-	datsTiming_read_eeprom(timDatsTemp_CalibrateTab);	/*普通开关*///时刻表读取
 	
 	for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
 	
@@ -262,33 +280,33 @@ void thread_Timing(void){
 //						}
 //					}
 //#endif
-					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
+					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) !=  \
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,不对则动作完成标志复位
-					   (timeUp_actionDone_flg)){
+					   (timeUp_actionDone_flg & (1 << loop))){
 					   
-						timeUp_actionDone_flg = 0;
+						timeUp_actionDone_flg &= ~(1 << loop);
 					}				
 					
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //时刻比对,整分钟都是响应期
-					   (!timeUp_actionDone_flg)){	 //时刻比对时间
+					   !(timeUp_actionDone_flg & (1 << loop))){	 //时刻比对时间
 #if(DEBUG_LOGOUT_EN == 1)							   
 						{ //输出打印，谨记 用后注释，否则占用大量代码空间
-							u8 xdata log_buf[64];
-							
+							memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 							sprintf(log_buf, ">>>>>>>>timer-%02d_UP!!!.\n", (int)loop);
 							PrintString1_logOut(log_buf);
 						}	
 #endif						   
-						timeUp_actionDone_flg = 1; //动作完成标志置位
+						timeUp_actionDone_flg |= (1 << loop); //动作完成标志置位
 						
 						//一次性定时判断
-						if(swTim_onShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息
+						if(swTim_oneShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息
 							
 							u8 code dats_Temp = 0;
 							
-							swTim_onShoot_FLAG &= ~(1 << loop);
+							swTim_oneShoot_FLAG &= ~(1 << loop);
 							coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //定时信息清空
+							itrf_datsTiming_read_eeprom(); //运行缓存更新
 						}
 					   
 						//普通开关动作响应
@@ -302,12 +320,12 @@ void thread_Timing(void){
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){
 						   
 						//一次性定时判断
-						if(swTim_onShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息
+						if(swTim_oneShoot_FLAG & (1 << loop)){	//是否为一次性定时，是则清空本段定时信息
 							
 							u8 code dats_Temp = 0;
 							
-							swTim_onShoot_FLAG &= ~(1 << loop);
-							coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //定时信息清空
+							swTim_oneShoot_FLAG &= ~(1 << loop);
+							coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //定时信息清空，只清空第一字节属性信息，后两字节时间信息保留
 						}
 					}
 				}

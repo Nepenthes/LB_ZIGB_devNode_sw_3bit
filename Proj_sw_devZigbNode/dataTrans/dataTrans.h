@@ -31,12 +31,13 @@
 	#define PERIOD_HEARTBEAT_PST		2	//周期询访数据询访周期_被动	 单位：s
 #endif
 
-#define PERIOD_SYSTIMEREALES		10 	//系统时间更新周期  单位：s
-#define ZIGBNWK_OPNETIME_DEFAULT	30	//默认zigb网络开放时间 单位：s
-#define DEVHOLD_TIME_DEFAULT		240 //设备挂起默认时间，时间到后重启网络 单位：s
-#define COLONYCTRLGET_QUERYPERIOD	3	//集群受控状态信息周期性轮询周期 单位：s
-#define REMOTE_DATAREQ_TIMEOUT		1000//远端数据请求系统响应超时时间  单位：ms
-#define REMOTE_RESPOND_TIMEOUT		500 //远端数据请求节点响应超时时间  单位：ms
+#define PERIOD_SYSTIMEREALES			10 	//系统时间更新周期  单位：s
+#define ZIGBNWK_OPNETIME_DEFAULT		30	//默认zigb网络开放时间 单位：s
+#define DEVHOLD_TIME_DEFAULT			240 //设备挂起默认时间，时间到后重启网络 单位：s
+#define COLONYCTRLGET_QUERYPERIOD		3	//集群受控状态信息周期性轮询周期 单位：s
+#define COORDINATOR_LOST_PERIOD_CONFIRM	30	//网关主机丢失确认周期	单位：s
+#define REMOTE_DATAREQ_TIMEOUT			1000//远端数据请求系统响应超时时间  单位：ms
+#define REMOTE_RESPOND_TIMEOUT			500 //远端数据请求节点响应超时时间  单位：ms
 
 #define ZIGB_FRAMEHEAD_CTRLLOCAL	0xAA
 #define ZIGB_FRAMEHEAD_CTRLREMOTE	0xCC
@@ -109,7 +110,7 @@
 #define zigbDatsDefault_ClustID		13
 #define zigbDatsDefault_TransID		13
 #define zigbDatsDefault_Option		0
-#define zigbDatsDefault_Radius		7
+#define zigbDatsDefault_Radius		8   //多跳次数
 
 typedef enum{
 
@@ -119,6 +120,7 @@ typedef enum{
 	status_nwkReconnect, //主动重连网络
 	status_dataTransRequestDatsSend, //网络数据发送请求
 	status_devNwkHold, //设备网络挂起
+	status_devFactoryRecoverStandBy, //恢复出厂预置挂起
 }threadRunning_Status;
 
 typedef enum{
@@ -148,7 +150,7 @@ typedef struct{
 	u8 datsLen;
 }frame_zigbSysCtrl;
 
-#define DATBASE_LENGTH	72
+#define DATBASE_LENGTH	128
 typedef struct{
 
 	u8 dats[DATBASE_LENGTH];
@@ -167,6 +169,18 @@ typedef struct{
 	u8 	portPoint;
 	u16	nwkAddr;
 }datsAttr_datsTrans;
+
+typedef struct{
+
+	u8  dats[10];
+	u8  datsLen;
+	
+	u8 	portPoint;
+	u16	nwkAddr;
+	
+	u8 constant_Loop:7; //重复次数
+	
+}datsAttr_dtCtrlEach;
 
 typedef struct{
 
@@ -190,12 +204,18 @@ typedef struct ZigB_Init_datsAttr{
 	u16  timeTab_waitAnsr;		//等待响应时间
 }datsAttr_ZigbInit;
 
+extern threadRunning_Status devRunning_Status;
+
 extern attr_devNwkHold	xdata devNwkHoldTime_Param;
 extern stt_statusChange xdata devStatus_switch;
 extern u8 xdata devNwkHoldTime_counter;
 
 extern stt_agingDataSet_bitHold xdata dev_agingCmd_rcvPassive;
 extern stt_agingDataSet_bitHold xdata dev_agingCmd_sndInitative;
+
+extern u8 xdata factoryRecover_HoldTimeCount;
+
+extern u8 xdata timeCounter_coordinatorLost_detecting;
 
 void zigbUart_pinInit(void);
 void uartObjZigb_Init(void);

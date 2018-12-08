@@ -3,11 +3,19 @@
 
 #include "STC15Fxxxx.H"
 
+#include "dataManage.h"
+
 #define KEYPRESS_CONTINE_RESERVE_NUMMAX		10		//连按有效次数
 
-#define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
-#define	timeDef_touchPressLongA		3000	//长按A时间 <单位：ms>
-#define	timeDef_touchPressLongB		10000	//长按B时间 <单位：ms>
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)	
+ #define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
+ #define	timeDef_touchPressLongA		500		//长按A时间 <单位：ms> ,dimmer触发连续调制
+ #define	timeDef_touchPressLongB		15000	//长按B时间 <单位：ms>	
+#else
+ #define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
+ #define	timeDef_touchPressLongA		3000	//长按A时间 <单位：ms>
+ #define	timeDef_touchPressLongB		15000	//长按B时间 <单位：ms>	
+#endif
 
 #define	timeDef_touchPressContinue	350		//连按间隔定义时间 <单位：ms>
 
@@ -15,8 +23,8 @@ sbit Dcode0		= P1^0;
 sbit Dcode1 	= P1^1;
 sbit Dcode2 	= P1^2;
 sbit Dcode3 	= P1^3;//暂缺保留
-sbit Dcode4 	= P1^3;
-sbit Dcode5 	= P1^4;
+sbit Dcode4 	= P1^4;
+sbit Dcode5 	= P1^3;
 
 sbit Usr_key 	= P0^2;
 
@@ -72,11 +80,14 @@ void usrKin_pinInit(void);
 bit UsrKEYScan_oneShoot(void);
 u8 DcodeScan_oneShoot(void);
 
+u8 touchPadScan_oneShoot(void);
 void DcodeScan(void);
 void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey_Callback funCB_LongB);
 void touchPad_Scan(void);
 
 void fun_Test(void);
 void usrKeyFun_zigbNwkRejoin(void);
+void fun_touchReset(void);
+void fun_factoryRecoverOpreat(void);
 
 #endif

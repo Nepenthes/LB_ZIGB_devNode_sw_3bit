@@ -35,7 +35,7 @@ void DisableEEPROM(void)
 
 void EEPROM_read_n(u16 EE_address,u8 *DataAddress,u16 number)
 {
-	EA = 0;		//禁止中断
+//	EA = 0;		//禁止中断
 	ISP_CONTR = (ISP_EN + ISP_WAIT_FREQUENCY);	//设置等待时间，允许ISP/IAP操作，送一次就够
 	ISP_READ();									//送字节读命令，命令不需改变时，不需重新送命令
 	do
@@ -52,7 +52,7 @@ void EEPROM_read_n(u16 EE_address,u8 *DataAddress,u16 number)
 	}while(--number);
 
 	DisableEEPROM();
-	EA = 1;		//重新允许中断
+//	EA = 1;		//重新允许中断
 }
 
 

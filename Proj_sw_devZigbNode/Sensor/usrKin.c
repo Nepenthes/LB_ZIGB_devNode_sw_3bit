@@ -4,12 +4,16 @@
 #include "dataTrans.h"
 #include "dataManage.h"
 #include "Relay.h"
+#include "touchPad.h"
 
 #include "delay.h"
 #include "USART.h"
 
 #include "stdio.h"
 #include "string.h"
+
+//***************Tips变量引用区***************************/
+extern tips_Status devTips_status;
 
 /**********************本地文件变量定义区**********************/
 u8 idata val_DcodeCfm 			= 0;  //拨码值
@@ -21,8 +25,9 @@ u16		 usrKeyCount			= 0;
 u16	xdata touchPadActCounter	= 0;  //触摸盘按键计时
 u16	xdata touchPadContinueCnt	= 0;  //触摸盘连按计时
 
-//***************Tips变量引用区***************************/
-extern tips_Status devTips_status;
+u8	xdata touchKeepCnt_record	= 1;  //连按正在进行时计数变量，连按必定从一开始，否则不叫连按
+
+bit idata combinationFunTrigger_3S1L_standBy_FLG = 0;  //三短一长预触发标志
 
 /*------------------------------------------------------------------------------------------------------------*/
 ///*按键回调函数缓存*///为减少代码冗余，此段弃用
@@ -96,27 +101,81 @@ static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
 //}
 
 void usrZigbNwkOpen(void){
-
-	ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
-	tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
+	
+	if(devRunning_Status != status_nwkREQ && devRunning_Status != status_nwkReconnect){ //本身有网络的情况下才能开放网络
+	
+		ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //功能触发
+		tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips触发
 #if(DEBUG_LOGOUT_EN == 1)
-	{ //输出打印，谨记 用后注释，否则占用大量代码空间
-		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-		sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
-		PrintString1_logOut(log_buf);
-	}			
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+			sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
+			PrintString1_logOut(log_buf);
+		}			
 #endif	
+	}
+}
+
+void devTypeComfirm_byDcode(u8 valDcode){
+
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+	SWITCH_TYPE = SWITCH_TYPE_FANS;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+	SWITCH_TYPE = SWITCH_TYPE_dIMMER;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	SWITCH_TYPE = SWITCH_TYPE_SOCKETS;
+#else
+	switch(valDcode){
+	
+		case 0:{
+		
+			SWITCH_TYPE = SWITCH_TYPE_CURTAIN;	
+			
+		}break;
+			
+		case 1:{
+		
+			SWITCH_TYPE = SWITCH_TYPE_SWBIT1;	
+
+		}break;
+			
+		case 2:{
+		
+			SWITCH_TYPE = SWITCH_TYPE_SWBIT2;	
+
+		}break;
+			
+		case 3:{
+			
+			SWITCH_TYPE = SWITCH_TYPE_SWBIT3;	
+
+		}break;
+			
+		default:break;
+	}
+#endif
 }
 
 void usrKin_pinInit(void){
+	
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 
+#else
+	
 	P1M1 &= ~(0xE0);
 	P1M0 &= ~(0xE0);
 
 	P0M1 &= ~(0x04);
 	P0M0 &= ~(0x04);
 	
-	if(!Dcode2)relayStatus_ifSave = statusSave_enable;
+	{ //拨码预检测
+	
+		u8 touchVal_temp = DcodeScan_oneShoot();
+		
+		if(touchVal_temp & Dcode_FLG_ifMemory)relayStatus_ifSave = statusSave_enable; //提前检测
+		devTypeComfirm_byDcode(Dcode_bitReserve(touchVal_temp));
+	}
+#endif
 }
 
 u8 DcodeScan_oneShoot(void){
@@ -190,7 +249,10 @@ void DcodeScan(void){
 	
 		val_Dcode_differ 	= val_Dcode_Local ^ val_DcodeCfm;
 		val_Dcode_Local		= val_DcodeCfm;
-
+		
+		beeps_usrActive(3, 40, 2);
+		tips_statusChangeToNormal();
+		
 		if(val_Dcode_differ & Dcode_FLG_ifAP){
 		
 			if(val_Dcode_Local & Dcode_FLG_ifAP){
@@ -227,34 +289,7 @@ void DcodeScan(void){
 		
 		if(val_Dcode_differ & Dcode_FLG_bitReserve){
 		
-			switch(Dcode_bitReserve(val_Dcode_Local)){
-			
-				case 0:{
-				
-					SWITCH_TYPE = SWITCH_TYPE_SWBIT3;	
-					
-				}break;
-					
-				case 1:{
-				
-					SWITCH_TYPE = SWITCH_TYPE_SWBIT1;	
-
-				}break;
-					
-				case 2:{
-				
-					SWITCH_TYPE = SWITCH_TYPE_SWBIT2;	
-
-				}break;
-					
-				case 3:{
-					
-					SWITCH_TYPE = SWITCH_TYPE_SWBIT3;	
-
-				}break;
-					
-				default:break;
-			}
+			devTypeComfirm_byDcode(Dcode_bitReserve(val_Dcode_Local));
 		}
 	}
 }
@@ -263,7 +298,7 @@ void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey
 	
 	code	u16	keyCfrmLoop_Short 	= 10,	//短按消抖时间,据大循环而定
 				keyCfrmLoop_LongA 	= 3000,	//长按A时间,据大循环而定
-				keyCfrmLoop_LongB 	= 10000,//长按B时间,据大循环而定
+				keyCfrmLoop_LongB 	= 12000,//长按B时间,据大循环而定
 				keyCfrmLoop_MAX	 	= 60000;//计时封顶
 	
 	static	bit LongA_FLG = 0;
@@ -318,6 +353,44 @@ void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey
 	}
 }
 
+static void normalBussiness_longA_touchKeepTrig(u8 statusPad){
+
+	static u8 xdata trigCount_Loop = 0;
+		   u8 code trigCount_Period = 50;
+	
+	if(trigCount_Loop < trigCount_Period)trigCount_Loop ++;
+	else{
+	
+		trigCount_Loop = 0;
+		
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)		
+		switch(statusPad){
+			
+			case 1:{
+				
+				(status_Relay < 100)?(swCommand_fromUsr.objRelay = ++status_Relay):(swCommand_fromUsr.objRelay = 100);
+			
+			}break;
+			
+			case 4:{
+		
+				if(status_Relay > 0)swCommand_fromUsr.objRelay = --status_Relay;
+				
+			}break;
+				
+			default:{}break;
+		}
+		
+		swCommand_fromUsr.actMethod = relay_OnOff;
+		
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)		
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)		
+#else
+		statusPad = statusPad;
+#endif
+	}
+}
+
 void touchPad_Scan(void){
 
 	static u8 touchPad_temp = 0;
@@ -359,6 +432,8 @@ void touchPad_Scan(void){
 			
 				if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
 				
+					normalBussiness_longA_touchKeepTrig(touchPad_temp); //持续性触发业务
+					
 					if(!funTrigFLG_LongA){
 					
 						funTrigFLG_LongA = 1;
@@ -375,6 +450,7 @@ void touchPad_Scan(void){
 				}
 			}
 		}
+		
 	}else{
 		
 		if(keyPress_FLG){
@@ -385,7 +461,6 @@ void touchPad_Scan(void){
 				if(touchPadContinueCnt)pressContinueGet ++;
 				if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //非连按短按触发互控同步，若为连按则最后一次触发同步
 				else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
-				beeps_usrActive(3, 50, 2);
 			}
 		}
 	
@@ -410,12 +485,204 @@ void touchPad_Scan(void){
 			touchPad_temp = 0;
 		}
 
-		funTrigFLG_LongA = 0;
-		funTrigFLG_LongB = 0;
+		if(funTrigFLG_LongA){
+		
+			funTrigFLG_LongA = 0;
+			
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+				
+			statusRelay_saveEn = 1; //存储使能，连续调光弹起后进行存储，调光类型不进行自动存储，所以进行主动存储
+			
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+//#else
+#endif
+		}
+		
+		if(funTrigFLG_LongB){funTrigFLG_LongB = 0;}
 			
 		touchPadActCounter = 0;
 		keyPress_FLG = 0;
 	}
+}	
+
+static void normalBussiness_shortTouchTrig(u8 statusPad){
+	
+	bit idata tipsBeep_IF = 0;
+	
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+	switch(statusPad){
+		
+		case 1:{
+			
+			(status_Relay < 3)?(swCommand_fromUsr.objRelay = ++status_Relay):(swCommand_fromUsr.objRelay = 3);
+		
+		}break;
+		
+		case 2:{
+		
+			(status_Relay)?(swCommand_fromUsr.objRelay = 0):(swCommand_fromUsr.objRelay = 3);
+				
+		}break;
+		
+		case 4:{
+	
+			if(status_Relay > 0)swCommand_fromUsr.objRelay = --status_Relay;
+			
+		}break;
+			
+		default:{}break;
+	}
+	
+ #if(DEBUG_LOGOUT_EN == 1)
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, ">>>relayStatus sby:%d.\n", (int)swCommand_fromUsr.objRelay);
+		PrintString1_logOut(log_buf);
+	}			
+ #endif
+	
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	devActionPush_IF.push_IF = 1; //推送使能
+	tipsBeep_IF = 1;
+	
+	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+	switch(statusPad){
+		
+		case 1:{
+			
+			(status_Relay < 100)?(swCommand_fromUsr.objRelay = status_Relay + 5):(swCommand_fromUsr.objRelay = 100);
+		
+		}break;
+		
+		case 2:{
+		
+			(status_Relay)?(swCommand_fromUsr.objRelay = 0):(swCommand_fromUsr.objRelay = 100);
+				
+		}break;
+		
+		case 4:{
+	
+			if(status_Relay > 0){
+			
+				(status_Relay >= 5)?(swCommand_fromUsr.objRelay = status_Relay - 5):(swCommand_fromUsr.objRelay = 0);
+			}
+			
+		}break;
+			
+		default:{}break;
+	}
+	
+ #if(DEBUG_LOGOUT_EN == 1)
+	{ //输出打印，谨记 用后注释，否则占用大量代码空间
+		u8 xdata log_buf[64];
+		
+		sprintf(log_buf, ">>>relayStatus sby:%d.\n", (int)swCommand_fromUsr.objRelay);
+		PrintString1_logOut(log_buf);
+	}			
+ #endif
+	
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	statusRelay_saveEn = 1; //存储使能，调光类型不进行自动存储，所以进行主动存储
+	devActionPush_IF.push_IF = 1; //推送使能
+	tipsBeep_IF = 1;
+	
+	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
+#else
+	switch(statusPad){
+		
+		case 1:{
+			
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
+			
+				swCommand_fromUsr.objRelay = 0;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+			
+				swCommand_fromUsr.objRelay = 1;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+			
+				if(status_Relay < 3)status_Relay ++;
+			}
+			else{
+			
+				swCommand_fromUsr.objRelay = statusPad;
+			}
+			
+			if(DEV_actReserve & 0x01)tipsBeep_IF = 1;
+		
+		}break;
+		
+		case 2:{
+		
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
+			
+				swCommand_fromUsr.objRelay = 1;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
+			
+				swCommand_fromUsr.objRelay = 0;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+			
+				swCommand_fromUsr.objRelay = 2;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+			
+				(status_Relay)?(swCommand_fromUsr.objRelay = 0):(swCommand_fromUsr.objRelay = 3);
+			}
+			else{
+			
+				swCommand_fromUsr.objRelay = statusPad;
+			}
+			
+			if(DEV_actReserve & 0x02)tipsBeep_IF = 1;
+		
+		}break;
+		
+		case 4:{
+	
+			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
+				
+				swCommand_fromUsr.objRelay = 2;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+			
+				swCommand_fromUsr.objRelay = 4;
+			}
+			else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+			
+				if(status_Relay > 0)status_Relay --;
+			}
+			else{
+			
+				swCommand_fromUsr.objRelay = statusPad;
+			}
+			
+			if(DEV_actReserve & 0x04)tipsBeep_IF = 1;
+			
+		}break;
+			
+		default:{}break;
+	}
+	
+	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3){
+	
+		swCommand_fromUsr.actMethod = relay_flip;
+		EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //互控
+		
+	}else{
+	
+		swCommand_fromUsr.actMethod = relay_OnOff;
+	}
+	
+	if(swCommand_fromUsr.objRelay)devActionPush_IF.push_IF = 1; //推送使能
+	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
+#endif
 }
 
 void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触摸触发
@@ -424,6 +691,8 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 	
 		case press_Short:{
 			
+			bit idata tipsBeep_IF = 0;
+			
 #if(DEBUG_LOGOUT_EN == 1)				
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
 				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
@@ -431,21 +700,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 				PrintString1_logOut(log_buf);
 			}
 #endif	
-			switch(statusPad){
-				
-				case 1:
-				case 2:
-				case 4:{
-					
-					swCommand_fromUsr.actMethod = relay_flip;
-					swCommand_fromUsr.objRelay = statusPad;
-					EACHCTRL_realesFLG = statusPad; //互控
-					devActionPush_IF.push_IF = 1; //推送使能
-					
-				}break;
-					
-				default:{}break;
-			}
+			normalBussiness_shortTouchTrig(statusPad);
 			
 		}break;
 		
@@ -458,51 +713,60 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 				PrintString1_logOut(log_buf);
 			}
 #endif	
+			touchKeepCnt_record ++; //连按进行时计数变量更新
 			
-			switch(statusPad){
-				
-				case 1:
-				case 2:
-				case 4:{
-					
-					swCommand_fromUsr.actMethod = relay_flip;
-					swCommand_fromUsr.objRelay = statusPad;
-					
-				}break;
-					
-				default:{}break;
-			}
+			if(touchKeepCnt_record == 3)combinationFunTrigger_3S1L_standBy_FLG = 1; //特殊组合动作预触发<3短1长>
+			else combinationFunTrigger_3S1L_standBy_FLG = 0;
+			
+			normalBussiness_shortTouchTrig(statusPad);
 			
 		}break;
 		
 		case press_LongA:{
 			
+			if(combinationFunTrigger_3S1L_standBy_FLG){ //特殊组合动作确认触发<3短1长>
+			
+				combinationFunTrigger_3S1L_standBy_FLG = 0; //预标志清零
+				
+				usrKeyFun_zigbNwkRejoin();
+				
 #if(DEBUG_LOGOUT_EN == 1)				
-			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-				sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
-				PrintString1_logOut(log_buf);
-			}
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+					sprintf(log_buf, "combination fun trig!\n");
+					PrintString1_logOut(log_buf);
+				}
 #endif	
-		
-			switch(statusPad){
-			
-				case 1:{
-					
+			}else{  //禁止 特殊组合动作触发 与 结束动作（长按） 产生触发重叠
 				
-				}break;
-					
-				case 2:{}break;
-					
-				case 4:{
+#if(DEBUG_LOGOUT_EN == 1)				
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+					sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
+					PrintString1_logOut(log_buf);
+				}
+#endif	
+				switch(statusPad){ //若不是特殊组合动作，则进行实际长按触发
 				
-					devStatusChangeTo_devHold(1); //设备网络挂起
-				
-				}break;
+					case 1:{
+						
 					
-				default:{}break;
+					}break;
+						
+					case 2:{
+					
+					
+					}break;
+						
+					case 4:{
+						
+					
+					}break;
+						
+					default:{}break;
+				}
 			}
-			
+		
 		}break;
 			
 		case press_LongB:{
@@ -514,6 +778,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 				PrintString1_logOut(log_buf);
 			}
 #endif	
+			devStatusChangeTo_devHold(1); //设备网络挂起，任意键长按B
 		
 			switch(statusPad){
 			
@@ -529,6 +794,12 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 		}break;
 			
 		default:{}break;
+	}
+	
+	if(statusCfm != press_ShortCnt){
+
+		touchKeepCnt_record = 1; //连按进行时计数变量复原
+		combinationFunTrigger_3S1L_standBy_FLG = 0; //特殊组合动作预触发标志复原
 	}
 }
 
@@ -596,6 +867,9 @@ void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 			
 		default:{}break;
 	}
+	
+	touchKeepCnt_record = 1; //连按进行时计数变量复原
+	combinationFunTrigger_3S1L_standBy_FLG = 0; //特殊组合动作预触发标志复原
 }
 
 void fun_Test(void){
@@ -603,7 +877,15 @@ void fun_Test(void){
 	;
 }
 
+void fun_touchReset(void){
+
+	touchPad_resetOpreat(TOUCHRESETTIME_DEFAULT);
+	tips_statusChangeToTouchReset(TOUCHRESETTIME_DEFAULT);
+}
+
 void usrKeyFun_zigbNwkRejoin(void){
+	
+	if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //触摸释放计时失能
 
 	devStatus_switch.statusChange_standBy = status_nwkREQ;
 	devStatus_switch.statusChange_IF = 1;

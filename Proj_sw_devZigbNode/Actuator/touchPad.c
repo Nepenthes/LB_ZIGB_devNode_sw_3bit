@@ -1,18 +1,18 @@
 #include "touchPad.h"
 
-static bit touchPad_resetIF = 0;
+u8 xdata touchPad_resetTimeCount = 0;
 
 void touchPad_pinInit(void){
 
 	;
 }
 
-void touchPad_funSet(bit funLevel){
-
-	touchPad_resetIF = funLevel;
-}
-
 void touchPad_processThread(void){
 
-	(touchPad_resetIF)?(PIN_TOUCHPAD = 1):(PIN_TOUCHPAD = 0);
+	(touchPad_resetTimeCount)?(PIN_TOUCHPAD = TOUCHPAD_RESET_LEVEL_ENABLE):(PIN_TOUCHPAD = TOUCHPAD_RESET_LEVEL_DISABLE);
+}
+
+void touchPad_resetOpreat(u8 holdTime){
+
+	touchPad_resetTimeCount = holdTime;
 }

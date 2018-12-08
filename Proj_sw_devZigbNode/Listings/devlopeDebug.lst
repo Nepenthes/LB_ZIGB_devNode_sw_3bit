@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   DEVLOPEDEBUG                                                          11/09/2018 14:49:55 PAGE 1   
+C51 COMPILER V9.54   DEVLOPEDEBUG                                                          12/07/2018 17:31:28 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DEVLOPEDEBUG
@@ -22,48 +22,82 @@ line level    source
   11          
   12          extern uartTout_datsRcv xdata datsRcv_ZIGB;
   13          
-  14          bit idata frame_illegalFLG = 0;
-  15          stt_frameDebugInfo xdata frameDebug_data = {0};
-  16          
-  17          void thread_devlopeDebug(void){
-  18   1              
-  19   1              counter_ifTipsFree = TIPS_SWFREELOOP_TIME; //流水灯强关
-  20   1      
-  21   1      #if(DEBUG_LOGOUT_EN == 1)                               
-  22   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
-  23   2                      
-  24   2                      if(frameDebug_data.frameIllegal_FLG){
-  25   3                      
-  26   3                              frameDebug_data.frameIllegal_FLG = 0;
-  27   3                              
-  28   3                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-  29   3                              sprintf(log_buf, "F_head:%02X, A_Len(+5):%02X, R_Len:%02X, frame_P:%d.\n",      (int)datsRcv_ZIGB.rcvDats[0
-             -],
-  30   3                                                                                                                                                                                      (int)frameDebug_data.frame_aLength,
-  31   3                                                                                                                                                                                      (int)frameDebug_data.frame_rLength,
-  32   3                                                                                                                                                                                      (int)frameDebug_data.frameParsing_NUM);
-  33   3                              PrintString1_logOut(log_buf);
-  34   3                      }
-  35   2              }
-  36   1      #endif  
-  37   1      }
+  14          stt_debugInfoLog xdata dev_debugInfoLog = {0}; //用户debug数据缓存，一般用于中断内业务调试信息的输出
+  15          
+  16          void thread_devlopeDebug(void){
+  17   1              
+  18   1      //      counter_ifTipsFree = TIPS_SWFREELOOP_TIME; //流水灯强关
+  19   1      
+  20   1      #if(DEBUG_LOGOUT_EN == 1)                               
+  21   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
+  22   2                      
+  23   2                      if(dev_debugInfoLog.debugInfoType != infoType_null){
+  24   3                              
+  25   3                              switch(dev_debugInfoLog.debugInfoType){ //根据打印类型执行打印
+  26   4                              
+  27   4                                      case infoType_frameUart:{ //串口收发帧调试信息打印
+  28   5                                      
+  29   5                                              if(dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG){
+  30   6                                              
+  31   6                                                      dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG = 0;
+  32   6                                                      
+  33   6                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+  34   6                                                      sprintf(log_buf, "F_head:%02X, A_Len(+5):%02X, R_Len:%02X, frame_P:%d.\n",      (int)datsRcv_ZIGB.rcvDat
+             -s[0],
+  35   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_aLength,
+  36   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_rLength,
+  37   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frameParsing_NUM);
+  38   6                                                      PrintString1_logOut(log_buf);
+  39   6                                              }
+  40   5                                              
+  41   5                                      }break;
+  42   4                                              
+  43   4                                      case infoType_delayUp:{ //延时业务调试信息打印
+  44   5                                      
+  45   5                                              if(dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up){
+  46   6                                              
+  47   6                                                      dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 0;
+  48   6      
+  49   6                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+  50   6                                                      sprintf(log_buf, ">>>>>>>>delayAct opreation up.\n");
+  51   6                                                      PrintString1_logOut(log_buf);                           
+  52   6                                              }
+C51 COMPILER V9.54   DEVLOPEDEBUG                                                          12/07/2018 17:31:28 PAGE 2   
+
+  53   5                                              
+  54   5                                      }break;
+  55   4                                      
+  56   4                                      case infoType_dimmerFreq:{ //窗帘类型开关业务调试信息打印
+  57   5                                              
+  58   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+  59   5                                              sprintf(log_buf, ">>>>>>>>dimmer source beat:%dots.\n", (int)dev_debugInfoLog.debugInfoData.dimmerInf
+             -o.soureFreq);
+  60   5                                              PrintString1_logOut(log_buf);   
+  61   5                                      }
+  62   4                                              
+  63   4                                      default:{}break;
+  64   4                              }
+  65   3                              
+  66   3                              dev_debugInfoLog.debugInfoType = infoType_null; //打印类型复位
+  67   3                      }
+  68   2              }
+  69   1      #endif  
+  70   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     98    ----
-   CONSTANT SIZE    =     54    ----
-   XDATA SIZE       =      3    ----
+   CODE SIZE        =    194    ----
+   CONSTANT SIZE    =    121    ----
+   XDATA SIZE       =      4    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----
-   BIT SIZE         =      1    ----
+   BIT SIZE         =   ----    ----
    EDATA SIZE       =   ----    ----
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----
    FAR CONST SIZE   =   ----    ----
 END OF MODULE INFORMATION.
-
-C51 COMPILER V9.54   DEVLOPEDEBUG                                                          11/09/2018 14:49:55 PAGE 2   
 
 
 C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

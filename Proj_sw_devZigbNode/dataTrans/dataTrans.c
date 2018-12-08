@@ -15,6 +15,8 @@
 
 /**********************本地文件变量定义区************************/
 datsAttr_datsTrans xdata datsSend_request = {0}; //远端数据传输请求缓存
+datsAttr_dtCtrlEach xdata datsSend_requestEx[3] = {0}; //扩展型远端数据传输请求缓存（持续发送，无需远端响应）
+u16 xdata dtReqEx_counter = 0; //扩展型远端数据传输请求数据发送间隔计时值 单位：ms
 datsAttr_datsTrans xdata datsRcv_respond = {0}; //远端数据传输请求等待响应缓存缓存
 remoteDataReq_method xdata devRemoteDataReqMethod = {0}; //远端数据请求方式
 
@@ -43,8 +45,9 @@ u8	xdata heartBeatPeriod		= PERIOD_HEARTBEAT_ASR; //心跳计数周期
 u8	xdata heartBeatHang_timeCnt = 0; //心跳挂起计时(此数据为0时才可以发送心跳，否则心跳挂起，用于通信避让)
 
 //集群受控周期轮询-<包括有互控和场景>
-u8	xdata colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群受控状态周期性询查计时计数值 
+u8	xdata colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群受控状态周期性询查计时计数值
 u8	xdata colonyCtrlGet_statusLocalEaCtrl[clusterNum_usr] = {0}; //集群控制-本地互控状态位记录
+u8	xdata localDataRecord_eaCtrl[clusterNum_usr] = {0}; //本地静态数据记录：互控实际值
 u8	xdata colonyCtrlGet_statusLocalScene = 0; //集群控制-本地场景状态位记录
 u8	xdata colonyCtrlGetHang_timeCnt = 0; //集群受控状态周期性轮询挂起计时(此数据为0时才可以进行周期询查，否则询查挂起，用于通信避让)
 
@@ -59,6 +62,12 @@ uartTout_datsRcv xdata datsRcv_ZIGB = {{0}, 0};
 
 //zigbee通信线程当前运行状态标志
 threadRunning_Status devRunning_Status = status_NULL;
+
+//zigbee协调器丢失检测计时变量
+u8 xdata timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM;
+
+u8	xdata factoryRecover_HoldTimeCount = 0; //恢复出厂等待时间
+bit idata factoryRecover_standBy_FLG = 0; //恢复出厂预置标志
 
 void zigbUart_pinInit(void){
 
@@ -80,7 +89,7 @@ void uartObjZigb_Init(void){
 
 	EA = 0;
 
-	PS = 1;
+	PS = 0;
 	SCON = (SCON & 0x3f) | UART_8bit_BRTx;
 
 {
@@ -152,9 +161,8 @@ void UART1_Rountine (void) interrupt UART1_VECTOR
 				
 				memset(RX1_Buffer, 0xff, sizeof(char) * COM_RX1_Lenth);
 			}
-			
-			
-			RX1_Buffer[datsRcv_length ++] 	= SBUF;
+					
+			RX1_Buffer[datsRcv_length ++] = SBUF;
 			rxTout_count = 0;
 		}
 	}
@@ -165,9 +173,9 @@ void UART1_Rountine (void) interrupt UART1_VECTOR
 		if(COM1.TX_read != COM1.TX_write)
 		{
 		 	SBUF = TX1_Buffer[COM1.TX_read];
-			if(++COM1.TX_read >= COM_TX1_Lenth)		COM1.TX_read = 0;
+			if(++COM1.TX_read >= COM_TX1_Lenth)	COM1.TX_read = 0;
 		}
-		else	COM1.B_TX_busy = 0;
+		else COM1.B_TX_busy = 0;
 	}
 }
 
@@ -780,6 +788,8 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		devRunning_Status = status_passiveDataRcv; //外部状态切换
 		devTips_status = status_Normal; //设备系统tips状态切换
 		
+		dev_currentPanid = ZigB_getPanIDCurrent(); //更新一次PANID,避免二次重新加网残留老的PANID
+		
 #if(DEBUG_LOGOUT_EN == 1)
 		{ //输出打印，谨记 用后注释，否则占用大量代码空间
 			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
@@ -1309,6 +1319,7 @@ void devStatusChangeTo_devHold(bit zigbNwkSysNote_IF){ //设备网络挂起
 	devStatus_switch.statusChange_IF = 1;
 	
 	devTips_status = status_devHold; //tips更变
+	thread_tipsGetDark(0x0F);
 	
 #if(DEBUG_LOGOUT_EN == 1)				
 	{ //输出打印，谨记 用后注释，否则占用大量代码空间
@@ -1330,6 +1341,19 @@ static
 void function_devNwkHold(void){
 	
 	static status_Step = 0; //当前状态机步骤状态指示
+	
+	if(devStatus_switch.statusChange_IF){ //状态强制切换时，将当前子状态内静态变量初始化后再进行外部切换
+	
+		devStatus_switch.statusChange_IF = 0;
+		devRunning_Status = devStatus_switch.statusChange_standBy;
+		
+		status_Step = 0;
+		zigbNwkAction_counter = 0;
+		
+		zigbPin_RESET = 1;
+		
+		return;
+	}
 	
 	if(devNwkHoldTime_Param.devHoldTime_counter){ //直到挂起时间结束
 	
@@ -1544,7 +1568,8 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 			}
 			
 			periodDataTrans_momentHang(dats.dats[0]);  //避障时间加载，动作执行
-		}
+			
+		}break;
 
 #if(COLONYINFO_QUERYPERIOD_EN == ENABLE) /*宏判头*///集群控制信息周期查询使能
 		case ZIGB_SYSCMD_COLONYPARAM_REQPERIOD:{ /*宏使能*///更新集群信息并动作
@@ -1716,12 +1741,14 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 						
 						if(!deviceLock_flag){ //设备是否上锁
 							
-							u16 xdata panid_Temp = ZigB_getPanIDCurrent(); //配置回复添加PANID
+							tips_statusChangeToNormal();
+							if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //触摸释放计时失能
 							
 							paramTX_temp[11] = status_Relay; //开关状态回复填装
+							paramTX_temp[12] = DEVICE_VERSION_NUM; //设备版本号填装
 							
-							paramTX_temp[14] = (u8)((panid_Temp & 0xFF00) >> 8); //网络PANID回复填装
-							paramTX_temp[15] = (u8)((panid_Temp & 0x00FF) >> 0);
+							paramTX_temp[14] = (u8)((dev_currentPanid & 0xFF00) >> 8); //网络PANID回复填装
+							paramTX_temp[15] = (u8)((dev_currentPanid & 0x00FF) >> 0);
 							
 							sysTimeZone_H = datsParam[12];
 							sysTimeZone_M = datsParam[13];
@@ -1756,7 +1783,17 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 						
 					}break;
 						
-					case FRAME_MtoZIGBCMD_cmdQuery:{}break;
+					case FRAME_MtoZIGBCMD_cmdQuery:{
+					
+						paramTX_temp[11] = status_Relay & 0x07;
+						paramTX_temp[12] = 0;
+						(deviceLock_flag)?(paramTX_temp[12] |= 0x01):(paramTX_temp[12] &= ~0x01);
+						(ifNightMode_sw_running_FLAG)?(paramTX_temp[12] |= 0x02):(paramTX_temp[12] &= ~0x02);
+						
+						respond_IF 		= 1; //响应回复
+						specialCmd_IF 	= 0;	
+					
+					}break;
 						
 					case FRAME_MtoZIGBCMD_cmdInterface:{}break;
 						
@@ -1802,7 +1839,7 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								//回复数据二次处理（针对一次性定时数据）
 								for(loop = 0; loop < 4; loop ++){
 								
-									if(swTim_onShoot_FLAG & (1 << loop)){
+									if(swTim_oneShoot_FLAG & (1 << loop)){
 										
 										paramTX_temp[14 + loop * 3] &= 0x80;
 									}
@@ -1902,12 +1939,16 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								
 									if(datsParam[14 + loop * 3] == 0x80){	/*一次性定时判断*///周占位为空，而定时器被打开，说明是一次性
 									
-										swTim_onShoot_FLAG 	|= (1 << loop);	//一次性定时标志开启
+										swTim_oneShoot_FLAG |= (1 << loop);	//一次性定时标志开启
 										datsParam[14 + loop * 3] |= (1 << (systemTime_current.time_Week - 1)); //强行进行当前周占位，当次执行完毕后清除
+										
+									}else{
+									
+										swTim_oneShoot_FLAG &= ~(1 << loop);//一次性定时标志关闭
 									}
 								}
 								coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, &datsParam[14], 4 * 3);	//定时表
-								
+								itrf_datsTiming_read_eeprom(); //普通开关定时表更新<<<运行缓存更新
 #if(DEBUG_LOGOUT_EN == 1)
 								{ //输出打印，谨记 用后注释，否则占用大量代码空间
 									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
@@ -1961,6 +2002,7 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							case cmdConfigTim_nightModeSwConfig:{  /*夜间模式 背光半亮*/
 							
 								coverEEPROM_write_n(EEPROM_ADDR_TimeTabNightMode, &datsParam[14], 6);	//夜间模式定时表存储
+								itrf_datsTimNight_read_eeprom(); //夜间模式定时表更新<<<运行缓存更新
 								
 							}break;
 							
@@ -2242,6 +2284,8 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								
 									swCommand_fromUsr.objRelay = dev_dataPointTemp.devStatus_Reference.statusRef_swStatus;
 									swCommand_fromUsr.actMethod = relay_OnOff;
+									
+									devActionPush_IF.push_IF = 1; //推送使能
 #if(DEBUG_LOGOUT_EN == 1)
 									{ //输出打印，谨记 用后注释，否则占用大量代码空间
 										
@@ -2315,16 +2359,16 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1); //直接更新eeprom数据
 							}
 							
-							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_timerSetOpreat){ //定时器设置操作，需要时效
+							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_timerSetOpreat){ //定时设置操作，需要时效
 								
 								u8 loop = 0;
 #if(DEBUG_LOGOUT_EN == 1)
 								{ //输出打印，谨记 用后注释，否则占用大量代码空间
 									
 									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-									sprintf(log_buf, ">>>>>>>>agingCmd timer coming, dataTab3:[%02X-%02X-%02X].\n", (int)dev_dataPointTemp.devData_timer[6],
-																													(int)dev_dataPointTemp.devData_timer[7],
-																													(int)dev_dataPointTemp.devData_timer[8]);
+									sprintf(log_buf, ">>>>>>>>agingCmd timer coming, dataTab1:[%02X-%02X-%02X].\n", (int)dev_dataPointTemp.devData_timer[0],
+																													(int)dev_dataPointTemp.devData_timer[1],
+																													(int)dev_dataPointTemp.devData_timer[2]);
 									PrintString1_logOut(log_buf);
 								}			
 #endif	
@@ -2332,11 +2376,16 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								
 									if(dev_dataPointTemp.devData_timer[loop * 3] == 0x80){	/*一次性定时判断*///周占位为空，而定时器被打开，说明是一次性
 									
-										swTim_onShoot_FLAG 	|= (1 << loop);	//一次性定时标志开启
+										swTim_oneShoot_FLAG |= (1 << loop);	//一次性定时标志开启
 										dev_dataPointTemp.devData_timer[loop * 3] |= (1 << (systemTime_current.time_Week - 1)); //强行进行当前周占位，当次执行完毕后清除
+										
+									}else{
+									
+										swTim_oneShoot_FLAG &= ~(1 << loop); //一次性定时标志关闭
 									}
 								}
 								coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, dev_dataPointTemp.devData_timer, sizeof(timing_Dats) * TIMEER_TABLENGTH); //直接更新eeprom数据
+								itrf_datsTiming_read_eeprom(); //普通开关定时表更新<<<运行缓存更新
 							}
 							
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_greenModeSetOpreat){ //绿色模式设置操作，需要时效
@@ -2344,12 +2393,12 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 #if(DEBUG_LOGOUT_EN == 1)
 								{ //输出打印，谨记 用后注释，否则占用大量代码空间
 									
-									
+									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 									sprintf(log_buf, ">>>>>>>>agingCmd greenMode coming, timeSet:%d.\n", (int)dev_dataPointTemp.devData_greenMode);
 									PrintString1_logOut(log_buf);
 								}			
 #endif	
-							
+	
 								(dev_dataPointTemp.devData_greenMode)?(ifDelay_sw_running_FLAG |= (1 << 0)):(ifDelay_sw_running_FLAG &= ~(1 << 0)); //更新运行缓存
 								delayPeriod_closeLoop = dev_dataPointTemp.devData_greenMode;
 								coverEEPROM_write_n(EEPROM_ADDR_swDelayFLAG, &ifDelay_sw_running_FLAG, 1); //直接更新eeprom数据
@@ -2358,23 +2407,32 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_nightModeSetOpreat){ //夜间模式设置操作，需要时效
 								
-								u8 dataTemp[6] = {0};
+								u8 dataTemp[sizeof(timing_Dats) * 2] = {0};
 #if(DEBUG_LOGOUT_EN == 1)
 								{ //输出打印，谨记 用后注释，否则占用大量代码空间
 									
 									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-									sprintf(log_buf, ">>>>>>>>agingCmd nightMode coming.\n");
+									sprintf(log_buf, ">>>>>>>>agingCmd nightMode coming with dats:[%02X %02X %02X", (int)dev_dataPointTemp.devData_nightMode[0],
+																													(int)dev_dataPointTemp.devData_nightMode[1],
+																													(int)dev_dataPointTemp.devData_nightMode[2]);
+									PrintString1_logOut(log_buf);
+																													
+									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+									sprintf(log_buf, " %02X %02X %02X].\n", 	(int)dev_dataPointTemp.devData_nightMode[3],
+																				(int)dev_dataPointTemp.devData_nightMode[4],
+																				(int)dev_dataPointTemp.devData_nightMode[5]);
 									PrintString1_logOut(log_buf);
 								}			
 #endif	
-								(dev_dataPointTemp.devData_nightMode[0])?(dataTemp[0] |= 0x7f):(dataTemp[0] &= ~0x7f);
-								(dev_dataPointTemp.devData_nightMode[1])?(dataTemp[0] |= 0x80):(dataTemp[0] &= ~0x80);
-								dataTemp[1] = dev_dataPointTemp.devData_nightMode[2] << 3; //字节下标2 高5位 时
-								dataTemp[2] = dev_dataPointTemp.devData_nightMode[3]; 	   //字节下标3 全8位 分
-								dataTemp[4] = dev_dataPointTemp.devData_nightMode[4] << 3; //字节下标4 高5位 时
-								dataTemp[5] = dev_dataPointTemp.devData_nightMode[5]; 	   //字节下标5 全8位 分
+								(dev_dataPointTemp.devData_nightMode[0])?(dataTemp[0] |= 0x7f):(dataTemp[0] &= ~0x7f); //全天夜间
+								(dev_dataPointTemp.devData_nightMode[1])?(dataTemp[0] |= 0x80):(dataTemp[0] &= ~0x80); //时段夜间
+								dataTemp[1] = dev_dataPointTemp.devData_nightMode[2]; //字节下标2 低5位 时
+								dataTemp[2] = dev_dataPointTemp.devData_nightMode[3]; //字节下标3 全8位 分
+								dataTemp[4] = dev_dataPointTemp.devData_nightMode[4]; //字节下标4 低5位 时
+								dataTemp[5] = dev_dataPointTemp.devData_nightMode[5]; //字节下标5 全8位 分
 								
 								coverEEPROM_write_n(EEPROM_ADDR_TimeTabNightMode, dataTemp, sizeof(timing_Dats) * 2); //直接更新eeprom数据
+								itrf_datsTimNight_read_eeprom(); //夜间模式定时表更新<<<运行缓存更新
 							}
 							
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_bkLightSetOpreat){ //背光灯设置操作，需要时效
@@ -2395,24 +2453,45 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_horsingLight){ //跑马灯设置操作，需要时效
 							
-								
-							}
-							
-							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_devResetOpreat){ //开关位互控绑定操作设置操作，需要时效
-							
-								u8 loop = 0;
 #if(DEBUG_LOGOUT_EN == 1)
 								{ //输出打印，谨记 用后注释，否则占用大量代码空间
 									
 									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-									sprintf(log_buf, ">>>>>>>>agingCmd switchBindSet coming, bindData:%02X %02X %02X.\n", (int)dev_dataPointTemp.devData_switchBitBind[0], (int)dev_dataPointTemp.devData_switchBitBind[1], (int)dev_dataPointTemp.devData_switchBitBind[2]);
+									sprintf(log_buf, ">>>>>>>>agingCmd horsingLight coming, opreatData:%02X.\n", (int)dev_dataPointTemp.devStatus_Reference.statusRef_horsingLight);
 									PrintString1_logOut(log_buf);
 								}	
-								
-								coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, dev_dataPointTemp.devData_switchBitBind, clusterNum_usr);
-								memcpy(CTRLEATHER_PORT, dev_dataPointTemp.devData_switchBitBind, clusterNum_usr);
-								reConnectAfterDatsReq_IF = 1; //即刻注册互控通讯簇端口
 #endif	
+								
+								ifHorsingLight_running_FLAG = dev_dataPointTemp.devStatus_Reference.statusRef_horsingLight;
+								if(ifHorsingLight_running_FLAG)counter_ifTipsFree = 0;
+								else tips_statusChangeToNormal();
+							}
+							
+							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_switchBitBindSetOpreat){ //开关位互控绑定操作设置操作，需要时效
+							
+								u8 xdata loop = 0;
+#if(DEBUG_LOGOUT_EN == 1)
+								{ //输出打印，谨记 用后注释，否则占用大量代码空间
+									
+									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+									sprintf(log_buf, ">>>>>>>>agingCmd switchBindSet coming, opreatBitHold:%02X bindData:%02X %02X %02X.\n", (int)dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_switchBitBindSetOpreat,
+																																			 (int)dev_dataPointTemp.devData_switchBitBind[0], 
+																																			 (int)dev_dataPointTemp.devData_switchBitBind[1], 
+																																			 (int)dev_dataPointTemp.devData_switchBitBind[2]);
+									PrintString1_logOut(log_buf);
+								}	
+#endif	
+								
+								for(loop = 0; loop < 3; loop ++){
+								
+									if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_switchBitBindSetOpreat & (1 << loop)){
+									
+										coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther + loop, &dev_dataPointTemp.devData_switchBitBind[loop], 1);
+										CTRLEATHER_PORT[loop] = dev_dataPointTemp.devData_switchBitBind[loop];
+									}
+								}
+								
+								reConnectAfterDatsReq_IF = 1; //即刻注册互控通讯簇端口
 							}
 						
 						}else{
@@ -2477,6 +2556,17 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 	}
 }
 
+/*恢复出厂预置动作*/
+void fun_factoryRecoverOpreat(void){
+
+	devStatus_switch.statusChange_standBy = status_devFactoryRecoverStandBy;
+	devStatus_switch.statusChange_IF = 1;
+	
+	factoryRecover_HoldTimeCount = 6;
+	factoryRecover_standBy_FLG = 1;
+	tips_statusChangeToFactoryRecover(6);
+}
+
 /*zigbee主线程*///动作阻塞大于200ms的函数都设为状态机运行，其它小于200ms函数，阻塞维持，否则状态机复杂度加大
 void thread_dataTrans(void){
 	
@@ -2516,12 +2606,66 @@ void thread_dataTrans(void){
 				
 					FLG_timeSetInit = 0;
 					zigB_sysTimeSet(1533810700UL - 946713600UL, 0); //zigbee时间戳从unix纪元946713600<2000/01/01 00:00:00>开始计算
+					
+					dev_currentPanid = ZigB_getPanIDCurrent(); //开机后获取一次PINID
+#if(DEBUG_LOGOUT_EN == 1)
+					{ //输出打印，谨记 用后注释，否则占用大量代码空间
+						
+						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+						sprintf(log_buf, "currentPain get is :%04X.\n", dev_currentPanid);
+						PrintString1_logOut(log_buf);
+					}	
+#endif
 				}
 			}
 			
 			if(devTips_status == status_tipsNwkFind)tips_statusChangeToNormal(); //tips复原(网络已加入，恢复正常tips)
+			
+			{/*网关主机丢失检测*///即时更新tips
+			
+				if(!timeCounter_coordinatorLost_detecting)devTips_nwkZigb = nwkZigb_outLine; //网关丢失tips与掉线tips判为一类
+			}
+			
+			//--------------------------------主状态业务：数据持续发送机制执行（无视回码）----------------------------//主要用于针对互控业务
+			{
+				
+				u16 code DTREQ_EXATTR_ONCEPERIOD = 251; //单次发送间隔时间定义 单位：ms
+				u16 idata constandLoop_reserve = datsSend_requestEx[0].constant_Loop + datsSend_requestEx[1].constant_Loop + datsSend_requestEx[2].constant_Loop;
+				
+				if(constandLoop_reserve){
+				
+					if(!dtReqEx_counter){
+					
+						u16 idata current_Insert = constandLoop_reserve % 3; //次序轮流
+						
+#if(DEBUG_LOGOUT_EN == 1)
+						if((constandLoop_reserve % 3) == 0){ //输出打印，谨记 用后注释，否则占用大量代码空间(3个loop打印一次)
+							
+							memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+							sprintf(log_buf, ">>>dtCtrlEach loopParam:%d %d %d.\n", (int)datsSend_requestEx[0].constant_Loop,
+																					(int)datsSend_requestEx[1].constant_Loop,
+																					(int)datsSend_requestEx[2].constant_Loop);
+							PrintString1_logOut(log_buf);
+						}	
+#endif
+						
+						while(!datsSend_requestEx[current_Insert].constant_Loop){ //次序轮流前提下，筛选可用
+						
+							current_Insert ++;
+							current_Insert %= 3;
+						}
+						
+						datsSend_requestEx[current_Insert].constant_Loop --;
+						
+						datsSend_requestEx[current_Insert].dats[1] = datsSend_requestEx[current_Insert].constant_Loop; //实时更新持续发送剩余次数值
+						dataSendRemote_straightforward(datsSend_requestEx[current_Insert].nwkAddr, datsSend_requestEx[current_Insert].portPoint, datsSend_requestEx[current_Insert].dats, datsSend_requestEx[current_Insert].datsLen);
+						
+						dtReqEx_counter = DTREQ_EXATTR_ONCEPERIOD;
+					}
+				}
+			}
 	
-			//--------------------------------主状态：心跳--------------------------------------------------------//
+			//--------------------------------主状态业务：心跳--------------------------------------------------------//
 			if(heartBeatCycle_FLG && !heartBeatHang_timeCnt){ //心跳触发标志 及 挂起时间 判断
 				
 				u8 xdata frame_dataLen = 0; //待发送数据帧长度
@@ -2551,15 +2695,28 @@ void thread_dataTrans(void){
 				
 				//状态填装-实时值
 				dev_currentDataPoint.devStatus_Reference.statusRef_swStatus 	= status_Relay; //周期询访本地数据点 开关状态更新
+				if(devActionPush_IF.push_IF){ //推送数据加载
+				
+					devActionPush_IF.push_IF = 0;
+					dev_currentDataPoint.devStatus_Reference.statusRef_swPush = 0;
+					dev_currentDataPoint.devStatus_Reference.statusRef_swPush |= devActionPush_IF.dats_Push;
+				}
 				dev_currentDataPoint.devStatus_Reference.statusRef_timer 		= ifTim_sw_running_FLAG; //周期询访本地数据点 定时器状态更新
 				dev_currentDataPoint.devStatus_Reference.statusRef_devLock		= deviceLock_flag;
 				dev_currentDataPoint.devStatus_Reference.statusRef_delay		= (ifDelay_sw_running_FLAG & 0x02) >> 1;
 				dev_currentDataPoint.devStatus_Reference.statusRef_greenMode	= (ifDelay_sw_running_FLAG & 0x01) >> 0;
 				dev_currentDataPoint.devStatus_Reference.statusRef_nightMode	= ifNightMode_sw_running_FLAG;
-				dev_currentDataPoint.devStatus_Reference.statusRef_horsingLight	= 0;
+				dev_currentDataPoint.devStatus_Reference.statusRef_horsingLight	= ifHorsingLight_running_FLAG;
 				
 				//属性值填装-实时值
-				EEPROM_read_n(EEPROM_ADDR_swTimeTab, &dev_currentDataPoint.devData_timer, 24); //定时数据
+				{
+					u8 xdata loop = 0;
+					EEPROM_read_n(EEPROM_ADDR_swTimeTab, &dev_currentDataPoint.devData_timer, sizeof(timing_Dats) * TIMEER_TABLENGTH); //定时数据
+					for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){ //一次性周占位恢复
+					
+						if(swTim_oneShoot_FLAG & (1 << loop))dev_currentDataPoint.devData_timer[3 * loop] = 0x80; //针对一次性定时回码周占位清空
+					}
+				}
 				dev_currentDataPoint.devData_delayer 		= delayPeriod_onoff - (delayCnt_onoff / 60); //延时数据
 				dev_currentDataPoint.devData_delayUpStatus	= delayUp_act; //延时响应状态数据
 				dev_currentDataPoint.devData_greenMode 		= delayPeriod_closeLoop; //绿色模式状态数据
@@ -2574,6 +2731,30 @@ void thread_dataTrans(void){
 					dev_currentDataPoint.devData_nightMode[3] = nightDatsTemp_CalibrateTab[0].Minute;
 					dev_currentDataPoint.devData_nightMode[4] = nightDatsTemp_CalibrateTab[1].Hour;
 					dev_currentDataPoint.devData_nightMode[5] = nightDatsTemp_CalibrateTab[1].Minute;
+					
+#if(DEBUG_LOGOUT_EN == 1)
+//					{ //输出打印，谨记 用后注释，否则占用大量代码空间<<<夜间模式裸数据打印
+//						
+//						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+//						sprintf(log_buf, ">>>nightMode dats upload: [%02X %02X %02X", 	(int)dev_currentDataPoint.devData_nightMode[0],
+//																						(int)dev_currentDataPoint.devData_nightMode[1],
+//																						(int)dev_currentDataPoint.devData_nightMode[2]);
+//						PrintString1_logOut(log_buf);
+//																						
+//						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+//						sprintf(log_buf, " %02X %02X %02X].\n", 	(int)dev_currentDataPoint.devData_nightMode[3],
+//																	(int)dev_currentDataPoint.devData_nightMode[4],
+//																	(int)dev_currentDataPoint.devData_nightMode[5]);
+//						PrintString1_logOut(log_buf);
+//					}	
+
+//					{ //输出打印，谨记 用后注释，否则占用大量代码空间<<<定时运行标志打印
+//					
+//						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+//						sprintf(log_buf, "ifTim_sw_running_FLAG:%d\n", 	(int)ifTim_sw_running_FLAG);
+//						PrintString1_logOut(log_buf);
+//					}
+#endif	
 				}
 				EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &dev_currentDataPoint.devData_bkLight, 2); //背景灯数据
 				dev_currentDataPoint.devData_devReset = 0;
@@ -2605,9 +2786,9 @@ void thread_dataTrans(void){
 				frame_dataLen += 6; //空出1Byte MAC
 				paramTX_temp[frame_dataLen ++] 	= dtModeKeepAcess_currentCmd; //命令
 				paramTX_temp[frame_dataLen ++] 	= SWITCH_TYPE; //开关信息
-				paramTX_temp[frame_dataLen ++] 	= 0; //devVersion_reserve
-				paramTX_temp[frame_dataLen ++] 	= 0; //devVersion_reserve
-				paramTX_temp[frame_dataLen ++] 	= 0; //devVersion_reserve
+				paramTX_temp[frame_dataLen ++] 	= (u8)((dev_currentPanid & 0xFF00) >> 8); //PANID填装
+				paramTX_temp[frame_dataLen ++] 	= (u8)((dev_currentPanid & 0x00FF) >> 0); 
+				paramTX_temp[frame_dataLen ++] 	= DEVICE_VERSION_NUM; //设备版本号填装
 				paramTX_temp[frame_dataLen ++]	= sysTimeZone_H; //时区_时
 				paramTX_temp[frame_dataLen ++]	= sysTimeZone_M; //时区_分
 				memcpy(&paramTX_temp[frame_dataLen], &dev_currentDataPoint, sizeof(stt_devOpreatDataPonit)); //直接数据指针对齐,数据点向数据帧待发缓存强怼
@@ -2639,7 +2820,7 @@ void thread_dataTrans(void){
 				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 			}
 			
-			//------------------------------主状态：本地开关受集群控制状态位周期性轮询<包括有互控和场景>---------//
+			//------------------------------主状态业务：本地开关受集群控制状态位周期性轮询<包括有互控和场景>---------//
 #if(COLONYINFO_QUERYPERIOD_EN == ENABLE) /*宏判头*///集群控制信息周期查询使能
 			if(!colonyCtrlGet_queryCounter && !colonyCtrlGetHang_timeCnt){ //周期询查 及 挂起时间判断
 			
@@ -2670,7 +2851,7 @@ void thread_dataTrans(void){
 			}
 #endif /*宏判尾*///集群控制信息周期查询使能
 			
-			//--------------------------------主状态：数据推送---------------------------------------------------//	
+			//--------------------------------主状态业务：数据推送---------------------------------------------------//	
 			if(devActionPush_IF.push_IF){
 				
 				const bit dataFromRemote_IF = 1; //远程推送
@@ -2722,7 +2903,7 @@ void thread_dataTrans(void){
 				return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 			}
 			
-			//--------------------------------主状态：互控同步---------------------------------------------------//
+			//--------------------------------主状态业务：互控同步---------------------------------------------------//
 			if(EACHCTRL_realesFLG){ //广播互控值
 			
 				if(devRunning_Status == status_passiveDataRcv){
@@ -2739,24 +2920,36 @@ void thread_dataTrans(void){
 							
 							if((CTRLEATHER_PORT[loop] > CTRLEATHER_PORT_NUMSTART) && CTRLEATHER_PORT[loop] < CTRLEATHER_PORT_NUMTAIL){ //是否为有效互控端口
 								
-								(paramTX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控状态更新
+								(paramTX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[loop] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控状态查询值更新
+								localDataRecord_eaCtrl[loop] = paramTX_temp[0];  //本地互控记录值更新
 								colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 							
-								datsSend_request.nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
-								datsSend_request.portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
-								memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
-								memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 1);
-								datsSend_request.datsTrans.datsLen = 1;
-								datsRcv_respond.datsTrans.datsLen = 0; //无需远端应答
+								/*无视回码，持续性发送*///非常规
+								datsSend_requestEx[loop].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+								datsSend_requestEx[loop].portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
+								memset(datsSend_requestEx[loop].dats, 0, 10 * sizeof(u8));
 								
-								devRemoteDataReqMethod.keepTxUntilCmp_IF = 1; //死磕
-								devRemoteDataReqMethod.datsTxKeep_Period = REMOTE_DATAREQ_TIMEOUT / 10; //死磕周期，除次比 单个超时周期内 发 10 次
+								datsSend_requestEx[loop].dats[0] = paramTX_temp[0];
+								datsSend_requestEx[loop].dats[1] = 0; //下标2为持续发送剩余次数，在发送时实时更新，初始赋值为0
+								datsSend_requestEx[loop].datsLen = 2;
+								datsSend_requestEx[loop].constant_Loop = 30; //无视回码，发30次
 								
-								EACHCTRL_reportFLG = 1; //向网关汇报
-								
-								devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
-								
-								return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
+//								/*常规发送，收到协议栈回码响应就停止发送，且有超时*///常规
+//								datsSend_request.nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+//								datsSend_request.portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
+//								memset(datsSend_request.datsTrans.dats, 0, DATBASE_LENGTH * sizeof(u8));
+//								memcpy(datsSend_request.datsTrans.dats, paramTX_temp, 1);
+//								datsSend_request.datsTrans.datsLen = 1;
+//								datsRcv_respond.datsTrans.datsLen = 0; //无需远端应答
+//								
+//								devRemoteDataReqMethod.keepTxUntilCmp_IF = 1; //死磕
+//								devRemoteDataReqMethod.datsTxKeep_Period = REMOTE_DATAREQ_TIMEOUT / 10; //死磕周期，除次比 单个超时周期内 发 10 次
+//								
+//								EACHCTRL_reportFLG = 1; //向网关汇报
+//								
+//								devRunning_Status = status_dataTransRequestDatsSend; //直接切换（不做预备动作）
+//								
+//								return; //越过本次调度，占用数据发送状态更改权，先到先得，其它需要更改数据发送权的业务，发送状态保持，等待先行业务数据发送完毕
 							}
 						}
 					}
@@ -2812,7 +3005,7 @@ void thread_dataTrans(void){
 			}
 #endif /*宏判尾*///集群控制信息周期查询使能
 			
-			//--------------------------------主状态：数据解析响应-----------------------------------------------//
+			//--------------------------------主状态业务：数据解析响应-----------------------------------------------//
 			if(uartRX_toutFLG){ //数据接收(帧超时)
 				
 				uartRX_toutFLG = 0;
@@ -2837,7 +3030,11 @@ void thread_dataTrans(void){
 					u8 	idata srcPoint =  datsRcv_ZIGB.rcvDats[10];	//源端
 					u8 	idata dstPoint =  datsRcv_ZIGB.rcvDats[11];	//远端
 						
-					devTips_nwkZigb = nwkZigb_Normal; //zigbTips状态响应，只要接收到zigb数据，tips状态就切换至正常
+					if(datsFrom_addr == ZIGB_NWKADDR_CORDINATER){ //数据来源短地址检测，是否来自网关主机
+					
+						timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM; //网关主机失联确认检测计时重置
+						if(devTips_nwkZigb != nwkZigb_nwkOpen)devTips_nwkZigb = nwkZigb_Normal; //zigbTips状态响应，只要接收到网关zigb数据，tips状态就切换至正常
+					}
 					
 					memset(paramRX_temp, 0, sizeof(u8) * dataLen_zigbDatsTrans);
 					memcpy(paramRX_temp, &(datsRcv_ZIGB.rcvDats[21]), datsRcv_ZIGB.rcvDats[20]);
@@ -2845,41 +3042,36 @@ void thread_dataTrans(void){
 					if(srcPoint > CTRLEATHER_PORT_NUMSTART && srcPoint < CTRLEATHER_PORT_NUMTAIL){ /*互控端口*/
 						
 						u8 idata statusRelay_temp = status_Relay; //当前开关状态缓存
+						u8 idata localActLoop = 0;
 						
 						colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 						
 #if(DEBUG_LOGOUT_EN == 1)
 						{ //输出打印，谨记 用后注释，否则占用大量代码空间
 							memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-							sprintf(log_buf, "ctrl eachOther cmd coming, cluster:%02d.\n", (int)srcPoint);
+							sprintf(log_buf, "ctrl eachOther cmd coming, cluster:%02d, val:%02d, loop:%02d.\n", (int)srcPoint, (int)paramRX_temp[0], (int)paramRX_temp[1]);
 							PrintString1_logOut(log_buf);
 						}			
 #endif	
-						if((srcPoint == CTRLEATHER_PORT[0]) && (0 != CTRLEATHER_PORT[0])){ //开关位1 互控绑定判断
+						/*互控被动响应*/
+						for(localActLoop = 0; localActLoop < clusterNum_usr; localActLoop ++){
 						
-							swCommand_fromUsr.actMethod = relay_OnOff;
-							statusRelay_temp &= ~(1 << 0); //动作位缓存清零
-							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 0; //bit0 开关位动作响应
-							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[0] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[0] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
-							if((status_Relay & 0x01) != (paramRX_temp[0] & 0x01))dataSendRemote_straightforward(0xffff, srcPoint, &paramRX_temp[0], 1); //互控广播二次补充（与本地状态不同时才做补充，防止补充泛滥）
-						}
-						else
-						if((srcPoint == CTRLEATHER_PORT[1]) && (0 != CTRLEATHER_PORT[1])){ //开关位2 互控绑定判断
-						
-							swCommand_fromUsr.actMethod = relay_OnOff;
-							statusRelay_temp &= ~(1 << 1); //动作位缓存清零
-							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 1; //bit1 开关位动作响应
-							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[1] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[1] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
-							if((status_Relay & 0x02) != (paramRX_temp[0] & 0x02))dataSendRemote_straightforward(0xffff, srcPoint, &paramRX_temp[0], 1); //互控广播二次补充（与本地状态不同时才做补充，防止补充泛滥）
-						}
-						else
-						if((srcPoint == CTRLEATHER_PORT[2]) && (0 != CTRLEATHER_PORT[2])){ //开关位3 互控绑定判断
-						
-							swCommand_fromUsr.actMethod = relay_OnOff;
-							statusRelay_temp &= ~(1 << 2); //动作位缓存清零
-							swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << 2; //bit2 开关位动作响应
-							(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[2] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[2] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
-							if((status_Relay & 0x04) != (paramRX_temp[0] & 0x04))dataSendRemote_straightforward(0xffff, srcPoint, &paramRX_temp[0], 1); //互控广播二次补充（与本地状态不同时才做补充，防止补充泛滥）
+							if((srcPoint == CTRLEATHER_PORT[localActLoop]) && (0 != CTRLEATHER_PORT[localActLoop])){ //开关位1 互控绑定判断
+							
+								if(paramRX_temp[1] > datsSend_requestEx[localActLoop].constant_Loop){ //loop值大于本地才有效
+								
+									statusRelay_temp &= ~(1 << localActLoop); //动作位缓存清零
+									swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << localActLoop; //bit对应 开关位动作加载
+									swCommand_fromUsr.actMethod = relay_OnOff;
+									(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[localActLoop] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[localActLoop] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
+									
+									datsSend_requestEx[localActLoop].constant_Loop = 0;  
+									
+									localDataRecord_eaCtrl[localActLoop] = paramRX_temp[0]; //本地互控记录值更新
+								}
+								
+								break;
+							}
 						}
 						
 						devActionPush_IF.push_IF = 1; //推送使能
@@ -2958,6 +3150,17 @@ void thread_dataTrans(void){
 			//--------------------------------协状态：网络挂起-----------------------------------------------//
 			devTips_nwkZigb = nwkZigb_hold;
 			function_devNwkHold();
+			
+		}break;
+		
+		case status_devFactoryRecoverStandBy:{
+		
+			//--------------------------------协状态：恢复出厂预置-----------------------------------------------//
+			devTips_nwkZigb = nwkZigb_outLine;
+			if(!factoryRecover_HoldTimeCount){
+			
+				if(factoryRecover_standBy_FLG)Factory_recover();
+			}
 			
 		}break;
 			
