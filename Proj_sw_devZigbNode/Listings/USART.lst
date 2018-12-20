@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USART                                                                 12/07/2018 17:31:29 PAGE 1   
+C51 COMPILER V9.54   USART                                                                 12/20/2018 14:37:18 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USART
@@ -11,281 +11,287 @@ line level    source
    1          #include "USART.h"
    2          #include "delay.h"
    3          
-   4          /**********************本地文件变量创建区********************/
-   5          COMx_Define     COM1;
-   6          u8      xdata TX1_Buffer[COM_TX1_Lenth];        //发送缓冲
-   7          u8      xdata RX1_Buffer[COM_RX1_Lenth];        //接收缓冲
-   8          //u8    xdata TX2_Buffer[COM_TX2_Lenth];        //发送缓冲
-   9          //u8    xdata RX2_Buffer[COM_RX2_Lenth];        //接收缓冲
-  10          
-  11          //u8 USART_Configuration(u8 UARTx, COMx_InitDefine *COMx)
-  12          //{
-  13          //      u8      i;
-  14          //      u32     j;
-  15          //      
-  16          //      if(UARTx == USART1)
-  17          //      {
-  18          //              COM1.id = 1;
-  19          //              COM1.TX_read    = 0;
-  20          //              COM1.TX_write   = 0;
-  21          //              COM1.B_TX_busy  = 0;
-  22          //              COM1.RX_Cnt     = 0;
-  23          //              COM1.RX_TimeOut = 0;
-  24          //              COM1.B_RX_OK    = 0;
-  25          //              for(i=0; i<COM_TX1_Lenth; i++)  TX1_Buffer[i] = 0;
-  26          //              for(i=0; i<COM_RX1_Lenth; i++)  RX1_Buffer[i] = 0;
-  27          
-  28          //              if(COMx->UART_Mode > UART_9bit_BRTx)    return 2;       //模式错误
-  29          //              if(COMx->UART_Polity == PolityHigh)             PS = 1; //高优先级中断
-  30          //              else                                                                    PS = 0; //低优先级中断
-  31          //              SCON = (SCON & 0x3f) | COMx->UART_Mode;
-  32          //              if((COMx->UART_Mode == UART_9bit_BRTx) ||(COMx->UART_Mode == UART_8bit_BRTx))   //可变波特率
-  33          //              {
-  34          //                      j = (MAIN_Fosc / 4) / COMx->UART_BaudRate;      //按1T计算
-  35          //                      if(j >= 65536UL)        return 2;       //错误
-  36          //                      j = 65536UL - j;
-  37          //                      if(COMx->UART_BRT_Use == BRT_Timer1)
-  38          //                      {
-  39          //                              TR1 = 0;
-  40          //                              AUXR &= ~0x01;          //S1 BRT Use Timer1;
-  41          //                              TMOD &= ~(1<<6);        //Timer1 set As Timer
-  42          //                              TMOD &= ~0x30;          //Timer1_16bitAutoReload;
-  43          //                              AUXR |=  (1<<6);        //Timer1 set as 1T mode
-  44          //                              TH1 = (u8)(j>>8);
-  45          //                              TL1 = (u8)j;
-  46          //                              ET1 = 0;        //禁止中断
-  47          //                              TMOD &= ~0x40;  //定时
-  48          //                              INT_CLKO &= ~0x02;      //不输出时钟
-  49          //                              TR1  = 1;
-  50          //                      }
-  51          //                      else if(COMx->UART_BRT_Use == BRT_Timer2)
-  52          //                      {
-  53          //                              AUXR &= ~(1<<4);        //Timer stop
-  54          //                              AUXR |= 0x01;           //S1 BRT Use Timer2;
-C51 COMPILER V9.54   USART                                                                 12/07/2018 17:31:29 PAGE 2   
+   4          #include "dataManage.h"
+   5          
+   6          /**********************本地文件变量创建区********************/
+   7          COMx_Define     COM1;
+   8          u8      xdata TX1_Buffer[COM_TX1_Lenth];        //发送缓冲
+   9          u8      xdata RX1_Buffer[COM_RX1_Lenth];        //接收缓冲
+  10          //u8    xdata TX2_Buffer[COM_TX2_Lenth];        //发送缓冲
+  11          //u8    xdata RX2_Buffer[COM_RX2_Lenth];        //接收缓冲
+  12          
+  13          //u8 USART_Configuration(u8 UARTx, COMx_InitDefine *COMx)
+  14          //{
+  15          //      u8      i;
+  16          //      u32     j;
+  17          //      
+  18          //      if(UARTx == USART1)
+  19          //      {
+  20          //              COM1.id = 1;
+  21          //              COM1.TX_read    = 0;
+  22          //              COM1.TX_write   = 0;
+  23          //              COM1.B_TX_busy  = 0;
+  24          //              COM1.RX_Cnt     = 0;
+  25          //              COM1.RX_TimeOut = 0;
+  26          //              COM1.B_RX_OK    = 0;
+  27          //              for(i=0; i<COM_TX1_Lenth; i++)  TX1_Buffer[i] = 0;
+  28          //              for(i=0; i<COM_RX1_Lenth; i++)  RX1_Buffer[i] = 0;
+  29          
+  30          //              if(COMx->UART_Mode > UART_9bit_BRTx)    return 2;       //模式错误
+  31          //              if(COMx->UART_Polity == PolityHigh)             PS = 1; //高优先级中断
+  32          //              else                                                                    PS = 0; //低优先级中断
+  33          //              SCON = (SCON & 0x3f) | COMx->UART_Mode;
+  34          //              if((COMx->UART_Mode == UART_9bit_BRTx) ||(COMx->UART_Mode == UART_8bit_BRTx))   //可变波特率
+  35          //              {
+  36          //                      j = (MAIN_Fosc / 4) / COMx->UART_BaudRate;      //按1T计算
+  37          //                      if(j >= 65536UL)        return 2;       //错误
+  38          //                      j = 65536UL - j;
+  39          //                      if(COMx->UART_BRT_Use == BRT_Timer1)
+  40          //                      {
+  41          //                              TR1 = 0;
+  42          //                              AUXR &= ~0x01;          //S1 BRT Use Timer1;
+  43          //                              TMOD &= ~(1<<6);        //Timer1 set As Timer
+  44          //                              TMOD &= ~0x30;          //Timer1_16bitAutoReload;
+  45          //                              AUXR |=  (1<<6);        //Timer1 set as 1T mode
+  46          //                              TH1 = (u8)(j>>8);
+  47          //                              TL1 = (u8)j;
+  48          //                              ET1 = 0;        //禁止中断
+  49          //                              TMOD &= ~0x40;  //定时
+  50          //                              INT_CLKO &= ~0x02;      //不输出时钟
+  51          //                              TR1  = 1;
+  52          //                      }
+  53          //                      else if(COMx->UART_BRT_Use == BRT_Timer2)
+  54          //                      {
+C51 COMPILER V9.54   USART                                                                 12/20/2018 14:37:18 PAGE 2   
 
-  55          //                              AUXR &= ~(1<<3);        //Timer2 set As Timer
-  56          //                              AUXR |=  (1<<2);        //Timer2 set as 1T mode
-  57          //                              TH2 = (u8)(j>>8);
-  58          //                              TL2 = (u8)j;
-  59          //                              IE2  &= ~(1<<2);        //禁止中断
-  60          //                              AUXR &= ~(1<<3);        //定时
-  61          //                              AUXR |=  (1<<4);        //Timer run enable
-  62          //                      }
-  63          //                      else return 2;  //错误
-  64          //              }
-  65          //              else if(COMx->UART_Mode == UART_ShiftRight)
-  66          //              {
-  67          //                      if(COMx->BaudRateDouble == ENABLE)      AUXR |=  (1<<5);        //固定波特率SysClk/2
-  68          //                      else                                                            AUXR &= ~(1<<5);        //固定波特率SysClk/12
-  69          //              }
-  70          //              else if(COMx->UART_Mode == UART_9bit)   //固定波特率SysClk*2^SMOD/64
-  71          //              {
-  72          //                      if(COMx->BaudRateDouble == ENABLE)      PCON |=  (1<<7);        //固定波特率SysClk/32
-  73          //                      else                                                            PCON &= ~(1<<7);        //固定波特率SysClk/64
-  74          //              }
-  75          //              if(COMx->UART_Interrupt == ENABLE)      ES = 1; //允许中断
-  76          //              else                                                            ES = 0; //禁止中断
-  77          //              if(COMx->UART_RxEnable == ENABLE)       REN = 1;        //允许接收
-  78          //              else                                                            REN = 0;        //禁止接收
-  79          //              P_SW1 = (P_SW1 & 0x3f) | (COMx->UART_P_SW & 0xc0);      //切换IO
-  80          //              if(COMx->UART_RXD_TXD_Short == ENABLE)  PCON2 |=  (1<<4);       //内部短路RXD与TXD, 做中继, ENABLE,DISABLE
-  81          //              else                                                                    PCON2 &= ~(1<<4);
-  82          //              return  0;
-  83          //      }
-  84          
-  85          //      if(UARTx == USART2)
-  86          //      {
-  87          //              COM2.id = 2;
-  88          //              COM2.TX_read    = 0;
-  89          //              COM2.TX_write   = 0;
-  90          //              COM2.B_TX_busy  = 0;
-  91          //              COM2.RX_Cnt     = 0;
-  92          //              COM2.RX_TimeOut = 0;
-  93          //              COM2.B_RX_OK    = 0;
-  94          //              for(i=0; i<COM_TX2_Lenth; i++)  TX2_Buffer[i] = 0;
-  95          //              for(i=0; i<COM_RX2_Lenth; i++)  RX2_Buffer[i] = 0;
-  96          
-  97          //              if((COMx->UART_Mode == UART_9bit_BRTx) ||(COMx->UART_Mode == UART_8bit_BRTx))   //可变波特率
-  98          //              {
-  99          //                      if(COMx->UART_Polity == PolityHigh)             IP2 |=  1;      //高优先级中断
- 100          //                      else                                                                    IP2 &= ~1;      //低优先级中断
- 101          //                      if(COMx->UART_Mode == UART_9bit_BRTx)   S2CON |=  (1<<7);       //9bit
- 102          //                      else                                                                    S2CON &= ~(1<<7);       //8bit
- 103          //                      j = (MAIN_Fosc / 4) / COMx->UART_BaudRate;      //按1T计算
- 104          //                      if(j >= 65536UL)        return 2;       //错误
- 105          //                      j = 65536UL - j;
- 106          //                      AUXR &= ~(1<<4);        //Timer stop
- 107          //                      AUXR &= ~(1<<3);        //Timer2 set As Timer
- 108          //                      AUXR |=  (1<<2);        //Timer2 set as 1T mode
- 109          //                      TH2 = (u8)(j>>8);
- 110          //                      TL2 = (u8)j;
- 111          //                      IE2  &= ~(1<<2);        //禁止中断
- 112          //                      AUXR |=  (1<<4);        //Timer run enable
- 113          //              }
- 114          //              else    return 2;       //模式错误
- 115          //              if(COMx->UART_Interrupt == ENABLE)      IE2   |=  1;            //允许中断
- 116          //              else                                                            IE2   &= ~1;            //禁止中断
-C51 COMPILER V9.54   USART                                                                 12/07/2018 17:31:29 PAGE 3   
+  55          //                              AUXR &= ~(1<<4);        //Timer stop
+  56          //                              AUXR |= 0x01;           //S1 BRT Use Timer2;
+  57          //                              AUXR &= ~(1<<3);        //Timer2 set As Timer
+  58          //                              AUXR |=  (1<<2);        //Timer2 set as 1T mode
+  59          //                              TH2 = (u8)(j>>8);
+  60          //                              TL2 = (u8)j;
+  61          //                              IE2  &= ~(1<<2);        //禁止中断
+  62          //                              AUXR &= ~(1<<3);        //定时
+  63          //                              AUXR |=  (1<<4);        //Timer run enable
+  64          //                      }
+  65          //                      else return 2;  //错误
+  66          //              }
+  67          //              else if(COMx->UART_Mode == UART_ShiftRight)
+  68          //              {
+  69          //                      if(COMx->BaudRateDouble == ENABLE)      AUXR |=  (1<<5);        //固定波特率SysClk/2
+  70          //                      else                                                            AUXR &= ~(1<<5);        //固定波特率SysClk/12
+  71          //              }
+  72          //              else if(COMx->UART_Mode == UART_9bit)   //固定波特率SysClk*2^SMOD/64
+  73          //              {
+  74          //                      if(COMx->BaudRateDouble == ENABLE)      PCON |=  (1<<7);        //固定波特率SysClk/32
+  75          //                      else                                                            PCON &= ~(1<<7);        //固定波特率SysClk/64
+  76          //              }
+  77          //              if(COMx->UART_Interrupt == ENABLE)      ES = 1; //允许中断
+  78          //              else                                                            ES = 0; //禁止中断
+  79          //              if(COMx->UART_RxEnable == ENABLE)       REN = 1;        //允许接收
+  80          //              else                                                            REN = 0;        //禁止接收
+  81          //              P_SW1 = (P_SW1 & 0x3f) | (COMx->UART_P_SW & 0xc0);      //切换IO
+  82          //              if(COMx->UART_RXD_TXD_Short == ENABLE)  PCON2 |=  (1<<4);       //内部短路RXD与TXD, 做中继, ENABLE,DISABLE
+  83          //              else                                                                    PCON2 &= ~(1<<4);
+  84          //              return  0;
+  85          //      }
+  86          
+  87          //      if(UARTx == USART2)
+  88          //      {
+  89          //              COM2.id = 2;
+  90          //              COM2.TX_read    = 0;
+  91          //              COM2.TX_write   = 0;
+  92          //              COM2.B_TX_busy  = 0;
+  93          //              COM2.RX_Cnt     = 0;
+  94          //              COM2.RX_TimeOut = 0;
+  95          //              COM2.B_RX_OK    = 0;
+  96          //              for(i=0; i<COM_TX2_Lenth; i++)  TX2_Buffer[i] = 0;
+  97          //              for(i=0; i<COM_RX2_Lenth; i++)  RX2_Buffer[i] = 0;
+  98          
+  99          //              if((COMx->UART_Mode == UART_9bit_BRTx) ||(COMx->UART_Mode == UART_8bit_BRTx))   //可变波特率
+ 100          //              {
+ 101          //                      if(COMx->UART_Polity == PolityHigh)             IP2 |=  1;      //高优先级中断
+ 102          //                      else                                                                    IP2 &= ~1;      //低优先级中断
+ 103          //                      if(COMx->UART_Mode == UART_9bit_BRTx)   S2CON |=  (1<<7);       //9bit
+ 104          //                      else                                                                    S2CON &= ~(1<<7);       //8bit
+ 105          //                      j = (MAIN_Fosc / 4) / COMx->UART_BaudRate;      //按1T计算
+ 106          //                      if(j >= 65536UL)        return 2;       //错误
+ 107          //                      j = 65536UL - j;
+ 108          //                      AUXR &= ~(1<<4);        //Timer stop
+ 109          //                      AUXR &= ~(1<<3);        //Timer2 set As Timer
+ 110          //                      AUXR |=  (1<<2);        //Timer2 set as 1T mode
+ 111          //                      TH2 = (u8)(j>>8);
+ 112          //                      TL2 = (u8)j;
+ 113          //                      IE2  &= ~(1<<2);        //禁止中断
+ 114          //                      AUXR |=  (1<<4);        //Timer run enable
+ 115          //              }
+ 116          //              else    return 2;       //模式错误
+C51 COMPILER V9.54   USART                                                                 12/20/2018 14:37:18 PAGE 3   
 
- 117          //              if(COMx->UART_RxEnable == ENABLE)       S2CON |=  (1<<4);       //允许接收
- 118          //              else                                                            S2CON &= ~(1<<4);       //禁止接收
- 119          //              P_SW2 = (P_SW2 & ~1) | (COMx->UART_P_SW & 0x01);        //切换IO
- 120          //      }
- 121          //      
- 122          //      return 3;
- 123          //}
- 124          
- 125          
- 126          /*************** 装载串口发送缓冲 *******************************/
+ 117          //              if(COMx->UART_Interrupt == ENABLE)      IE2   |=  1;            //允许中断
+ 118          //              else                                                            IE2   &= ~1;            //禁止中断
+ 119          //              if(COMx->UART_RxEnable == ENABLE)       S2CON |=  (1<<4);       //允许接收
+ 120          //              else                                                            S2CON &= ~(1<<4);       //禁止接收
+ 121          //              P_SW2 = (P_SW2 & ~1) | (COMx->UART_P_SW & 0x01);        //切换IO
+ 122          //      }
+ 123          //      
+ 124          //      return 3;
+ 125          //}
+ 126          
  127          
- 128          void TX1_write2buff(u8 dat)     //写入发送缓冲，指针+1
- 129          {
- 130   1              TX1_Buffer[COM1.TX_write] = dat;        //装发送缓冲
- 131   1              if(++COM1.TX_write >= COM_TX1_Lenth)    COM1.TX_write = 0;
- 132   1      
- 133   1              if(COM1.B_TX_busy == 0)         //空闲
- 134   1              {  
- 135   2                      COM1.B_TX_busy = 1;             //标志忙
- 136   2                      TI = 1;                                 //触发发送中断
- 137   2              }
- 138   1      }
- 139          
- 140          //void TX2_write2buff(u8 dat)   //写入发送缓冲，指针+1
- 141          //{
- 142          //      TX2_Buffer[COM2.TX_write] = dat;        //装发送缓冲
- 143          //      if(++COM2.TX_write >= COM_TX2_Lenth)    COM2.TX_write = 0;
- 144          
- 145          //      if(COM2.B_TX_busy == 0)         //空闲
- 146          //      {  
- 147          //              COM2.B_TX_busy = 1;             //标志忙
- 148          //              SET_TI2();                              //触发发送中断
- 149          //      }
- 150          //}
- 151          
- 152          void PrintString1(u8 *puts)
- 153          {
- 154   1          for (; *puts != 0;  puts++)  TX1_write2buff(*puts);         //遇到停止符0结束
- 155   1      }
- 156          
- 157          void PrintString1_logOut(u8 *puts){
- 158   1      
- 159   1              delayMs(15);
- 160   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P36_P37 & 0xc0);
- 161   1              delayMs(15);
- 162   1              PrintString1(puts);
- 163   1              delayMs(15);
- 164   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
- 165   1              delayMs(15);
- 166   1      }
- 167          
- 168          //void PrintString2(u8 *puts)
- 169          //{
- 170          //    for (; *puts != 0;        puts++)  TX2_write2buff(*puts);         //遇到停止符0结束
- 171          //}
- 172          
- 173          void uart1_datsSend(u8 *dats,u8 datsLen){
- 174   1      
- 175   1              u8 loop = 0;
- 176   1              
- 177   1              for(loop = 0; loop < datsLen; loop ++){
- 178   2              
-C51 COMPILER V9.54   USART                                                                 12/07/2018 17:31:29 PAGE 4   
+ 128          /*************** 装载串口发送缓冲 *******************************/
+ 129          
+ 130          void TX1_write2buff(u8 dat)     //写入发送缓冲，指针+1
+ 131          {
+ 132   1              TX1_Buffer[COM1.TX_write] = dat;        //装发送缓冲
+ 133   1              if(++COM1.TX_write >= COM_TX1_Lenth)    COM1.TX_write = 0;
+ 134   1      
+ 135   1              if(COM1.B_TX_busy == 0)         //空闲
+ 136   1              {  
+ 137   2                      COM1.B_TX_busy = 1;             //标志忙
+ 138   2                      TI = 1;                                 //触发发送中断
+ 139   2              }
+ 140   1      }
+ 141          
+ 142          //void TX2_write2buff(u8 dat)   //写入发送缓冲，指针+1
+ 143          //{
+ 144          //      TX2_Buffer[COM2.TX_write] = dat;        //装发送缓冲
+ 145          //      if(++COM2.TX_write >= COM_TX2_Lenth)    COM2.TX_write = 0;
+ 146          
+ 147          //      if(COM2.B_TX_busy == 0)         //空闲
+ 148          //      {  
+ 149          //              COM2.B_TX_busy = 1;             //标志忙
+ 150          //              SET_TI2();                              //触发发送中断
+ 151          //      }
+ 152          //}
+ 153          
+ 154          void PrintString1(u8 *puts)
+ 155          {
+ 156   1          for (; *puts != 0;  puts++)  TX1_write2buff(*puts);         //遇到停止符0结束
+ 157   1      }
+ 158          
+ 159          void PrintString1_logOut(u8 *puts){
+ 160   1      
+ 161   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //插座引脚冲突，不支持打印
+                      puts[0] = puts[0];
+              #else
+ 164   1              delayMs(15);
+ 165   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P36_P37 & 0xc0);
+ 166   1              delayMs(15);
+ 167   1              PrintString1(puts);
+ 168   1              delayMs(15);
+ 169   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
+ 170   1              delayMs(15);
+ 171   1      #endif
+ 172   1      }
+ 173          
+ 174          //void PrintString2(u8 *puts)
+ 175          //{
+ 176          //    for (; *puts != 0;        puts++)  TX2_write2buff(*puts);         //遇到停止符0结束
+ 177          //}
+ 178          
+C51 COMPILER V9.54   USART                                                                 12/20/2018 14:37:18 PAGE 4   
 
- 179   2                      TX1_write2buff(*dats ++);
- 180   2              }
- 181   1      }
- 182          
- 183          void uart1_logOut(u8 *dats,u8 datsLen){
- 184   1      
- 185   1              delayMs(15);
- 186   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P36_P37 & 0xc0);
- 187   1              uart1_datsSend(dats, datsLen);
- 188   1              delayMs(15);
- 189   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
- 190   1      }
- 191          
- 192          //void uart2_datsSend(u8 *dats,u8 datsLen){
- 193          
- 194          //      u8 loop = 0;
- 195          //      
- 196          //      for(loop = 0; loop < datsLen; loop ++){
- 197          //      
- 198          //              TX2_write2buff(*dats ++);
- 199          //      }
- 200          //}
- 201          
- 202          /*
- 203          void COMx_write2buff(COMx_Define *COMx, u8 dat) //写入发送缓冲，指针+1
- 204          {
- 205                  if(COMx->id == 1)       TX1_write2buff(dat);
- 206                  if(COMx->id == 2)       TX2_write2buff(dat);
- 207          }
- 208          
- 209          void PrintString(COMx_Define *COMx, u8 *puts)
+ 179          void uart1_datsSend(u8 *dats,u8 datsLen){
+ 180   1      
+ 181   1              u8 loop = 0;
+ 182   1              
+ 183   1              for(loop = 0; loop < datsLen; loop ++){
+ 184   2              
+ 185   2                      TX1_write2buff(*dats ++);
+ 186   2              }
+ 187   1      }
+ 188          
+ 189          void uart1_logOut(u8 *dats,u8 datsLen){
+ 190   1      
+ 191   1              delayMs(15);
+ 192   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P36_P37 & 0xc0);
+ 193   1              uart1_datsSend(dats, datsLen);
+ 194   1              delayMs(15);
+ 195   1              P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
+ 196   1      }
+ 197          
+ 198          //void uart2_datsSend(u8 *dats,u8 datsLen){
+ 199          
+ 200          //      u8 loop = 0;
+ 201          //      
+ 202          //      for(loop = 0; loop < datsLen; loop ++){
+ 203          //      
+ 204          //              TX2_write2buff(*dats ++);
+ 205          //      }
+ 206          //}
+ 207          
+ 208          /*
+ 209          void COMx_write2buff(COMx_Define *COMx, u8 dat) //写入发送缓冲，指针+1
  210          {
- 211              for (; *puts != 0;  puts++)  COMx_write2buff(COMx,*puts);   //遇到停止符0结束
- 212          }
- 213          */
+ 211                  if(COMx->id == 1)       TX1_write2buff(dat);
+ 212                  if(COMx->id == 2)       TX2_write2buff(dat);
+ 213          }
  214          
- 215          
- 216          ///********************* UART1中断函数************************/
- 217          //void UART1_Rountine (void) interrupt UART1_VECTOR
- 218          //{
- 219          //      if(RI)
- 220          //      {
- 221          //              RI = 0;
- 222          //              if(COM1.B_RX_OK == 0)
- 223          //              {
- 224          //                      if(COM1.RX_Cnt >= COM_RX1_Lenth)        COM1.RX_Cnt = 0;
- 225          //                      RX1_Buffer[COM1.RX_Cnt++] = SBUF;
- 226          //                      COM1.RX_TimeOut = TimeOutSet1;
- 227          //              }
- 228          //      }
- 229          
- 230          //      if(TI)
- 231          //      {
- 232          //              TI = 0;
- 233          //              if(COM1.TX_read != COM1.TX_write)
- 234          //              {
- 235          //                      SBUF = TX1_Buffer[COM1.TX_read];
- 236          //                      if(++COM1.TX_read >= COM_TX1_Lenth)             COM1.TX_read = 0;
- 237          //              }
- 238          //              else    COM1.B_TX_busy = 0;
- 239          //      }
- 240          //}
-C51 COMPILER V9.54   USART                                                                 12/07/2018 17:31:29 PAGE 5   
+ 215          void PrintString(COMx_Define *COMx, u8 *puts)
+ 216          {
+ 217              for (; *puts != 0;  puts++)  COMx_write2buff(COMx,*puts);   //遇到停止符0结束
+ 218          }
+ 219          */
+ 220          
+ 221          
+ 222          ///********************* UART1中断函数************************/
+ 223          //void UART1_Rountine (void) interrupt UART1_VECTOR
+ 224          //{
+ 225          //      if(RI)
+ 226          //      {
+ 227          //              RI = 0;
+ 228          //              if(COM1.B_RX_OK == 0)
+ 229          //              {
+ 230          //                      if(COM1.RX_Cnt >= COM_RX1_Lenth)        COM1.RX_Cnt = 0;
+ 231          //                      RX1_Buffer[COM1.RX_Cnt++] = SBUF;
+ 232          //                      COM1.RX_TimeOut = TimeOutSet1;
+ 233          //              }
+ 234          //      }
+ 235          
+ 236          //      if(TI)
+ 237          //      {
+ 238          //              TI = 0;
+ 239          //              if(COM1.TX_read != COM1.TX_write)
+ 240          //              {
+C51 COMPILER V9.54   USART                                                                 12/20/2018 14:37:18 PAGE 5   
 
- 241          
- 242          ///********************* UART2中断函数************************/
- 243          //void UART2_Rountine (void) interrupt UART2_VECTOR
- 244          //{
- 245          //      if(RI2)
- 246          //      {
- 247          //              CLR_RI2();
- 248          //              if(COM2.B_RX_OK == 0)
- 249          //              {
- 250          //                      if(COM2.RX_Cnt >= COM_RX2_Lenth)        COM2.RX_Cnt = 0;
- 251          //                      RX2_Buffer[COM2.RX_Cnt++] = S2BUF;
- 252          //                      COM2.RX_TimeOut = TimeOutSet2;
- 253          //              }
- 254          //      }
- 255          //      
- 256          
- 257          //      if(TI2)
- 258          //      {
- 259          //              CLR_TI2();
- 260          //              if(COM2.TX_read != COM2.TX_write)
- 261          //              {
- 262          //                      S2BUF = TX2_Buffer[COM2.TX_read];
- 263          //                      if(++COM2.TX_read >= COM_TX2_Lenth)             COM2.TX_read = 0;
- 264          //              }
- 265          //              else    COM2.B_TX_busy = 0;
- 266          //      }
- 267          //}
- 268          
- 269          
- 270          
+ 241          //                      SBUF = TX1_Buffer[COM1.TX_read];
+ 242          //                      if(++COM1.TX_read >= COM_TX1_Lenth)             COM1.TX_read = 0;
+ 243          //              }
+ 244          //              else    COM1.B_TX_busy = 0;
+ 245          //      }
+ 246          //}
+ 247          
+ 248          ///********************* UART2中断函数************************/
+ 249          //void UART2_Rountine (void) interrupt UART2_VECTOR
+ 250          //{
+ 251          //      if(RI2)
+ 252          //      {
+ 253          //              CLR_RI2();
+ 254          //              if(COM2.B_RX_OK == 0)
+ 255          //              {
+ 256          //                      if(COM2.RX_Cnt >= COM_RX2_Lenth)        COM2.RX_Cnt = 0;
+ 257          //                      RX2_Buffer[COM2.RX_Cnt++] = S2BUF;
+ 258          //                      COM2.RX_TimeOut = TimeOutSet2;
+ 259          //              }
+ 260          //      }
+ 261          //      
+ 262          
+ 263          //      if(TI2)
+ 264          //      {
+ 265          //              CLR_TI2();
+ 266          //              if(COM2.TX_read != COM2.TX_write)
+ 267          //              {
+ 268          //                      S2BUF = TX2_Buffer[COM2.TX_read];
+ 269          //                      if(++COM2.TX_read >= COM_TX2_Lenth)             COM2.TX_read = 0;
+ 270          //              }
+ 271          //              else    COM2.B_TX_busy = 0;
+ 272          //      }
+ 273          //}
+ 274          
+ 275          
+ 276          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE

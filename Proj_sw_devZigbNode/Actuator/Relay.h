@@ -9,6 +9,7 @@
 #define actRelay_OFF	0
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	#define PIN_RELAY_1		P33
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 	#define PIN_INT_IN		P33
 	#define PIN_PWM_OUT		P35
@@ -40,6 +41,12 @@ typedef struct{
 
 typedef struct{
 
+	u8 push_IF:1; //推送使能
+	u8 dats_Push; //推送数据-高三位表示动作位，低三位表示开关状态
+}relayStatus_PUSH;
+
+typedef struct{ //窗帘对应电机数据结构
+
 	u8 act_counter;
 	u8 act_period;
 	
@@ -50,13 +57,7 @@ typedef struct{
 		cTact_open,
 	}act;
 
-}stt_motorAttr;
-
-typedef struct{
-
-	u8 push_IF:1; //推送使能
-	u8 dats_Push; //推送数据-高三位表示动作位，低三位表示开关状态
-}relayStatus_PUSH;
+}stt_Curtain_motorAttr;
 
 typedef struct{
 
@@ -65,18 +66,29 @@ typedef struct{
 	
 	u16 pwm_actEN; //调制使能，确认调制起点
 	u16 pwm_actCounter; //调制计时值
-}stt_attrFreq;
+}stt_Dimmer_attrFreq;
+
+typedef struct{
+
+	float eleParam_power; //实际功率值
+	float eleParamFun_powerPulseCount; //功率检测脉冲计数值
+	float eleParamFun_powerFreqVal; //功率脉冲频率计算缓冲值
+	
+	float ele_Consum;
+	
+}stt_eleSocket_attrFreq;
 
 extern status_ifSave xdata relayStatus_ifSave;
 extern u8 xdata status_Relay;
-extern stt_motorAttr xdata curtainAct_Param;
+extern stt_Curtain_motorAttr xdata curtainAct_Param;
 extern relay_Command xdata swCommand_fromUsr;
 extern u8 xdata EACHCTRL_realesFLG;
 extern bit		EACHCTRL_reportFLG;
 extern relayStatus_PUSH xdata devActionPush_IF;
 extern bit				idata statusRelay_saveEn;
 
-extern stt_attrFreq xdata freq_Param;
+extern stt_Dimmer_attrFreq xdata dimmer_freqParam;
+extern stt_eleSocket_attrFreq xdata socket_eleDetParam;
 
 void relay_pinInit(void);
 void relay_Act(relay_Command dats);

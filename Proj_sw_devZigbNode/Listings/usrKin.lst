@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -38,360 +38,359 @@ line level    source
   28          u8      xdata touchKeepCnt_record       = 1;  //Á¬°´ÕýÔÚ½øÐÐÊ±¼ÆÊý±äÁ¿£¬Á¬°´±Ø¶¨´ÓÒ»¿ªÊ¼£¬·ñÔò²»½ÐÁ¬°´
   29          
   30          bit idata combinationFunTrigger_3S1L_standBy_FLG = 0;  //Èý¶ÌÒ»³¤Ô¤´¥·¢±êÖ¾
-  31          
-  32          /*--------------------------------------------------------------------------------------------------------
+  31          bit idata combinationFunTrigger_3S5S_standBy_FLG = 0;  //Èý¶ÌÎå¶ÌÔ¤´¥·¢±êÖ¾
+  32          u16 xdata combinationFunFLG_3S5S_cancel_counter  = 0;  //Èý¶ÌÎå¶ÌÔ¤´¥·¢±êÖ¾_ÏÎ½ÓÊ±³¤È¡Ïû¼ÆÊý£¬ÏÎ½ÓÊ±¼ä¹ý³¤
+             -Ê±£¬½«Ô¤´¥·¢±êÖ¾È¡Ïû
+  33          
+  34          /*--------------------------------------------------------------------------------------------------------
              -----*/
-  33          ///*°´¼ü»Øµ÷º¯Êý»º´æ*///Îª¼õÉÙ´úÂëÈßÓà£¬´Ë¶ÎÆúÓÃ
-  34          //static fun_KeyTrigger xdata funTrig_keyTouch_1 = {0}; //Á¬°´¿ÉÓÃ 
-  35          //static fun_KeyTrigger xdata funTrig_keyTouch_2 = {0}; //Á¬°´¿ÉÓÃ
-  36          //static fun_KeyTrigger xdata funTrig_keyTouch_3 = {0}; //Á¬°´¿ÉÓÃ
-  37          //static fun_KeyTrigger xdata funTrig_keyButton  = {0}; //Á¬°´²»¿ÉÓÃ
-  38          
-  39          static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
-  40          static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
-  41          
-  42          ///*°´¼ü´¥·¢»Øµ÷º¯Êý×¢²á*///Îª¼õÉÙ´úÂëÈßÓà£¬´Ëº¯ÊýÆúÓÃ
-  43          //void funKeyTrigger_register(funKey_Callback funTrigger, objKey key, trig_Method mTrig, u8 pressCnt_num){
+  35          ///*°´¼ü»Øµ÷º¯Êý»º´æ*///Îª¼õÉÙ´úÂëÈßÓà£¬´Ë¶ÎÆúÓÃ
+  36          //static fun_KeyTrigger xdata funTrig_keyTouch_1 = {0}; //Á¬°´¿ÉÓÃ 
+  37          //static fun_KeyTrigger xdata funTrig_keyTouch_2 = {0}; //Á¬°´¿ÉÓÃ
+  38          //static fun_KeyTrigger xdata funTrig_keyTouch_3 = {0}; //Á¬°´¿ÉÓÃ
+  39          //static fun_KeyTrigger xdata funTrig_keyButton  = {0}; //Á¬°´²»¿ÉÓÃ
+  40          
+  41          static void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm);
+  42          static void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount);
+  43          
+  44          ///*°´¼ü´¥·¢»Øµ÷º¯Êý×¢²á*///Îª¼õÉÙ´úÂëÈßÓà£¬´Ëº¯ÊýÆúÓÃ
+  45          //void funKeyTrigger_register(funKey_Callback funTrigger, objKey key, trig_Method mTrig, u8 pressCnt_num){
              - //»Øµ÷º¯Êý£¬°´¼ü¶ÔÏó£¬´¥·¢·½Ê½£¬Á¬°´´ÎÊý£¨´óÓÚ2ÇÒ ´¥·¢·½Ê½ÎªÁ¬°´ ÓÐÐ§£©
-  44          
-  45          //      switch(key){
-  46          //      
-  47          //              case kinObj_touch_1:{
-  48          //              
-  49          //                      switch(mTrig){
-  50          //                      
-  51          //                              case method_pressShort: funTrig_keyTouch_1.press_Short = funTrigger;break;
-  52          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_1.press_Continue[pressCnt_num] = funTrig
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 2   
+  46          
+  47          //      switch(key){
+  48          //      
+  49          //              case kinObj_touch_1:{
+  50          //              
+  51          //                      switch(mTrig){
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 2   
 
+  52          //                      
+  53          //                              case method_pressShort: funTrig_keyTouch_1.press_Short = funTrigger;break;
+  54          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_1.press_Continue[pressCnt_num] = funTrig
              -ger;break;
-  53          //                              case method_pressLong_A:funTrig_keyTouch_1.press_Long_A = funTrigger;break;
-  54          //                              case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
-  55          //                                      
-  56          //                              default:break;
-  57          //                      }
-  58          //              }break;
-  59          //                      
-  60          //              case kinObj_touch_2:{
+  55          //                              case method_pressLong_A:funTrig_keyTouch_1.press_Long_A = funTrigger;break;
+  56          //                              case method_pressLong_B:funTrig_keyTouch_1.press_Long_B = funTrigger;break;
+  57          //                                      
+  58          //                              default:break;
+  59          //                      }
+  60          //              }break;
   61          //                      
-  62          //                      switch(mTrig){
+  62          //              case kinObj_touch_2:{
   63          //                      
-  64          //                              case method_pressShort: funTrig_keyTouch_2.press_Short = funTrigger;break;
-  65          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_2.press_Continue[pressCnt_num] = funTrig
+  64          //                      switch(mTrig){
+  65          //                      
+  66          //                              case method_pressShort: funTrig_keyTouch_2.press_Short = funTrigger;break;
+  67          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_2.press_Continue[pressCnt_num] = funTrig
              -ger;break;
-  66          //                              case method_pressLong_A:funTrig_keyTouch_2.press_Long_A = funTrigger;break;
-  67          //                              case method_pressLong_B:funTrig_keyTouch_2.press_Long_B = funTrigger;break;
-  68          //                                      
-  69          //                              default:break;
-  70          //                      }
-  71          //              }break;
-  72          //                      
-  73          //              case kinObj_touch_3:{
+  68          //                              case method_pressLong_A:funTrig_keyTouch_2.press_Long_A = funTrigger;break;
+  69          //                              case method_pressLong_B:funTrig_keyTouch_2.press_Long_B = funTrigger;break;
+  70          //                                      
+  71          //                              default:break;
+  72          //                      }
+  73          //              }break;
   74          //                      
-  75          //                      switch(mTrig){
+  75          //              case kinObj_touch_3:{
   76          //                      
-  77          //                              case method_pressShort: funTrig_keyButton.press_Short = funTrigger;break;
-  78          //                              case method_pressLong_A:funTrig_keyButton.press_Long_A = funTrigger;break;
-  79          //                              case method_pressLong_B:funTrig_keyButton.press_Long_B = funTrigger;break;
-  80          //                              
-  81          //                              case method_pressCnt: //Á¬°´²»¿ÉÓÃ
-  82          //                              default:break;
-  83          //                      }
-  84          //              }break;
-  85          //                      
-  86          //              case kinObj_button:{
-  87          //              
-  88          //                      switch(mTrig){
-  89          //                      
-  90          //                              case method_pressShort: funTrig_keyTouch_3.press_Short = funTrigger;break;
-  91          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_3.press_Continue[pressCnt_num] = funTrig
+  77          //                      switch(mTrig){
+  78          //                      
+  79          //                              case method_pressShort: funTrig_keyButton.press_Short = funTrigger;break;
+  80          //                              case method_pressLong_A:funTrig_keyButton.press_Long_A = funTrigger;break;
+  81          //                              case method_pressLong_B:funTrig_keyButton.press_Long_B = funTrigger;break;
+  82          //                              
+  83          //                              case method_pressCnt: //Á¬°´²»¿ÉÓÃ
+  84          //                              default:break;
+  85          //                      }
+  86          //              }break;
+  87          //                      
+  88          //              case kinObj_button:{
+  89          //              
+  90          //                      switch(mTrig){
+  91          //                      
+  92          //                              case method_pressShort: funTrig_keyTouch_3.press_Short = funTrigger;break;
+  93          //                              case method_pressCnt:   if(pressCnt_num >= 2)funTrig_keyTouch_3.press_Continue[pressCnt_num] = funTrig
              -ger;break;
-  92          //                              case method_pressLong_A:funTrig_keyTouch_3.press_Long_A = funTrigger;break;
-  93          //                              case method_pressLong_B:funTrig_keyTouch_3.press_Long_B = funTrigger;break;
-  94          //                                      
-  95          //                              default:break;
-  96          //                      }
-  97          //              }break;
-  98          //                      
-  99          //              default:break;
- 100          //      }
- 101          //}
- 102          
- 103          void usrZigbNwkOpen(void){
- 104   1              
- 105   1              if(devRunning_Status != status_nwkREQ && devRunning_Status != status_nwkReconnect){ //±¾ÉíÓÐÍøÂçµÄÇé¿öÏÂ²
-             -ÅÄÜ¿ª·ÅÍøÂç
- 106   2              
- 107   2                      ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //¹¦ÄÜ´¥·¢
- 108   2                      tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips´¥·¢
- 109   2      #if(DEBUG_LOGOUT_EN == 1)
- 110   2                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 3   
+  94          //                              case method_pressLong_A:funTrig_keyTouch_3.press_Long_A = funTrigger;break;
+  95          //                              case method_pressLong_B:funTrig_keyTouch_3.press_Long_B = funTrigger;break;
+  96          //                                      
+  97          //                              default:break;
+  98          //                      }
+  99          //              }break;
+ 100          //                      
+ 101          //              default:break;
+ 102          //      }
+ 103          //}
+ 104          
+ 105          void usrZigbNwkOpen(void){
+ 106   1              
+ 107   1              if(devTips_nwkZigb != nwkZigb_outLine &&  //Íø¹ØÊ§Áª£¬Í¨ÐÅÒì³££¬²»ÔÊÐí¿ª·Å
+ 108   1                 devRunning_Status != status_nwkREQ &&  //±¾ÉíÎÞÍøÂç²»ÔÊÐí¿ª·Å
+ 109   1                 devRunning_Status != status_nwkReconnect){  //±¾ÉíÎÞÍøÂç²»ÔÊÐí¿ª·Å
+ 110   2              
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 3   
 
- 111   3                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 112   3                              sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
- 113   3                              PrintString1_logOut(log_buf);
- 114   3                      }                       
- 115   2      #endif  
- 116   2              }
- 117   1      }
- 118          
- 119          void devTypeComfirm_byDcode(u8 valDcode){
- 120   1      
- 121   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 111   2                      ZigB_nwkOpen(1, ZIGBNWK_OPNETIME_DEFAULT); //¹¦ÄÜ´¥·¢
+ 112   2                      tips_statusChangeToZigbNwkOpen(ZIGBNWK_OPNETIME_DEFAULT); //tips´¥·¢
+ 113   2      #if(DEBUG_LOGOUT_EN == 1)
+ 114   2                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 115   3                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 116   3                              sprintf(log_buf, "touchPad special trig:nwkOpen:%02ds.\n", (int)ZIGBNWK_OPNETIME_DEFAULT);
+ 117   3                              PrintString1_logOut(log_buf);
+ 118   3                      }                       
+ 119   2      #endif  
+ 120   2              }
+ 121   1      }
+ 122          
+ 123          void devTypeComfirm_byDcode(u8 valDcode){
+ 124   1              
+ 125   1              valDcode = valDcode;
+ 126   1      
+ 127   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
                       SWITCH_TYPE = SWITCH_TYPE_FANS;
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
                       SWITCH_TYPE = SWITCH_TYPE_dIMMER;
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       SWITCH_TYPE = SWITCH_TYPE_SOCKETS;
               #else
- 128   1              switch(valDcode){
- 129   2              
- 130   2                      case 0:{
- 131   3                      
- 132   3                              SWITCH_TYPE = SWITCH_TYPE_CURTAIN;      
- 133   3                              
- 134   3                      }break;
- 135   2                              
- 136   2                      case 1:{
+ 134   1              switch(valDcode){
+ 135   2              
+ 136   2                      case 0:{
  137   3                      
- 138   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT1;       
- 139   3      
+ 138   3                              SWITCH_TYPE = SWITCH_TYPE_CURTAIN;      
+ 139   3                              
  140   3                      }break;
  141   2                              
- 142   2                      case 2:{
+ 142   2                      case 1:{
  143   3                      
- 144   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT2;       
+ 144   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT1;       
  145   3      
  146   3                      }break;
  147   2                              
- 148   2                      case 3:{
- 149   3                              
- 150   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
+ 148   2                      case 2:{
+ 149   3                      
+ 150   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT2;       
  151   3      
  152   3                      }break;
  153   2                              
- 154   2                      default:break;
- 155   2              }
- 156   1      #endif
- 157   1      }
- 158          
- 159          void usrKin_pinInit(void){
- 160   1              
- 161   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ 154   2                      case 3:{
+ 155   3                              
+ 156   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT3;       
+ 157   3      
+ 158   3                      }break;
+ 159   2                              
+ 160   2                      default:break;
+ 161   2              }
+ 162   1      #endif
+ 163   1      }
+ 164          
+ 165          void usrKin_pinInit(void){
+ 166   1              
+ 167   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+                      P2M1 |= 0x10;
+                      P2M0 &= ~(0x10);
               
               #else
- 164   1              
- 165   1              P1M1 &= ~(0xE0);
- 166   1              P1M0 &= ~(0xE0);
- 167   1      
- 168   1              P0M1 &= ~(0x04);
- 169   1              P0M0 &= ~(0x04);
- 170   1              
- 171   1              { //²¦ÂëÔ¤¼ì²â
- 172   2              
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 4   
+ 172   1              P1M1 &= ~(0xE0);
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 4   
 
- 173   2                      u8 touchVal_temp = DcodeScan_oneShoot();
- 174   2                      
- 175   2                      if(touchVal_temp & Dcode_FLG_ifMemory)relayStatus_ifSave = statusSave_enable; //ÌáÇ°¼ì²â
- 176   2                      devTypeComfirm_byDcode(Dcode_bitReserve(touchVal_temp));
- 177   2              }
- 178   1      #endif
- 179   1      }
- 180          
- 181          u8 DcodeScan_oneShoot(void){
- 182   1      
- 183   1              u8 val_Dcode = 0;
- 184   1              
- 185   1              if(!Dcode0)val_Dcode |= 1 << 0;
- 186   1              else val_Dcode &= ~(1 << 0);
- 187   1              
- 188   1              if(!Dcode1)val_Dcode |= 1 << 1;
- 189   1              else val_Dcode &= ~(1 << 1);
- 190   1              
- 191   1              if(!Dcode2)val_Dcode |= 1 << 2;
- 192   1              else val_Dcode &= ~(1 << 2);
- 193   1              
- 194   1              if(!Dcode3)val_Dcode |= 1 << 3;
- 195   1              else val_Dcode &= ~(1 << 3);
- 196   1              
- 197   1              if(!Dcode4)val_Dcode |= 1 << 4;
- 198   1              else val_Dcode &= ~(1 << 4);
- 199   1              
- 200   1              if(!Dcode5)val_Dcode |= 1 << 5;
- 201   1              else val_Dcode &= ~(1 << 5);
- 202   1              
- 203   1              return val_Dcode;
- 204   1      }
- 205          
- 206          bit UsrKEYScan_oneShoot(void){
- 207   1      
- 208   1              return Usr_key;
- 209   1      }
- 210          
- 211          u8 touchPadScan_oneShoot(void){
- 212   1      
- 213   1              u8 valKey_Temp = 0;
- 214   1              
- 215   1              if(!touchPad_1)valKey_Temp |= 0x01;
- 216   1              if(!touchPad_2)valKey_Temp |= 0x02;
- 217   1              if(!touchPad_3)valKey_Temp |= 0x04;
- 218   1              
- 219   1              return valKey_Temp;
- 220   1      }
- 221          
- 222          void DcodeScan(void){
- 223   1      
- 224   1              static u8       val_Dcode_Local         = 0,
- 225   1                                      comfirm_Cnt                     = 0;
- 226   1              const  u8       comfirm_Period          = 200;  //Ïû¶¶Ê±¼äÒòÊý¡ª¡ªÈ¡¾öÓÚÖ÷Ïß³Ìµ÷¶ÈÖÜÆÚ
- 227   1                      
- 228   1                         u8   val_Dcode_differ        = 0;
- 229   1              
- 230   1                         bit  val_CHG                         = 0;
- 231   1              
- 232   1              val_DcodeCfm = DcodeScan_oneShoot();
- 233   1              
- 234   1              DEV_actReserve = switchTypeReserve_GET(); //µ±Ç°¿ª¹ØÀàÐÍ¶ÔÓ¦ÓÐÐ§²Ù×÷Î»Ë¢ÐÂ
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 5   
+ 173   1              P1M0 &= ~(0xE0);
+ 174   1      
+ 175   1              P0M1 &= ~(0x04);
+ 176   1              P0M0 &= ~(0x04);
+ 177   1              
+ 178   1              { //²¦ÂëÔ¤¼ì²â
+ 179   2              
+ 180   2                      u8 touchVal_temp = DcodeScan_oneShoot();
+ 181   2                      
+ 182   2                      if(touchVal_temp & Dcode_FLG_ifMemory)relayStatus_ifSave = statusSave_enable; //ÌáÇ°¼ì²â
+ 183   2                      devTypeComfirm_byDcode(Dcode_bitReserve(touchVal_temp));
+ 184   2              }
+ 185   1              
+ 186   1      #endif
+ 187   1      }
+ 188          
+ 189          bit UsrKEYScan_oneShoot(void){
+ 190   1      
+ 191   1              return Usr_key;
+ 192   1      }
+ 193          
+ 194          void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey_Callback funCB_LongB){
+ 195   1              
+ 196   1              code    u16     keyCfrmLoop_Short       = 10,   //¶Ì°´Ïû¶¶Ê±¼ä,¾Ý´óÑ­»·¶ø¶¨
+ 197   1                                      keyCfrmLoop_LongA       = 3000, //³¤°´AÊ±¼ä,¾Ý´óÑ­»·¶ø¶¨
+ 198   1                                      keyCfrmLoop_LongB       = 12000,//³¤°´BÊ±¼ä,¾Ý´óÑ­»·¶ø¶¨
+ 199   1                                      keyCfrmLoop_MAX         = 60000;//¼ÆÊ±·â¶¥
+ 200   1              
+ 201   1              static  bit LongA_FLG = 0;
+ 202   1              static  bit LongB_FLG = 0;
+ 203   1              
+ 204   1              static  bit keyPress_FLG = 0;
+ 205   1      
+ 206   1              if(!UsrKEYScan_oneShoot()){             
+ 207   2                      
+ 208   2                      keyPress_FLG = 1;
+ 209   2                      
+ 210   2      //              tips_statusChangeToNormal();
+ 211   2              
+ 212   2                      if(!usrKeyCount_EN) usrKeyCount_EN= 1;  //¼ÆÊ±
+ 213   2                      
+ 214   2                      if((usrKeyCount >= keyCfrmLoop_LongA) && (usrKeyCount <= keyCfrmLoop_LongB) && !LongA_FLG){
+ 215   3                      
+ 216   3                              funCB_LongA();
+ 217   3                              
+ 218   3                              LongA_FLG = 1;
+ 219   3                      }       
+ 220   2                      
+ 221   2                      if((usrKeyCount >= keyCfrmLoop_LongB) && (usrKeyCount <= keyCfrmLoop_MAX) && !LongB_FLG){
+ 222   3                      
+ 223   3                              funCB_LongB();
+ 224   3                              
+ 225   3                              LongB_FLG = 1;
+ 226   3                      }
+ 227   2                      
+ 228   2              }else{          
+ 229   2                      
+ 230   2                      usrKeyCount_EN = 0;
+ 231   2                      
+ 232   2                      if(keyPress_FLG){
+ 233   3                      
+ 234   3                              keyPress_FLG = 0;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 5   
 
- 235   1              
- 236   1              if(val_Dcode_Local != val_DcodeCfm){
- 237   2              
- 238   2                      if(comfirm_Cnt < comfirm_Period)comfirm_Cnt ++;
- 239   2                      else{
- 240   3                      
- 241   3                              comfirm_Cnt = 0;
- 242   3                              val_CHG         = 1;
- 243   3                      }
- 244   2              }
- 245   1              
- 246   1              if(val_CHG){
- 247   2                      
- 248   2                      val_CHG                         = 0;
- 249   2              
- 250   2                      val_Dcode_differ        = val_Dcode_Local ^ val_DcodeCfm;
- 251   2                      val_Dcode_Local         = val_DcodeCfm;
- 252   2                      
- 253   2                      beeps_usrActive(3, 40, 2);
- 254   2                      tips_statusChangeToNormal();
- 255   2                      
- 256   2                      if(val_Dcode_differ & Dcode_FLG_ifAP){
- 257   3                      
- 258   3                              if(val_Dcode_Local & Dcode_FLG_ifAP){
- 259   4                              
- 260   4      
- 261   4                              }else{
- 262   4                              
- 263   4      
- 264   4                              }
- 265   3                      }
- 266   2                      
- 267   2                      if(val_Dcode_differ & Dcode_FLG_ifLED){
- 268   3                      
- 269   3                              if(val_Dcode_Local & Dcode_FLG_ifLED){
- 270   4      
- 271   4                                      
- 272   4                              }else{
- 273   4                              
- 274   4      
- 275   4                              }
- 276   3                      }
- 277   2                      
- 278   2                      if(val_Dcode_differ & Dcode_FLG_ifMemory){
- 279   3                      
- 280   3                              if(val_Dcode_Local & Dcode_FLG_ifMemory){
- 281   4      
- 282   4                                      relayStatus_ifSave = statusSave_enable;
- 283   4                                      
- 284   4                              }else{
- 285   4                              
- 286   4                                      relayStatus_ifSave = statusSave_disable;
- 287   4                              }
- 288   3                      }
- 289   2                      
- 290   2                      if(val_Dcode_differ & Dcode_FLG_bitReserve){
- 291   3                      
- 292   3                              devTypeComfirm_byDcode(Dcode_bitReserve(val_Dcode_Local));
- 293   3                      }
- 294   2              }
- 295   1      }
- 296          
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 6   
+ 235   3                              
+ 236   3                              if(usrKeyCount < keyCfrmLoop_LongA && usrKeyCount > keyCfrmLoop_Short){
+ 237   4                              
+ 238   4      //                              static bit tipsFLG = 0;
+ 239   4      //                               
+ 240   4      //                              tipsFLG = !tipsFLG;
+ 241   4      //                              (tipsFLG)?(tipsLED_colorSet(obj_zigbNwk, 5, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 5, 0));
+ 242   4                                      
+ 243   4                                      funCB_Short();
+ 244   4                              }
+ 245   3                              
+ 246   3                              usrKeyCount = 0;
+ 247   3                              LongA_FLG       = 0;
+ 248   3                              LongB_FLG       = 0;
+ 249   3                      }
+ 250   2              }
+ 251   1      }
+ 252          
+ 253          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //Éè±¸ÀàÐÍÎª²å×ùÊ±£¬Ã»ÓÐ´¥Ãþ°´¼üÇý¶¯ºÍ²¦ÂëÇý¶¯
+              #else //³ýÉÏÊö¿ª¹ØÀàÐÍÍâ£¬ÓÐ´¥Ãþ°´¼üÇý¶¯ºÍ²¦ÂëÇý¶¯
+ 255          u8 DcodeScan_oneShoot(void){
+ 256   1      
+ 257   1              u8 val_Dcode = 0;
+ 258   1              
+ 259   1              if(!Dcode0)val_Dcode |= 1 << 0;
+ 260   1              else val_Dcode &= ~(1 << 0);
+ 261   1              
+ 262   1              if(!Dcode1)val_Dcode |= 1 << 1;
+ 263   1              else val_Dcode &= ~(1 << 1);
+ 264   1              
+ 265   1              if(!Dcode2)val_Dcode |= 1 << 2;
+ 266   1              else val_Dcode &= ~(1 << 2);
+ 267   1              
+ 268   1              if(!Dcode3)val_Dcode |= 1 << 3;
+ 269   1              else val_Dcode &= ~(1 << 3);
+ 270   1              
+ 271   1              if(!Dcode4)val_Dcode |= 1 << 4;
+ 272   1              else val_Dcode &= ~(1 << 4);
+ 273   1              
+ 274   1              if(!Dcode5)val_Dcode |= 1 << 5;
+ 275   1              else val_Dcode &= ~(1 << 5);
+ 276   1              
+ 277   1              return val_Dcode;
+ 278   1      }
+ 279          
+ 280          void DcodeScan(void){
+ 281   1      
+ 282   1              static u8       val_Dcode_Local         = 0,
+ 283   1                                      comfirm_Cnt                     = 0;
+ 284   1              const  u8       comfirm_Period          = 200;  //Ïû¶¶Ê±¼äÒòÊý¡ª¡ªÈ¡¾öÓÚÖ÷Ïß³Ìµ÷¶ÈÖÜÆÚ
+ 285   1                      
+ 286   1                         u8   val_Dcode_differ        = 0;
+ 287   1              
+ 288   1                         bit  val_CHG                         = 0;
+ 289   1              
+ 290   1              val_DcodeCfm = DcodeScan_oneShoot();
+ 291   1              
+ 292   1              DEV_actReserve = switchTypeReserve_GET(); //µ±Ç°¿ª¹ØÀàÐÍ¶ÔÓ¦ÓÐÐ§²Ù×÷Î»Ë¢ÐÂ
+ 293   1              
+ 294   1              if(val_Dcode_Local != val_DcodeCfm){
+ 295   2              
+ 296   2                      if(comfirm_Cnt < comfirm_Period)comfirm_Cnt ++;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 6   
 
- 297          void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey_Callback funCB_LongB){
- 298   1              
- 299   1              code    u16     keyCfrmLoop_Short       = 10,   //¶Ì°´Ïû¶¶Ê±¼ä,¾Ý´óÑ­»·¶ø¶¨
- 300   1                                      keyCfrmLoop_LongA       = 3000, //³¤°´AÊ±¼ä,¾Ý´óÑ­»·¶ø¶¨
- 301   1                                      keyCfrmLoop_LongB       = 12000,//³¤°´BÊ±¼ä,¾Ý´óÑ­»·¶ø¶¨
- 302   1                                      keyCfrmLoop_MAX         = 60000;//¼ÆÊ±·â¶¥
+ 297   2                      else{
+ 298   3                      
+ 299   3                              comfirm_Cnt = 0;
+ 300   3                              val_CHG         = 1;
+ 301   3                      }
+ 302   2              }
  303   1              
- 304   1              static  bit LongA_FLG = 0;
- 305   1              static  bit LongB_FLG = 0;
- 306   1              
- 307   1              static  bit keyPress_FLG = 0;
- 308   1      
- 309   1              if(!UsrKEYScan_oneShoot()){             
+ 304   1              if(val_CHG){
+ 305   2                      
+ 306   2                      val_CHG                         = 0;
+ 307   2              
+ 308   2                      val_Dcode_differ        = val_Dcode_Local ^ val_DcodeCfm;
+ 309   2                      val_Dcode_Local         = val_DcodeCfm;
  310   2                      
- 311   2                      keyPress_FLG = 1;
- 312   2                      
- 313   2      //              tips_statusChangeToNormal();
- 314   2              
- 315   2                      if(!usrKeyCount_EN) usrKeyCount_EN= 1;  //¼ÆÊ±
- 316   2                      
- 317   2                      if((usrKeyCount >= keyCfrmLoop_LongA) && (usrKeyCount <= keyCfrmLoop_LongB) && !LongA_FLG){
- 318   3                      
- 319   3                              funCB_LongA();
- 320   3                              
- 321   3                              LongA_FLG = 1;
- 322   3                      }       
- 323   2                      
- 324   2                      if((usrKeyCount >= keyCfrmLoop_LongB) && (usrKeyCount <= keyCfrmLoop_MAX) && !LongB_FLG){
- 325   3                      
- 326   3                              funCB_LongB();
- 327   3                              
- 328   3                              LongB_FLG = 1;
- 329   3                      }
- 330   2                      
- 331   2              }else{          
- 332   2                      
- 333   2                      usrKeyCount_EN = 0;
- 334   2                      
- 335   2                      if(keyPress_FLG){
- 336   3                      
- 337   3                              keyPress_FLG = 0;
- 338   3                              
- 339   3                              if(usrKeyCount < keyCfrmLoop_LongA && usrKeyCount > keyCfrmLoop_Short){
- 340   4                              
- 341   4      //                              static bit tipsFLG = 0;
- 342   4      //                               
- 343   4      //                              tipsFLG = !tipsFLG;
- 344   4      //                              (tipsFLG)?(tipsLED_colorSet(obj_zigbNwk, 5, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 5, 0));
- 345   4                                      
- 346   4                                      funCB_Short();
- 347   4                              }
- 348   3                              
- 349   3                              usrKeyCount = 0;
- 350   3                              LongA_FLG       = 0;
- 351   3                              LongB_FLG       = 0;
- 352   3                      }
- 353   2              }
- 354   1      }
- 355          
- 356          static void normalBussiness_longA_touchKeepTrig(u8 statusPad){
- 357   1      
- 358   1              static u8 xdata trigCount_Loop = 0;
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 7   
+ 311   2                      beeps_usrActive(3, 40, 2);
+ 312   2                      tips_statusChangeToNormal();
+ 313   2                      
+ 314   2                      if(val_Dcode_differ & Dcode_FLG_ifAP){
+ 315   3                      
+ 316   3                              if(val_Dcode_Local & Dcode_FLG_ifAP){
+ 317   4                              
+ 318   4      
+ 319   4                              }else{
+ 320   4                              
+ 321   4      
+ 322   4                              }
+ 323   3                      }
+ 324   2                      
+ 325   2                      if(val_Dcode_differ & Dcode_FLG_ifLED){
+ 326   3                      
+ 327   3                              if(val_Dcode_Local & Dcode_FLG_ifLED){
+ 328   4      
+ 329   4                                      
+ 330   4                              }else{
+ 331   4                              
+ 332   4      
+ 333   4                              }
+ 334   3                      }
+ 335   2                      
+ 336   2                      if(val_Dcode_differ & Dcode_FLG_ifMemory){
+ 337   3                      
+ 338   3                              if(val_Dcode_Local & Dcode_FLG_ifMemory){
+ 339   4      
+ 340   4                                      relayStatus_ifSave = statusSave_enable;
+ 341   4                                      
+ 342   4                              }else{
+ 343   4                              
+ 344   4                                      relayStatus_ifSave = statusSave_disable;
+ 345   4                              }
+ 346   3                      }
+ 347   2                      
+ 348   2                      if(val_Dcode_differ & Dcode_FLG_bitReserve){
+ 349   3                      
+ 350   3                              devTypeComfirm_byDcode(Dcode_bitReserve(val_Dcode_Local));
+ 351   3                      }
+ 352   2              }
+ 353   1      }
+ 354          
+ 355          static void normalBussiness_longA_touchKeepTrig(u8 statusPad){
+ 356   1      
+ 357   1              static u8 xdata trigCount_Loop = 0;
+ 358   1                         u8 code trigCount_Period = 30;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 7   
 
- 359   1                         u8 code trigCount_Period = 50;
- 360   1              
- 361   1              if(trigCount_Loop < trigCount_Period)trigCount_Loop ++;
- 362   1              else{
- 363   2              
- 364   2                      trigCount_Loop = 0;
- 365   2                      
- 366   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)         
+ 359   1              
+ 360   1              if(trigCount_Loop < trigCount_Period)trigCount_Loop ++;
+ 361   1              else{
+ 362   2              
+ 363   2                      trigCount_Loop = 0;
+ 364   2                      
+ 365   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)         
                               switch(statusPad){
                                       
                                       case 1:{
@@ -414,115 +413,129 @@ line level    source
               //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)               
               //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)            
               #else
- 389   2                      statusPad = statusPad;
- 390   2      #endif
- 391   2              }
- 392   1      }
- 393          
- 394          void touchPad_Scan(void){
- 395   1      
- 396   1              static u8 touchPad_temp = 0;
- 397   1              static bit keyPress_FLG = 0;
- 398   1              
- 399   1              static bit funTrigFLG_LongA = 0;
- 400   1              static bit funTrigFLG_LongB = 0;
- 401   1              
- 402   1              code    u16     touchCfrmLoop_Short     = timeDef_touchPressCfm,        //¶Ì°´Ïû¶¶Ê±¼ä
- 403   1                                      touchCfrmLoop_LongA     = timeDef_touchPressLongA,      //³¤°´AÊ±¼ä
- 404   1                                      touchCfrmLoop_LongB     = timeDef_touchPressLongB,      //³¤°´BÊ±¼ä
- 405   1                                      touchCfrmLoop_MAX               = 60000;//¼ÆÊ±·â¶¥
- 406   1              
- 407   1              static u8 pressContinueGet = 0;
- 408   1                     u8 pressContinueCfm = 0;
- 409   1              
- 410   1              u16 conterTemp = 0; //°´ÏÂ¼ÆÊ±²îÖµ¼ÆËã»º´æ
+ 388   2                      statusPad = statusPad;
+ 389   2      #endif
+ 390   2              }
+ 391   1      }
+ 392          
+ 393          u8 touchPadScan_oneShoot(void){
+ 394   1      
+ 395   1              u8 valKey_Temp = 0;
+ 396   1              
+ 397   1              if(!touchPad_1)valKey_Temp |= 0x01;
+ 398   1              if(!touchPad_2)valKey_Temp |= 0x02;
+ 399   1              if(!touchPad_3)valKey_Temp |= 0x04;
+ 400   1              
+ 401   1              return valKey_Temp;
+ 402   1      }
+ 403          
+ 404          void touchPad_Scan(void){
+ 405   1      
+ 406   1              static u8 touchPad_temp = 0;
+ 407   1              static bit keyPress_FLG = 0;
+ 408   1              
+ 409   1              static bit funTrigFLG_LongA = 0;
+ 410   1              static bit funTrigFLG_LongB = 0;
  411   1              
- 412   1              if(touchPadScan_oneShoot()){
- 413   2                      
- 414   2                      if(!keyPress_FLG){
- 415   3                      
- 416   3                              keyPress_FLG = 1;
- 417   3                              touchPadActCounter = touchCfrmLoop_MAX;
- 418   3                              touchPadContinueCnt = timeDef_touchPressContinue;  //Á¬°´¼ä¸ôÅÐ¶ÏÊ±¼ä
- 419   3                              touchPad_temp = touchPadScan_oneShoot();
- 420   3                      }
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 8   
+ 412   1              code    u16     touchCfrmLoop_Short     = timeDef_touchPressCfm,        //¶Ì°´Ïû¶¶Ê±¼ä
+ 413   1                                      touchCfrmLoop_LongA     = timeDef_touchPressLongA,      //³¤°´AÊ±¼ä
+ 414   1                                      touchCfrmLoop_LongB     = timeDef_touchPressLongB,      //³¤°´BÊ±¼ä
+ 415   1                                      touchCfrmLoop_MAX               = 60000;//¼ÆÊ±·â¶¥
+ 416   1              
+ 417   1              static u8 pressContinueGet = 0;
+ 418   1                     u8 pressContinueCfm = 0;
+ 419   1              
+ 420   1              u16 conterTemp = 0; //°´ÏÂ¼ÆÊ±²îÖµ¼ÆËã»º´æ
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 8   
 
- 421   2                      else{
- 422   3                              
- 423   3                              if(touchPad_temp == touchPadScan_oneShoot()){
- 424   4                                      
- 425   4                                      conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
- 426   4      //                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 427   4      //                                      u8 xdata log_buf[64];
- 428   4      //                                      
- 429   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)conterTemp);
- 430   4      //                                      PrintString1_logOut(log_buf);
- 431   4      //                              }
- 432   4                              
- 433   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
- 434   5                                      
- 435   5                                              normalBussiness_longA_touchKeepTrig(touchPad_temp); //³ÖÐøÐÔ´¥·¢ÒµÎñ
- 436   5                                              
- 437   5                                              if(!funTrigFLG_LongA){
- 438   6                                              
- 439   6                                                      funTrigFLG_LongA = 1;
- 440   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongA);
- 441   6                                              }
- 442   5                                      }
- 443   4                                      if(conterTemp > touchCfrmLoop_LongB && conterTemp <= touchCfrmLoop_MAX){
- 444   5                                      
- 445   5                                              if(!funTrigFLG_LongB){
- 446   6                                              
- 447   6                                                      funTrigFLG_LongB = 1;
- 448   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongB);
- 449   6                                              }
- 450   5                                      }
- 451   4                              }
- 452   3                      }
- 453   2                      
- 454   2              }else{
- 455   2                      
- 456   2                      if(keyPress_FLG){
- 457   3                      
- 458   3                              conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
- 459   3                              if(conterTemp > touchCfrmLoop_Short && conterTemp <= touchCfrmLoop_LongA){
- 460   4                              
- 461   4                                      if(touchPadContinueCnt)pressContinueGet ++;
- 462   4                                      if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //·ÇÁ¬°´¶Ì°´´¥·¢»¥¿Ø
+ 421   1              
+ 422   1              if(!combinationFunFLG_3S5S_cancel_counter)combinationFunTrigger_3S5S_standBy_FLG = 0; //<3¶Ì5¶Ì>ÌØÊâ×éºÏ°
+             -´¼üÏÎ½ÓÊ±¼ä³¬Ê±¼ì²âÒµÎñ£¬³¬Ê±Ôò½«¶ÔÓ¦Ô¤´¥·¢±êÖ¾¸´Î»
+ 423   1              
+ 424   1              if(touchPadScan_oneShoot()){
+ 425   2                      
+ 426   2                      if(!keyPress_FLG){
+ 427   3                      
+ 428   3                              keyPress_FLG = 1;
+ 429   3                              touchPadActCounter = touchCfrmLoop_MAX;
+ 430   3                              touchPadContinueCnt = timeDef_touchPressContinue;  //Á¬°´¼ä¸ôÅÐ¶ÏÊ±¼ä
+ 431   3                              touchPad_temp = touchPadScan_oneShoot();
+ 432   3                      }
+ 433   2                      else{
+ 434   3                              
+ 435   3                              if(touchPad_temp == touchPadScan_oneShoot()){
+ 436   4                                      
+ 437   4                                      conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
+ 438   4      //                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 439   4      //                                      u8 xdata log_buf[64];
+ 440   4      //                                      
+ 441   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)conterTemp);
+ 442   4      //                                      PrintString1_logOut(log_buf);
+ 443   4      //                              }
+ 444   4                              
+ 445   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
+ 446   5                                      
+ 447   5                                              normalBussiness_longA_touchKeepTrig(touchPad_temp); //³ÖÐøÐÔ´¥·¢ÒµÎñ
+ 448   5                                              
+ 449   5                                              if(!funTrigFLG_LongA){
+ 450   6                                              
+ 451   6                                                      funTrigFLG_LongA = 1;
+ 452   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongA);
+ 453   6                                              }
+ 454   5                                      }
+ 455   4                                      if(conterTemp > touchCfrmLoop_LongB && conterTemp <= touchCfrmLoop_MAX){
+ 456   5                                      
+ 457   5                                              if(!funTrigFLG_LongB){
+ 458   6                                              
+ 459   6                                                      funTrigFLG_LongB = 1;
+ 460   6                                                      touchPad_functionTrigNormal(touchPad_temp, press_LongB);
+ 461   6                                              }
+ 462   5                                      }
+ 463   4                              }
+ 464   3                      }
+ 465   2                      
+ 466   2              }else{
+ 467   2                      
+ 468   2                      if(keyPress_FLG){
+ 469   3                      
+ 470   3                              conterTemp = touchCfrmLoop_MAX - touchPadActCounter;
+ 471   3                              if(conterTemp > touchCfrmLoop_Short && conterTemp <= touchCfrmLoop_LongA){
+ 472   4                              
+ 473   4                                      if(touchPadContinueCnt)pressContinueGet ++;
+ 474   4                                      if(pressContinueGet <= 1)touchPad_functionTrigNormal(touchPad_temp, press_Short); //·ÇÁ¬°´¶Ì°´´¥·¢»¥¿Ø
              -Í¬²½£¬ÈôÎªÁ¬°´Ôò×îºóÒ»´Î´¥·¢Í¬²½
- 463   4                                      else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
- 464   4                              }
- 465   3                      }
- 466   2              
- 467   2                      if(!touchPadContinueCnt && pressContinueGet){
- 468   3                      
- 469   3                              pressContinueCfm = pressContinueGet;
- 470   3                              pressContinueGet = 0;
- 471   3                              
- 472   3                              if(pressContinueCfm >= 2){
- 473   4      #if(DEBUG_LOGOUT_EN == 1)
- 474   4      //                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 475   4      //                                      u8 xdata log_buf[64];
- 476   4      //                                      
- 477   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)pressContinueCfm);
- 478   4      //                                      PrintString1_logOut(log_buf);
- 479   4      //                              }                       
- 480   4      #endif
- 481   4                                      touchPad_functionTrigContinue(touchPad_temp, pressContinueCfm);
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 9   
+ 475   4                                      else touchPad_functionTrigNormal(touchPad_temp, press_ShortCnt);
+ 476   4                              }
+ 477   3                      }
+ 478   2              
+ 479   2                      if(!touchPadContinueCnt && pressContinueGet){
+ 480   3                      
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 9   
 
- 482   4                                      pressContinueCfm = 0;
- 483   4                              }
- 484   3                              
- 485   3                              touchPad_temp = 0;
- 486   3                      }
- 487   2      
- 488   2                      if(funTrigFLG_LongA){
- 489   3                      
- 490   3                              funTrigFLG_LongA = 0;
- 491   3                              
- 492   3      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+ 481   3                              pressContinueCfm = pressContinueGet;
+ 482   3                              pressContinueGet = 0;
+ 483   3                              
+ 484   3                              if(pressContinueCfm >= 2){
+ 485   4      #if(DEBUG_LOGOUT_EN == 1)
+ 486   4      //                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 487   4      //                                      u8 xdata log_buf[64];
+ 488   4      //                                      
+ 489   4      //                                      sprintf(log_buf, "conut:%d.\n", (int)pressContinueCfm);
+ 490   4      //                                      PrintString1_logOut(log_buf);
+ 491   4      //                              }                       
+ 492   4      #endif
+ 493   4                                      touchPad_functionTrigContinue(touchPad_temp, pressContinueCfm);
+ 494   4                                      pressContinueCfm = 0;
+ 495   4                              }
+ 496   3                              
+ 497   3                              touchPad_temp = 0;
+ 498   3                      }
+ 499   2      
+ 500   2                      if(funTrigFLG_LongA){
+ 501   3                      
+ 502   3                              funTrigFLG_LongA = 0;
+ 503   3                              
+ 504   3      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
                                               
                                       statusRelay_saveEn = 1; //´æ´¢Ê¹ÄÜ£¬Á¬Ðøµ÷¹âµ¯Æðºó½øÐÐ´æ´¢£¬µ÷¹âÀàÐÍ²»½øÐÐ×Ô¶¯´æ´¢£¬ËùÒÔ½øÐÐÖ÷¶¯´æ´¢
                                       
@@ -530,20 +543,20 @@ line level    source
               //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
               //#else
               #endif
- 500   3                      }
- 501   2                      
- 502   2                      if(funTrigFLG_LongB){funTrigFLG_LongB = 0;}
- 503   2                              
- 504   2                      touchPadActCounter = 0;
- 505   2                      keyPress_FLG = 0;
- 506   2              }
- 507   1      }       
- 508          
- 509          static void normalBussiness_shortTouchTrig(u8 statusPad){
- 510   1              
- 511   1              bit idata tipsBeep_IF = 0;
- 512   1              
- 513   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 512   3                      }
+ 513   2                      
+ 514   2                      if(funTrigFLG_LongB){funTrigFLG_LongB = 0;}
+ 515   2                              
+ 516   2                      touchPadActCounter = 0;
+ 517   2                      keyPress_FLG = 0;
+ 518   2              }
+ 519   1      }       
+ 520          
+ 521          static void normalBussiness_shortTouchTrig(u8 statusPad){
+ 522   1              
+ 523   1              bit idata tipsBeep_IF = 0;
+ 524   1              
+ 525   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
                       switch(statusPad){
                               
                               case 1:{
@@ -561,6 +574,8 @@ line level    source
                               case 4:{
                       
                                       if(status_Relay > 0)swCommand_fromUsr.objRelay = --status_Relay;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 10  
+
                                       
                               }break;
                                       
@@ -574,8 +589,6 @@ line level    source
                               sprintf(log_buf, ">>>relayStatus sby:%d.\n", (int)swCommand_fromUsr.objRelay);
                               PrintString1_logOut(log_buf);
                       }                       
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 10  
-
                #endif
                       
                       swCommand_fromUsr.actMethod = relay_OnOff;
@@ -625,330 +638,378 @@ line level    source
                       statusRelay_saveEn = 1; //´æ´¢Ê¹ÄÜ£¬µ÷¹âÀàÐÍ²»½øÐÐ×Ô¶¯´æ´¢£¬ËùÒÔ½øÐÐÖ÷¶¯´æ´¢
                       devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ
                       tipsBeep_IF = 1;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 11  
+
                       
                       if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //´¥Ãþ¿ÉÓÃ²Åtips
               #else
- 595   1              switch(statusPad){
- 596   2                      
- 597   2                      case 1:{
- 598   3                              
- 599   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
- 600   4                              
- 601   4                                      swCommand_fromUsr.objRelay = 0;
- 602   4                              }
- 603   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
- 604   4                              
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 11  
-
- 605   4                                      swCommand_fromUsr.objRelay = 1;
- 606   4                              }
- 607   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
- 608   4                              
- 609   4                                      if(status_Relay < 3)status_Relay ++;
- 610   4                              }
- 611   3                              else{
+ 607   1              switch(statusPad){
+ 608   2                      
+ 609   2                      case 1:{
+ 610   3                              
+ 611   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
  612   4                              
- 613   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 613   4                                      swCommand_fromUsr.objRelay = 0;
  614   4                              }
- 615   3                              
- 616   3                              if(DEV_actReserve & 0x01)tipsBeep_IF = 1;
- 617   3                      
- 618   3                      }break;
- 619   2                      
- 620   2                      case 2:{
- 621   3                      
- 622   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
- 623   4                              
- 624   4                                      swCommand_fromUsr.objRelay = 1;
- 625   4                              }
- 626   3                              else if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
- 627   4                              
- 628   4                                      swCommand_fromUsr.objRelay = 0;
- 629   4                              }
- 630   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
- 631   4                              
- 632   4                                      swCommand_fromUsr.objRelay = 2;
- 633   4                              }
- 634   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+ 615   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+ 616   4                              
+ 617   4                                      swCommand_fromUsr.objRelay = 4;
+ 618   4                              }
+ 619   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+ 620   4                              
+ 621   4                                      if(status_Relay < 3)swCommand_fromUsr.objRelay ++;
+ 622   4                              }
+ 623   3                              else{
+ 624   4                              
+ 625   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 626   4                              }
+ 627   3                              
+ 628   3                              if(DEV_actReserve & 0x01)tipsBeep_IF = 1;
+ 629   3                      
+ 630   3                      }break;
+ 631   2                      
+ 632   2                      case 2:{
+ 633   3                      
+ 634   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){
  635   4                              
- 636   4                                      (status_Relay)?(swCommand_fromUsr.objRelay = 0):(swCommand_fromUsr.objRelay = 3);
+ 636   4                                      swCommand_fromUsr.objRelay = 1;
  637   4                              }
- 638   3                              else{
+ 638   3                              else if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
  639   4                              
- 640   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 640   4                                      swCommand_fromUsr.objRelay = 0;
  641   4                              }
- 642   3                              
- 643   3                              if(DEV_actReserve & 0x02)tipsBeep_IF = 1;
- 644   3                      
- 645   3                      }break;
- 646   2                      
- 647   2                      case 4:{
- 648   3              
- 649   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
- 650   4                                      
- 651   4                                      swCommand_fromUsr.objRelay = 2;
- 652   4                              }
- 653   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
- 654   4                              
- 655   4                                      swCommand_fromUsr.objRelay = 4;
- 656   4                              }
- 657   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
- 658   4                              
- 659   4                                      if(status_Relay > 0)status_Relay --;
- 660   4                              }
- 661   3                              else{
- 662   4                              
- 663   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 642   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+ 643   4                              
+ 644   4                                      swCommand_fromUsr.objRelay = 2;
+ 645   4                              }
+ 646   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+ 647   4                              
+ 648   4                                      (status_Relay)?(swCommand_fromUsr.objRelay = 0):(swCommand_fromUsr.objRelay = 3);
+ 649   4                              }
+ 650   3                              else{
+ 651   4                              
+ 652   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 653   4                              }
+ 654   3                              
+ 655   3                              if(DEV_actReserve & 0x02)tipsBeep_IF = 1;
+ 656   3                      
+ 657   3                      }break;
+ 658   2                      
+ 659   2                      case 4:{
+ 660   3              
+ 661   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){
+ 662   4                                      
+ 663   4                                      swCommand_fromUsr.objRelay = 2;
  664   4                              }
- 665   3                              
- 666   3                              if(DEV_actReserve & 0x04)tipsBeep_IF = 1;
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 12  
+ 665   3                              else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 12  
 
- 667   3                              
- 668   3                      }break;
- 669   2                              
- 670   2                      default:{}break;
- 671   2              }
- 672   1              
- 673   1              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_S
+ 666   4                              
+ 667   4                                      swCommand_fromUsr.objRelay = 1;
+ 668   4                              }
+ 669   3                              else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
+ 670   4                              
+ 671   4                                      if(status_Relay > 0)swCommand_fromUsr.objRelay --;
+ 672   4                              }
+ 673   3                              else{
+ 674   4                              
+ 675   4                                      swCommand_fromUsr.objRelay = statusPad;
+ 676   4                              }
+ 677   3                              
+ 678   3                              if(DEV_actReserve & 0x04)tipsBeep_IF = 1;
+ 679   3                              
+ 680   3                      }break;
+ 681   2                              
+ 682   2                      default:{}break;
+ 683   2              }
+ 684   1              
+ 685   1              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_S
              -WBIT3){
- 674   2              
- 675   2                      swCommand_fromUsr.actMethod = relay_flip;
- 676   2                      EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //»¥¿Ø
- 677   2                      
- 678   2              }else{
- 679   2              
- 680   2                      swCommand_fromUsr.actMethod = relay_OnOff;
- 681   2              }
- 682   1              
- 683   1              if(swCommand_fromUsr.objRelay)devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ
- 684   1              if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //´¥Ãþ¿ÉÓÃ²Åtips
- 685   1      #endif
- 686   1      }
- 687          
- 688          void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //ÆÕÍ¨´¥Ãþ´¥·¢
- 689   1      
- 690   1              switch(statusCfm){
+ 686   2              
+ 687   2                      swCommand_fromUsr.actMethod = relay_flip;
+ 688   2                      EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //»¥¿Ø
+ 689   2                      
+ 690   2              }else{
  691   2              
- 692   2                      case press_Short:{
- 693   3                              
- 694   3                              bit idata tipsBeep_IF = 0;
- 695   3                              
- 696   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 697   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 698   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 699   4                                      sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
- 700   4                                      PrintString1_logOut(log_buf);
- 701   4                              }
- 702   3      #endif  
- 703   3                              normalBussiness_shortTouchTrig(statusPad);
- 704   3                              
- 705   3                      }break;
- 706   2                      
- 707   2                      case press_ShortCnt:{
- 708   3                              
- 709   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 710   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 711   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 712   4                                      sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
- 713   4                                      PrintString1_logOut(log_buf);
- 714   4                              }
- 715   3      #endif  
- 716   3                              touchKeepCnt_record ++; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸üÐÂ
- 717   3                              
- 718   3                              if(touchKeepCnt_record == 3)combinationFunTrigger_3S1L_standBy_FLG = 1; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢<3¶Ì1³¤>
- 719   3                              else combinationFunTrigger_3S1L_standBy_FLG = 0;
+ 692   2                      swCommand_fromUsr.actMethod = relay_OnOff;
+ 693   2              }
+ 694   1              
+ 695   1              if(swCommand_fromUsr.objRelay)devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ
+ 696   1              if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //´¥Ãþ¿ÉÓÃ²Åtips
+ 697   1      #endif
+ 698   1      }
+ 699          
+ 700          void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //ÆÕÍ¨´¥Ãþ´¥·¢
+ 701   1      
+ 702   1              switch(statusCfm){
+ 703   2              
+ 704   2                      case press_Short:{
+ 705   3                              
+ 706   3                              bit idata tipsBeep_IF = 0;
+ 707   3                              
+ 708   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 709   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 710   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 711   4                                      sprintf(log_buf, "touchPad:%02X, shortPress.\n", (int)statusPad);
+ 712   4                                      PrintString1_logOut(log_buf);
+ 713   4                              }
+ 714   3      #endif  
+ 715   3                              normalBussiness_shortTouchTrig(statusPad); //ÆÕÍ¨¶Ì°´ÒµÎñ´¥·¢
+ 716   3                              
+ 717   3                      }break;
+ 718   2                      
+ 719   2                      case press_ShortCnt:{
  720   3                              
- 721   3                              normalBussiness_shortTouchTrig(statusPad);
- 722   3                              
- 723   3                      }break;
- 724   2                      
- 725   2                      case press_LongA:{
- 726   3                              
- 727   3                              if(combinationFunTrigger_3S1L_standBy_FLG){ //ÌØÊâ×éºÏ¶¯×÷È·ÈÏ´¥·¢<3¶Ì1³¤>
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 13  
+ 721   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 722   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 723   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 724   4                                      sprintf(log_buf, "touchPad:%02X, cntPress.\n", (int)statusPad);
+ 725   4                                      PrintString1_logOut(log_buf);
+ 726   4                              }
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 13  
 
- 728   4                              
- 729   4                                      combinationFunTrigger_3S1L_standBy_FLG = 0; //Ô¤±êÖ¾ÇåÁã
- 730   4                                      
- 731   4                                      usrKeyFun_zigbNwkRejoin();
- 732   4                                      
- 733   4      #if(DEBUG_LOGOUT_EN == 1)                               
- 734   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 735   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 736   5                                              sprintf(log_buf, "combination fun trig!\n");
- 737   5                                              PrintString1_logOut(log_buf);
- 738   5                                      }
- 739   4      #endif  
- 740   4                              }else{  //½ûÖ¹ ÌØÊâ×éºÏ¶¯×÷´¥·¢ Óë ½áÊø¶¯×÷£¨³¤°´£© ²úÉú´¥·¢ÖØµþ
- 741   4                                      
- 742   4      #if(DEBUG_LOGOUT_EN == 1)                               
- 743   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 744   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 745   5                                              sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
- 746   5                                              PrintString1_logOut(log_buf);
- 747   5                                      }
- 748   4      #endif  
- 749   4                                      switch(statusPad){ //Èô²»ÊÇÌØÊâ×éºÏ¶¯×÷£¬Ôò½øÐÐÊµ¼Ê³¤°´´¥·¢
- 750   5                                      
- 751   5                                              case 1:{
- 752   6                                                      
- 753   6                                              
- 754   6                                              }break;
- 755   5                                                      
- 756   5                                              case 2:{
- 757   6                                              
- 758   6                                              
- 759   6                                              }break;
- 760   5                                                      
- 761   5                                              case 4:{
- 762   6                                                      
- 763   6                                              
- 764   6                                              }break;
- 765   5                                                      
- 766   5                                              default:{}break;
- 767   5                                      }
- 768   4                              }
- 769   3                      
- 770   3                      }break;
- 771   2                              
- 772   2                      case press_LongB:{
- 773   3                              
- 774   3      #if(DEBUG_LOGOUT_EN == 1)                               
- 775   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 776   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 777   4                                      sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
- 778   4                                      PrintString1_logOut(log_buf);
- 779   4                              }
- 780   3      #endif  
- 781   3                              devStatusChangeTo_devHold(1); //Éè±¸ÍøÂç¹ÒÆð£¬ÈÎÒâ¼ü³¤°´B
- 782   3                      
- 783   3                              switch(statusPad){
- 784   4                              
- 785   4                                      case 1:{}break;
- 786   4                                              
- 787   4                                      case 2:{}break;
- 788   4                                              
- 789   4                                      case 4:{}break;
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 14  
+ 727   3      #endif  
+ 728   3                              touchKeepCnt_record ++; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸üÐÂ
+ 729   3                              
+ 730   3                              if(touchKeepCnt_record == 3){
+ 731   4                              
+ 732   4                                      combinationFunTrigger_3S1L_standBy_FLG = 1; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢<3¶Ì1³¤>
+ 733   4                                      
+ 734   4                              }else{
+ 735   4                              
+ 736   4                                      combinationFunTrigger_3S1L_standBy_FLG = 0;
+ 737   4                              } 
+ 738   3                              
+ 739   3                              normalBussiness_shortTouchTrig(statusPad); //ÆÕÍ¨¶Ì°´ÒµÎñ´¥·¢
+ 740   3                              
+ 741   3                      }break;
+ 742   2                      
+ 743   2                      case press_LongA:{
+ 744   3                              
+ 745   3                              if(combinationFunTrigger_3S1L_standBy_FLG){ //ÌØÊâ×éºÏ°´¼ü¶¯×÷ÒµÎñ´¥·¢<3¶Ì1³¤>
+ 746   4                              
+ 747   4                                      combinationFunTrigger_3S1L_standBy_FLG = 0; //Ô¤´¥·¢±êÖ¾ÇåÁã
+ 748   4                                      
+ 749   4                                      usrKeyFun_zigbNwkRejoin();
+ 750   4                                      
+ 751   4      #if(DEBUG_LOGOUT_EN == 1)                               
+ 752   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 753   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 754   5                                              sprintf(log_buf, "combination fun<3S1L> trig!\n");
+ 755   5                                              PrintString1_logOut(log_buf);
+ 756   5                                      }
+ 757   4      #endif  
+ 758   4                              }else{  //½ûÖ¹ ÌØÊâ×éºÏ¶¯×÷´¥·¢ Óë ½áÊø¶¯×÷£¨³¤°´£© ²úÉú´¥·¢ÖØµþ
+ 759   4                                      
+ 760   4      #if(DEBUG_LOGOUT_EN == 1)                               
+ 761   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 762   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 763   5                                              sprintf(log_buf, "touchPad:%02X, longPress_A.\n", (int)statusPad);
+ 764   5                                              PrintString1_logOut(log_buf);
+ 765   5                                      }
+ 766   4      #endif  
+ 767   4                                      switch(statusPad){ //Èô²»ÊÇÌØÊâ×éºÏ¶¯×÷£¬Ôò½øÐÐÊµ¼Ê³¤°´´¥·¢
+ 768   5                                      
+ 769   5                                              case 1:{
+ 770   6                                                      
+ 771   6                                              
+ 772   6                                              }break;
+ 773   5                                                      
+ 774   5                                              case 2:{
+ 775   6                                              
+ 776   6                                              
+ 777   6                                              }break;
+ 778   5                                                      
+ 779   5                                              case 4:{
+ 780   6                                                      
+ 781   6                                              
+ 782   6                                              }break;
+ 783   5                                                      
+ 784   5                                              default:{}break;
+ 785   5                                      }
+ 786   4                              }
+ 787   3                      
+ 788   3                      }break;
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 14  
 
- 790   4                                              
- 791   4                                      default:{}break;
- 792   4                              }
- 793   3                              
- 794   3                      }break;
- 795   2                              
- 796   2                      default:{}break;
- 797   2              }
- 798   1              
- 799   1              if(statusCfm != press_ShortCnt){
- 800   2      
- 801   2                      touchKeepCnt_record = 1; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸´Ô­
- 802   2                      combinationFunTrigger_3S1L_standBy_FLG = 0; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾¸´Ô­
- 803   2              }
- 804   1      }
- 805          
- 806          void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){ //´¥ÃþÁ¬°´´¥·¢
- 807   1              
- 808   1              EACHCTRL_realesFLG = statusPad; //×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
- 809   1              devActionPush_IF.push_IF = 1; //×îºóÒ»´ÎÁ¬°´´¥·¢ÍÆËÍÊ¹ÄÜ
- 810   1              
- 811   1      #if(DEBUG_LOGOUT_EN == 1)                               
- 812   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 813   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 814   2                      sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
- 815   2                      PrintString1_logOut(log_buf);
- 816   2              }
- 817   1      #endif  
- 818   1      
- 819   1              switch(statusPad){
- 820   2              
- 821   2                      case 1:{
- 822   3                      
- 823   3                              switch(loopCount){
- 824   4                              
- 825   4                                      case 3:{
- 826   5                                      
- 827   5                                      }break;
- 828   4                                      
- 829   4                                      case 4:{
- 830   5                                      
- 831   5                                              usrZigbNwkOpen(); //ÍøÂç¿ª·Å
- 832   5                                              
- 833   5                                      }break;
- 834   4                                              
- 835   4                                      default:{}break;
- 836   4                              }
- 837   3                              
- 838   3                      }break;
- 839   2                              
- 840   2                      case 2:{
- 841   3                      
- 842   3                              switch(loopCount){
- 843   4                              
- 844   4                                      case 3:{}break;
- 845   4                                              
- 846   4                                      default:{}break;
- 847   4                              }
- 848   3                              
- 849   3                      }break;
- 850   2                              
- 851   2                      case 4:{
-C51 COMPILER V9.54   USRKIN                                                                12/07/2018 17:31:28 PAGE 15  
+ 789   2                              
+ 790   2                      case press_LongB:{
+ 791   3                              
+ 792   3      #if(DEBUG_LOGOUT_EN == 1)                               
+ 793   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 794   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 795   4                                      sprintf(log_buf, "touchPad:%02X, longPress_B.\n", (int)statusPad);
+ 796   4                                      PrintString1_logOut(log_buf);
+ 797   4                              }
+ 798   3      #endif  
+ 799   3                              devStatusChangeTo_devHold(1); //Éè±¸ÍøÂç¹ÒÆð£¬ÈÎÒâ¼ü³¤°´B
+ 800   3                      
+ 801   3                              switch(statusPad){
+ 802   4                              
+ 803   4                                      case 1:{}break;
+ 804   4                                              
+ 805   4                                      case 2:{}break;
+ 806   4                                              
+ 807   4                                      case 4:{}break;
+ 808   4                                              
+ 809   4                                      default:{}break;
+ 810   4                              }
+ 811   3                              
+ 812   3                      }break;
+ 813   2                              
+ 814   2                      default:{}break;
+ 815   2              }
+ 816   1              
+ 817   1              { //ÌØÊâ¶¯×÷×éºÏ¼üÏà¹Ø±êÖ¾¼°±äÁ¿Çå¿Õ
+ 818   2              
+ 819   2                      if(statusCfm != press_ShortCnt){
+ 820   3      
+ 821   3                              touchKeepCnt_record = 1; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸´Ô­
+ 822   3                              combinationFunTrigger_3S1L_standBy_FLG = 0; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾¸´Ô­<3¶Ì1³¤>
+ 823   3                              
+ 824   3                              if(statusCfm != press_Short)combinationFunTrigger_3S5S_standBy_FLG = 0; //·Ç¶Ì°´¼°·ÇÁ¬Ðø¶Ì°´£¬ÌØÊâ×éºÏ¶
+             -¯×÷Ô¤´¥·¢±êÖ¾¸´Ô­<3¶Ì5¶Ì>
+ 825   3                      }
+ 826   2              }
+ 827   1      }
+ 828          
+ 829          void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){ //´¥ÃþÁ¬°´´¥·¢
+ 830   1              
+ 831   1              EACHCTRL_realesFLG = statusPad; //×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
+ 832   1              devActionPush_IF.push_IF = 1; //×îºóÒ»´ÎÁ¬°´´¥·¢ÍÆËÍÊ¹ÄÜ
+ 833   1              
+ 834   1      #if(DEBUG_LOGOUT_EN == 1)                               
+ 835   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 836   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 837   2                      sprintf(log_buf, "touchPad:%02X, %02Xtime pressOver.\n", (int)statusPad, (int)loopCount);
+ 838   2                      PrintString1_logOut(log_buf);
+ 839   2              }
+ 840   1      #endif  
+ 841   1              
+ 842   1              switch(loopCount){
+ 843   2              
+ 844   2                      case 2:{
+ 845   3                      
+ 846   3                              switch(statusPad){
+ 847   4                              
+ 848   4                                      case 1:{
+ 849   5                                      
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 15  
 
- 852   3                      
- 853   3                              switch(loopCount){
- 854   4                              
- 855   4                                      case 3:{}break;
- 856   4                                              
- 857   4                                      case 4:{
- 858   5                                      
- 859   5                                              devHoldStop_makeInAdvance(); //Éè±¸ÍøÂç¹ÒÆðÍ£Ö¹
- 860   5                                      
+ 850   5                                              
+ 851   5                                      }break;
+ 852   4                                              
+ 853   4                                      case 2:{
+ 854   5                                      
+ 855   5                                              
+ 856   5                                      }break;
+ 857   4                                              
+ 858   4                                      case 4:{
+ 859   5      
+ 860   5                                              
  861   5                                      }break;
  862   4                                              
  863   4                                      default:{}break;
  864   4                              }
  865   3                              
  866   3                      }break;
- 867   2                              
- 868   2                      default:{}break;
- 869   2              }
- 870   1              
- 871   1              touchKeepCnt_record = 1; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸´Ô­
- 872   1              combinationFunTrigger_3S1L_standBy_FLG = 0; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾¸´Ô­
- 873   1      }
- 874          
- 875          void fun_Test(void){
- 876   1      
- 877   1              ;
- 878   1      }
- 879          
- 880          void fun_touchReset(void){
- 881   1      
- 882   1              touchPad_resetOpreat(TOUCHRESETTIME_DEFAULT);
- 883   1              tips_statusChangeToTouchReset(TOUCHRESETTIME_DEFAULT);
- 884   1      }
- 885          
- 886          void usrKeyFun_zigbNwkRejoin(void){
- 887   1              
- 888   1              if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //´¥ÃþÊÍ·Å¼ÆÊ±Ê§ÄÜ
- 889   1      
- 890   1              devStatus_switch.statusChange_standBy = status_nwkREQ;
- 891   1              devStatus_switch.statusChange_IF = 1;
- 892   1              
- 893   1              tips_statusChangeToZigbNwkFind(); //tips¸üÐÂ
- 894   1      }
+ 867   2                      
+ 868   2                      case 3:{
+ 869   3                      
+ 870   3                              combinationFunTrigger_3S5S_standBy_FLG = 1; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾ÖÃÎ»<3¶Ì5¶Ì>
+ 871   3                              combinationFunFLG_3S5S_cancel_counter = 3000;  //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢ÏÎ½ÓÊ±¼ä¼ÆÊ±¿ªÊ¼<3¶Ì5¶Ì>
+ 872   3                              
+ 873   3                      }break;
+ 874   2                      
+ 875   2                      case 5:{
+ 876   3                      
+ 877   3                              if(combinationFunTrigger_3S5S_standBy_FLG){ //ÌØÊâ×éºÏ¶¯×÷¶ÔÓ¦ÒµÎñÏìÓ¦<3¶Ì5¶Ì>
+ 878   4                              
+ 879   4                                      combinationFunTrigger_3S5S_standBy_FLG = 0;
+ 880   4                                      
+ 881   4                                      usrZigbNwkOpen(); //ÍøÂç¿ª·Å
+ 882   4                                      
+ 883   4      #if(DEBUG_LOGOUT_EN == 1)                               
+ 884   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 885   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 886   5                                              sprintf(log_buf, "combination fun<3S5S> trig!\n");
+ 887   5                                              PrintString1_logOut(log_buf);
+ 888   5                                      }
+ 889   4      #endif
+ 890   4                              }
+ 891   3                              
+ 892   3                      }break;
+ 893   2                      
+ 894   2                      case 6:{
+ 895   3                      
+ 896   3                      
+ 897   3                      }break;
+ 898   2                      
+ 899   2                      case 10:{
+ 900   3                      
+ 901   3                              devHoldStop_makeInAdvance(); //Éè±¸ÍøÂç¹ÒÆðÍ£Ö¹
+ 902   3                      
+ 903   3                      }break;
+ 904   2                      
+ 905   2                      default:{}break;
+ 906   2              }
+ 907   1              
+ 908   1              { //ÌØÊâ×éºÏ¼üÏà¹Ø±êÖ¾¼°±äÁ¿Çå¿Õ
+ 909   2              
+ 910   2                      touchKeepCnt_record = 1; //Á¬°´½øÐÐÊ±¼ÆÊý±äÁ¿¸´Ô­
+ 911   2                      combinationFunTrigger_3S1L_standBy_FLG = 0; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾¸´Ô­<3¶Ì1³¤>
+C51 COMPILER V9.54   USRKIN                                                                12/20/2018 14:37:18 PAGE 16  
+
+ 912   2                      if(loopCount != 3){ //·Ç3¶Ì
+ 913   3                      
+ 914   3                              combinationFunTrigger_3S5S_standBy_FLG = 0; //ÌØÊâ×éºÏ¶¯×÷Ô¤´¥·¢±êÖ¾¸´Î»<3¶Ì5¶Ì>
+ 915   3                      }
+ 916   2              }
+ 917   1      }
+ 918          
+ 919          #endif
+ 920          
+ 921          void fun_Test(void){
+ 922   1      
+ 923   1              ;
+ 924   1      }
+ 925          
+ 926          void fun_touchReset(void){
+ 927   1      
+ 928   1              touchPad_resetOpreat(TOUCHRESETTIME_DEFAULT);
+ 929   1              tips_statusChangeToTouchReset(TOUCHRESETTIME_DEFAULT);
+ 930   1      }
+ 931          
+ 932          void usrKeyFun_relayOpreation(void){
+ 933   1      
+ 934   1              swCommand_fromUsr.objRelay = 1;
+ 935   1              swCommand_fromUsr.actMethod = relay_flip;
+ 936   1              
+ 937   1              devActionPush_IF.dats_Push = 0;
+ 938   1              devActionPush_IF.push_IF = 1;
+ 939   1              
+ 940   1              beeps_usrActive(3, 50, 1);
+ 941   1      }
+ 942          
+ 943          void usrKeyFun_zigbNwkRejoin(void){
+ 944   1              
+ 945   1              if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //´¥ÃþÊÍ·Å¼ÆÊ±Ê§ÄÜ
+ 946   1      
+ 947   1              devStatus_switch.statusChange_standBy = status_nwkREQ;
+ 948   1              devStatus_switch.statusChange_IF = 1;
+ 949   1              
+ 950   1              tips_statusChangeToZigbNwkFind(); //tips¸üÐÂ
+ 951   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1581    ----
-   CONSTANT SIZE    =    226    ----
-   XDATA SIZE       =      6    ----
+   CODE SIZE        =   1701    ----
+   CONSTANT SIZE    =    261    ----
+   XDATA SIZE       =      8    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =      6      19
    IDATA SIZE       =      1    ----
-   BIT SIZE         =     11       1
+   BIT SIZE         =     12       1
    EDATA SIZE       =   ----    ----
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----

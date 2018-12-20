@@ -13,6 +13,7 @@
 #include "dataTrans.h"
 #include "Tips.h"
 #include "usrKin.h"
+#include "dataManage.h"
 
 #include "devlopeDebug.h"
 
@@ -41,6 +42,8 @@ extern u16		 		usrKeyCount;
 
 extern u16 xdata 		touchPadActCounter;
 extern u16 xdata 		touchPadContinueCnt;
+
+extern u16 xdata 		combinationFunFLG_3S5S_cancel_counter;
 
 //***************Tips变量引用区***************************/
 extern u16 xdata 		counter_tipsAct;
@@ -75,28 +78,28 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 	{
 		
-		u8 xdata freq_periodBeatHalf = freq_Param.periodBeat_cfm / 2;
+		u8 xdata freq_periodBeatHalf = dimmer_freqParam.periodBeat_cfm / 2;
 
-		freq_Param.periodBeat_counter ++; //电源频率单周期节拍数更新
+		dimmer_freqParam.periodBeat_counter ++; //电源频率单周期节拍数更新
 		
-		if(freq_Param.pwm_actEN){		
+		if(dimmer_freqParam.pwm_actEN){		
 		
-			freq_Param.pwm_actCounter ++;
+			dimmer_freqParam.pwm_actCounter ++;
 			
-			if(freq_Param.pwm_actCounter <= status_Relay && freq_Param.pwm_actCounter < freq_periodBeatHalf){ //前半周
+			if(dimmer_freqParam.pwm_actCounter <= status_Relay && dimmer_freqParam.pwm_actCounter < freq_periodBeatHalf){ //前半周
 				
 				PIN_PWM_OUT = 1;
 				
 			}else{
 			
-				freq_Param.pwm_actCounter = 0;
-				freq_Param.pwm_actEN = 0;
+				dimmer_freqParam.pwm_actCounter = 0;
+				dimmer_freqParam.pwm_actEN = 0;
 				PIN_PWM_OUT = 0;
 			}
 			
-//			if(freq_Param.pwm_actCounter <= freq_periodBeatHalf){
+//			if(dimmer_freqParam.pwm_actCounter <= freq_periodBeatHalf){
 //			
-//				if(freq_Param.pwm_actCounter < status_Relay){
+//				if(dimmer_freqParam.pwm_actCounter < status_Relay){
 //					
 //					PIN_PWM_OUT = 1;
 //					
@@ -108,9 +111,9 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 ////				PIN_PWM_OUT = 0;
 //			
 //			}else
-//			if(freq_Param.pwm_actCounter > freq_periodBeatHalf && freq_Param.pwm_actCounter <= freq_Param.periodBeat_cfm){
+//			if(dimmer_freqParam.pwm_actCounter > freq_periodBeatHalf && dimmer_freqParam.pwm_actCounter <= dimmer_freqParam.periodBeat_cfm){
 //				
-////				if((freq_Param.pwm_actCounter - freq_periodBeatHalf) < status_Relay){
+////				if((dimmer_freqParam.pwm_actCounter - freq_periodBeatHalf) < status_Relay){
 ////					
 ////					PIN_PWM_OUT = 1;
 ////					
@@ -123,8 +126,8 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 
 //			}else{
 //			
-//				freq_Param.pwm_actCounter = 0;
-//				freq_Param.pwm_actEN = 0;
+//				dimmer_freqParam.pwm_actCounter = 0;
+//				dimmer_freqParam.pwm_actEN = 0;
 //				PIN_PWM_OUT = 0;
 //			}
 			
@@ -134,6 +137,35 @@ void timer0_Rountine (void) interrupt TIMER0_VECTOR{
 		}
 	}
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	u16 code period_1second = 20000;
+	static u16 counter_1second = 0; 
+	u8 code period_1second_x5 = 5;
+	static u8 counter_1second_x5 = 0; 
+	
+	if(counter_1second < period_1second)counter_1second ++; //1s
+	else{
+	
+		counter_1second = 0;
+		
+		if(counter_1second_x5 < period_1second_x5)counter_1second_x5 ++; //5s
+		else{
+		
+			counter_1second_x5 = 0;
+			
+//			/*浮点数传输测试*/
+//			socket_eleDetParam.eleParamFun_powerFreqVal 	= 111.12345F;
+//			socket_eleDetParam.eleParam_power				= 122.12345F;
+//			socket_eleDetParam.ele_Consum 					= 253.11111F;
+			
+			socket_eleDetParam.eleParamFun_powerFreqVal = socket_eleDetParam.eleParamFun_powerPulseCount / 5.0F; //频率
+			socket_eleDetParam.eleParam_power = socket_eleDetParam.eleParamFun_powerFreqVal * (COEFFICIENT_POW - (COEFFICIENT_COMPENSATION_POW * socket_eleDetParam.eleParamFun_powerFreqVal)); //功率
+			
+			if(socket_eleDetParam.eleParamFun_powerFreqVal < 0.00001F)socket_eleDetParam.eleParamFun_powerFreqVal = 0.00001F; //最小值限定
+			socket_eleDetParam.ele_Consum	+= 1.00F * (socket_eleDetParam.eleParamFun_powerPulseCount * socket_eleDetParam.eleParam_power / (1000.00F * 3600.00F * socket_eleDetParam.eleParamFun_powerFreqVal)); //用电量
+			
+			socket_eleDetParam.eleParamFun_powerPulseCount = 0.0F; //脉冲计数清零
+		}
+	}
 #else
 #endif
 }
@@ -150,10 +182,10 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 #else
-	u16 code period_100ms 	= 2000;
+	u16 code period_100ms 	= 4000;
 	static u16 counter_100ms = 0; 
-	u8 code period10_100ms 	= 10;
-	static u8 counter10_100ms = 0; 
+	u8 code period5_200ms 	= 5;
+	static u8 counter5_200ms = 0; 
 #endif
 	
 	u8 code period_tipsColor = COLORGRAY_MAX * 3;
@@ -175,7 +207,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 	else{
 		
 		counter_100ms = 0;
-		counter10_100ms ++;
+		counter5_200ms ++;
 	
 		/*窗帘逻辑业务，按照轨道时间动作*/
 		if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
@@ -186,7 +218,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 				
 					if(curtainAct_Param.act_counter < curtainAct_Param.act_period){
 					
-						if(counter10_100ms >= period10_100ms)curtainAct_Param.act_counter ++;
+						if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter ++;
 						
 					}else{
 					
@@ -199,7 +231,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 				
 					if(curtainAct_Param.act_counter > 0){
 					
-						if(counter10_100ms >= period10_100ms)curtainAct_Param.act_counter --;
+						if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter --;
 						
 					}else{
 					
@@ -223,7 +255,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			}
 		}
 		
-		if(counter10_100ms >= period10_100ms)counter10_100ms = 0;
+		if(counter5_200ms >= period5_200ms)counter5_200ms = 0;
 	}
 #endif
 	
@@ -251,6 +283,9 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 		
 		/*扩展性(持续性)数据发送动作间隔时间计数*/
 		if(dtReqEx_counter)dtReqEx_counter --;
+		
+		/*特殊组合动作按键触发 预标志衔接时间计数*/
+		if(combinationFunFLG_3S5S_cancel_counter)combinationFunFLG_3S5S_cancel_counter --;
 	}
 	
 	//****************1s专用**********************************************/
@@ -264,7 +299,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 //		/*电源频率单周期节拍数统计*/
 //		/*>>>usr_debug<<<*/
 //		//usr_debug数据填装
-//		dev_debugInfoLog.debugInfoData.dimmerInfo.soureFreq = freq_Param.periodBeat_cfm;
+//		dev_debugInfoLog.debugInfoData.dimmerInfo.soureFreq = dimmer_freqParam.periodBeat_cfm;
 //		//usr_debug打印类型填装填装
 //		dev_debugInfoLog.debugInfoType = infoType_dimmerFreq;
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
@@ -423,7 +458,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 					if(tips_Count < tips_Period){
 					
 						tips_Count ++;
-						(beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = 1);
+						(beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = !BEEP_OPEN_LEVEL);
 						
 					}else{
 					
@@ -443,14 +478,14 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			
 				tips_Count = 0;
 				beeps_en = 1;
-				PIN_BEEP = 1;
+				PIN_BEEP = !BEEP_OPEN_LEVEL;
 				dev_statusBeeps = beepsMode_null;
 				
 			}break;
 		
 			default:{
 			
-				PIN_BEEP = 1;
+				PIN_BEEP = !BEEP_OPEN_LEVEL;
 				
 			}break;
 		}
@@ -480,6 +515,23 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 	else{ //pwm执行
 	
 		counter_tipsColor ++;
+		
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+		
+		if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
+			
+			 //指示可用核准
+			if(cnt_relay1_Tips.colorGray_R && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_R --; PIN_TIPS_RELAY1_R = 0;}
+			else PIN_TIPS_RELAY1_R = 1;
+			
+		}else
+		if((counter_tipsColor > (COLORGRAY_MAX * 2)) && (counter_tipsColor <= (COLORGRAY_MAX * 3))){
+		
+			 //指示可用核准
+			if(cnt_relay1_Tips.colorGray_B && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_RELAY1_B = 0;}
+			else PIN_TIPS_RELAY1_B = 1;
+		}		
+#else
 		
 		if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
 			
@@ -519,5 +571,6 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			if(cnt_zigbNwk_Tips.colorGray_B){cnt_zigbNwk_Tips.colorGray_B --; PIN_TIPS_ZIGBNWK_B = 0;}
 			else PIN_TIPS_ZIGBNWK_B = 1;
 		}
+#endif
 	}
 }

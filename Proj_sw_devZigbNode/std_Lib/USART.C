@@ -1,6 +1,8 @@
 #include "USART.h"
 #include "delay.h"
 
+#include "dataManage.h"
+
 /**********************本地文件变量创建区********************/
 COMx_Define	COM1;
 u8	xdata TX1_Buffer[COM_TX1_Lenth];	//发送缓冲
@@ -156,6 +158,9 @@ void PrintString1(u8 *puts)
 
 void PrintString1_logOut(u8 *puts){
 
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //插座引脚冲突，不支持打印
+	puts[0] = puts[0];
+#else
 	delayMs(15);
 	P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P36_P37 & 0xc0);
 	delayMs(15);
@@ -163,6 +168,7 @@ void PrintString1_logOut(u8 *puts){
 	delayMs(15);
 	P_SW1 = (P_SW1 & 0x3f) | (UART1_SW_P30_P31 & 0xc0);
 	delayMs(15);
+#endif
 }
 
 //void PrintString2(u8 *puts)

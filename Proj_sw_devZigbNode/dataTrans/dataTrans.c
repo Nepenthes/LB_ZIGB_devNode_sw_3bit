@@ -79,9 +79,15 @@ void zigbUart_pinInit(void){
 	P3M1 |= 0x01;
 	P3M0 &= 0xFE;
 	
-	//TX推挽输出
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	
+	P2M1 &= ~0x40;
+	P2M0 |= 0x40;
+#else
+	
 	P2M1 &= ~0x08;
 	P2M0 |= 0x08;
+#endif
 }
 	
 /*--------------------------------------------------------------*/
@@ -1007,7 +1013,7 @@ u8 zigb_datsLoad_datsSend(u8  frame_Temp[NORMALDATS_DEFAULT_LENGTH],
 	
 	u8 code zigbCMD_DatsSend[2] = {0x24, 0x01};
 	
-#define zigbDatsSend_datsTransLen	72
+#define zigbDatsSend_datsTransLen	(128 + 25)
 	u8 xdata buf_datsLOAD[zigbDatsSend_datsTransLen] = {0};
 	u8 datsTX_Len = 0;
 							  
@@ -1271,6 +1277,7 @@ void dataTransRequest_datsSend(void){
 					PrintString1_logOut(log_buf);
 				}
 #endif	
+				if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //若跑马灯正在运行则中断跑马灯
 				
 				switch(datsTrans_respondCode){ //响应失败码分析
 				
@@ -1678,7 +1685,7 @@ void dataParing_zigbSysCtrl(u8 datsFrame[]){
 static 
 void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 	
-#define	dataLen_dataParingNomal 96
+#define	dataLen_dataParingNomal (128 + 25)
 	u8 xdata paramTX_temp[dataLen_dataParingNomal] = {0};
 	
 	bit dataFromRemote_IF = 0;	//是否为服务器端数据标志
@@ -2167,6 +2174,20 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 		}break;
 		
 #if(ZIGB_DATATRANS_WORKMODE == DATATRANS_WORKMODE_KEEPACESS) /*宏判头*///定时类通讯模式判断
+		/*定时询访_网关离线*///internet离线，不是zigb网络离线
+		case DTMODEKEEPACESS_FRAMEHEAD_OFFLINE:{
+			
+			periodDataTrans_momentHang(6); //internet离线情况下，周期通讯就没用了，通信频次下降到 6s/次
+#if(DEBUG_LOGOUT_EN == 1)
+			{ //输出打印，谨记 用后注释，否则占用大量代码空间
+				
+				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+				sprintf(log_buf, ">>>>>>>>internet offline.\n");
+				PrintString1_logOut(log_buf);
+			}	
+#endif
+		} /*不做break*///internet离线情况下，数据包回发给子设备，防止子设备做无意义心跳重发
+		
 		/*定时询访_网关在线*/
 		case DTMODEKEEPACESS_FRAMEHEAD_ONLINE:{
 		
@@ -2274,27 +2295,54 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							
 							heartBeatCount = PERIOD_HEARTBEAT_ASR; //有时效控制，强行提前心跳立即回码
 							
+							beeps_usrActive(3, 50, 1);
+							
 							memcpy(&dev_agingCmd_rcvPassive, &dev_dataPointTemp.devAgingOpreat_agingReference, sizeof(stt_agingDataSet_bitHold)); //本地被动时效操作缓存同步更新，用于原位回发
 						
 							/*时效操作解析*/		
 
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_swOpreat){ //开关状态操作，需要时效
 								
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+								
+								if(status_Relay != dev_dataPointTemp.devStatus_Reference.statusRef_swStatus){
+								
+									swCommand_fromUsr.objRelay = datsParam[21]; //整字节表示亮度
+									swCommand_fromUsr.actMethod = relay_OnOff;
+						
+									if((SWITCH_TYPE == SWITCH_TYPE_SWBIT1) || //多位开关才存在推送
+									   (SWITCH_TYPE == SWITCH_TYPE_SWBIT2) ||
+									   (SWITCH_TYPE == SWITCH_TYPE_SWBIT3)){
+
+											devActionPush_IF.push_IF = 1; //推送使能
+									}
+										
+ #if(DEBUG_LOGOUT_EN == 1)
+									{ //输出打印，谨记 用后注释，否则占用大量代码空间
+										
+										memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+										sprintf(log_buf, ">>>>>>>>relayStatus reales:%02X, currentVal:%02X.\n", (int)status_Relay, (int)datsParam[21]);
+										PrintString1_logOut(log_buf);
+									}			
+ #endif	
+								}
+#else
 								if((status_Relay & 0x07) != dev_dataPointTemp.devStatus_Reference.statusRef_swStatus){ 
 								
 									swCommand_fromUsr.objRelay = dev_dataPointTemp.devStatus_Reference.statusRef_swStatus;
 									swCommand_fromUsr.actMethod = relay_OnOff;
 									
 									devActionPush_IF.push_IF = 1; //推送使能
-#if(DEBUG_LOGOUT_EN == 1)
+ #if(DEBUG_LOGOUT_EN == 1)
 									{ //输出打印，谨记 用后注释，否则占用大量代码空间
 										
 										memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 										sprintf(log_buf, ">>>>>>>>relayStatus reales:%02X, currentVal:%02X.\n", (int)status_Relay & 0x07, (int)dev_dataPointTemp.devStatus_Reference.statusRef_swStatus);
 										PrintString1_logOut(log_buf);
 									}			
-#endif	
+ #endif	
 								}
+#endif
 							}
 							
 							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_delaySetOpreat){ //延时设置操作，需要时效
@@ -2493,6 +2541,23 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 								
 								reConnectAfterDatsReq_IF = 1; //即刻注册互控通讯簇端口
 							}
+							
+							if(dev_dataPointTemp.devAgingOpreat_agingReference.agingCmd_curtainOpPeriodSetOpreat){ //窗帘轨道周期设置操作，需要时效
+							
+#if(DEBUG_LOGOUT_EN == 1)
+								{ //输出打印，谨记 用后注释，否则占用大量代码空间
+									
+									memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+									sprintf(log_buf, ">>>>>>>>agingCmd curtainOrbitalSet coming, valSet:%d .\n", (int)dev_dataPointTemp.union_devParam.curtain_param.orbital_Period);
+									PrintString1_logOut(log_buf);
+								}	
+#endif	
+								curtainAct_Param.act_period = dev_dataPointTemp.union_devParam.curtain_param.orbital_Period;
+								coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalPeriod, &(curtainAct_Param.act_period), 1);
+								if(!curtainAct_Param.act_period)curtainAct_Param.act_period = 240;
+								else
+								if(curtainAct_Param.act_period == 0xff)curtainAct_Param.act_period = 10;
+							}
 						
 						}else{
 						
@@ -2535,21 +2600,7 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 			}
 			
 		}break;
-		
-		/*定时询访_网关离线*///internet离线，不是zigb网络离线
-		case DTMODEKEEPACESS_FRAMEHEAD_OFFLINE:{
-			
-			periodDataTrans_momentHang(6); //internet离线情况下，周期通讯就没用了，通信频次下降到 6s/次
-#if(DEBUG_LOGOUT_EN == 1)
-			{ //输出打印，谨记 用后注释，否则占用大量代码空间
-				
-				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-				sprintf(log_buf, ">>>>>>>>internet offline.\n");
-				PrintString1_logOut(log_buf);
-			}	
-#endif
-		}break;
-		
+
 #endif /*宏判尾*///定时类通讯模式判断
 		
 		default:{}break;
@@ -2573,7 +2624,7 @@ void thread_dataTrans(void){
 	u8 code cmd_datsComing[2] = {0x44, 0x81}; //远端数据帧指令
 	u8 code cmd_nwkOpenNote[2] = {0x45, 0xCB}; //网络开放通知
 
-#define	dataLen_zigbDatsTrans 96
+#define	dataLen_zigbDatsTrans (128 + 25)
 	u8 xdata paramTX_temp[dataLen_zigbDatsTrans] = {0};
 	u8 xdata paramRX_temp[dataLen_zigbDatsTrans] = {0};
 	
@@ -2694,6 +2745,15 @@ void thread_dataTrans(void){
 #elif(ZIGB_DATATRANS_WORKMODE == DATATRANS_WORKMODE_KEEPACESS)	//新周期询访机制询访周期
 				
 				//状态填装-实时值
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+	
+				//整字节填值
+				dev_currentDataPoint.devStatus_Reference.statusRef_swStatus 	= (status_Relay & 0x07) >> 0;
+				dev_currentDataPoint.devStatus_Reference.statusRef_reserve 		= (status_Relay & 0x18) >> 3;
+				dev_currentDataPoint.devStatus_Reference.statusRef_swPush 		= (status_Relay & 0xE0) >> 5;
+				
+#elif((SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SWBIT1) || (SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SWBIT2) || (SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SWBIT3)) //多位开关高位推送区分
+				
 				dev_currentDataPoint.devStatus_Reference.statusRef_swStatus 	= status_Relay; //周期询访本地数据点 开关状态更新
 				if(devActionPush_IF.push_IF){ //推送数据加载
 				
@@ -2701,6 +2761,14 @@ void thread_dataTrans(void){
 					dev_currentDataPoint.devStatus_Reference.statusRef_swPush = 0;
 					dev_currentDataPoint.devStatus_Reference.statusRef_swPush |= devActionPush_IF.dats_Push;
 				}
+							
+#else //其他开关没有高位推送区分
+				//只装状态，本身就是推送，其它值给0
+				dev_currentDataPoint.devStatus_Reference.statusRef_swStatus 	= status_Relay;
+				dev_currentDataPoint.devStatus_Reference.statusRef_reserve		= 0;
+				dev_currentDataPoint.devStatus_Reference.statusRef_swPush		= 0;
+				
+#endif
 				dev_currentDataPoint.devStatus_Reference.statusRef_timer 		= ifTim_sw_running_FLAG; //周期询访本地数据点 定时器状态更新
 				dev_currentDataPoint.devStatus_Reference.statusRef_devLock		= deviceLock_flag;
 				dev_currentDataPoint.devStatus_Reference.statusRef_delay		= (ifDelay_sw_running_FLAG & 0x02) >> 1;
@@ -2759,6 +2827,57 @@ void thread_dataTrans(void){
 				EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &dev_currentDataPoint.devData_bkLight, 2); //背景灯数据
 				dev_currentDataPoint.devData_devReset = 0;
 				EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, dev_currentDataPoint.devData_switchBitBind, clusterNum_usr); //互控绑定数据
+				{ //根据设备类型，分类填装数据
+				
+					switch(SWITCH_TYPE){
+					
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+						case SWITCH_TYPE_SOCKETS:{
+							
+							float code decimal_prtCoefficient = 10000.0F;
+						
+							{ //电量填装
+							u16 integer_prt = (u16)socket_eleDetParam.ele_Consum & 0x00FF;	//电量整数部分
+							u16 decimal_prt = (u16)((socket_eleDetParam.ele_Consum - (float)integer_prt) * decimal_prtCoefficient);	//电量小数部分强转为整数类型
+							
+							dev_currentDataPoint.union_devParam.socket_param.data_eleConsum[0]	= (u8)((integer_prt & 0x00FF) >> 0);	//整数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.data_eleConsum[1]	= (u8)((decimal_prt & 0xFF00) >> 8);	//小数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.data_eleConsum[2]	= (u8)((decimal_prt & 0x00FF) >> 0);	//小数部分填装
+							}
+							
+							{ //功率填装
+							u16 integer_prt = (u16)socket_eleDetParam.eleParam_power & 0xFFFF;	//电量整数部分
+							u16 decimal_prt = (u16)((socket_eleDetParam.eleParam_power - (float)integer_prt) * decimal_prtCoefficient);	//电量小数部分强转为整数类型
+							
+							dev_currentDataPoint.union_devParam.socket_param.data_elePower[0]	= (u8)((integer_prt & 0xFF00) >> 8);	//整数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.data_elePower[1]	= (u8)((integer_prt & 0x00FF) >> 0);	//整数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.data_elePower[2]	= (u8)((decimal_prt & 0xFF00) >> 8);	//小数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.data_elePower[3]	= (u8)((decimal_prt & 0x00FF) >> 0);	//小数部分填装
+							}
+							
+							dev_currentDataPoint.union_devParam.socket_param.data_corTime = systemTime_current.time_Hour; //对应小时区间填装
+			
+							{ //Debug数据填装-powerFreq<此部分数据调试后去除>
+							u16 integer_prt = (u16)socket_eleDetParam.eleParamFun_powerFreqVal & 0xFFFF;	//电量整数部分
+							u16 decimal_prt = (u16)((socket_eleDetParam.eleParamFun_powerFreqVal - (float)integer_prt) * decimal_prtCoefficient);	//powerFreq小数部分强转为整数类型
+							
+							dev_currentDataPoint.union_devParam.socket_param.dataDebug_powerFreq[0]	= (u8)((integer_prt & 0xFF00) >> 8);	//整数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.dataDebug_powerFreq[1]	= (u8)((integer_prt & 0x00FF) >> 0);	//整数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.dataDebug_powerFreq[2]	= (u8)((decimal_prt & 0xFF00) >> 8);	//小数部分填装
+							dev_currentDataPoint.union_devParam.socket_param.dataDebug_powerFreq[3]	= (u8)((decimal_prt & 0x00FF) >> 0);	//小数部分填装
+							}
+							
+						}break;
+#else
+						case SWITCH_TYPE_CURTAIN:{
+						
+							dev_currentDataPoint.union_devParam.curtain_param.orbital_Period = curtainAct_Param.act_period;
+						
+						}break;
+#endif
+						default:{}break;
+					}
+				}
 				
 				//时效操作占位指令填装
 				switch(dtModeKeepAcess_currentCmd){
@@ -3061,7 +3180,7 @@ void thread_dataTrans(void){
 								if(paramRX_temp[1] > datsSend_requestEx[localActLoop].constant_Loop){ //loop值大于本地才有效
 								
 									statusRelay_temp &= ~(1 << localActLoop); //动作位缓存清零
-									swCommand_fromUsr.objRelay = statusRelay_temp | paramRX_temp[0] << localActLoop; //bit对应 开关位动作加载
+									swCommand_fromUsr.objRelay = statusRelay_temp | (paramRX_temp[0] << localActLoop); //bit对应 开关位动作加载
 									swCommand_fromUsr.actMethod = relay_OnOff;
 									(paramRX_temp[0])?(colonyCtrlGet_statusLocalEaCtrl[localActLoop] = STATUSLOCALEACTRL_VALMASKRESERVE_ON):(colonyCtrlGet_statusLocalEaCtrl[localActLoop] = STATUSLOCALEACTRL_VALMASKRESERVE_OFF); //本地互控轮询值更新
 									
@@ -3124,7 +3243,7 @@ void thread_dataTrans(void){
 		
 		case status_nwkREQ:{
 		
-			//--------------------------------协状态：网络请求-----------------------------------------------//
+			//--------------------------------协状态：清除本地网络后重新入网请求-----------------------------------------------//
 			devTips_nwkZigb = nwkZigb_nwkREQ;
 			zigB_nwkJoinRequest(1);	//非阻塞主动加入附近开放网络
 			
@@ -3132,7 +3251,7 @@ void thread_dataTrans(void){
 			
 		case status_nwkReconnect:{
 		
-			//--------------------------------协状态：掉线处理-----------------------------------------------//
+			//--------------------------------协状态：网络重连请求-----------------------------------------------//
 			devTips_nwkZigb = nwkZigb_reConfig;
 			zigB_nwkJoinRequest(0);	//非阻塞重连
 			

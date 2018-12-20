@@ -84,7 +84,14 @@ void devLockInfo_Reales(void){
 u8 switchTypeReserve_GET(void){
 
 	u8 act_Reserve = 0x07;
-	
+
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	act_Reserve = 0x01;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+	act_Reserve = 0x07;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+	act_Reserve = 0x07;
+#else
 	switch(SWITCH_TYPE){
 	
 		case SWITCH_TYPE_SWBIT1:{
@@ -100,14 +107,14 @@ u8 switchTypeReserve_GET(void){
 		}break;
 		
 		case SWITCH_TYPE_SWBIT3:
-		case SWITCH_TYPE_FANS:
-		case SWITCH_TYPE_dIMMER:
 		case SWITCH_TYPE_CURTAIN:{
 		
 			act_Reserve = 0x07;
 		
 		}break;
 	}
+	
+#endif
 	
 	return act_Reserve;
 }
@@ -224,6 +231,9 @@ void Factory_recover(void){
 	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &datsTemp[0], 1);
 	datsTemp[0] = TIPSBKCOLOR_DEFAULT_OFF;
 	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &datsTemp[0], 1);	
+	
+	datsTemp[0] = 10; //窗帘轨道时间 初始给10
+	coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalPeriod, &datsTemp[0], 1);
 	
 	datsTemp[0] = 0;
 	coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);

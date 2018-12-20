@@ -3,7 +3,7 @@
 
 #include "STC15Fxxxx.H"
 
-#define PIN_BEEP	P32
+#include "dataManage.h"
 
 #define COLORGRAY_MAX 	32 //32级灰度
 
@@ -14,20 +14,36 @@
 #define TIPSBKCOLOR_DEFAULT_ON	8  //默认开关触摸背景色：开启
 #define TIPSBKCOLOR_DEFAULT_OFF 5  //默认开关触摸背景色：关闭
 
-#define PIN_TIPS_RELAY1_R 	P20
-#define PIN_TIPS_RELAY2_R 	P26
-#define PIN_TIPS_RELAY3_R 	P01
-#define PIN_TIPS_ZIGBNWK_R 	P55
+#define PIN_BEEP			P32
 
-#define PIN_TIPS_RELAY1_G 	P21
-#define PIN_TIPS_RELAY2_G 	P25
-#define PIN_TIPS_RELAY3_G 	P00
-#define PIN_TIPS_ZIGBNWK_G 	P54
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ #define BEEP_OPEN_LEVEL		1 //蜂鸣器开启电平
+#else
+ #define BEEP_OPEN_LEVEL		0 //蜂鸣器开启电平
+#endif
 
-#define PIN_TIPS_RELAY1_B 	P22
-#define PIN_TIPS_RELAY2_B 	P24
-#define PIN_TIPS_RELAY3_B 	P27
-#define PIN_TIPS_ZIGBNWK_B 	P03
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)	
+
+	#define PIN_TIPS_RELAY1_R 	P25
+	#define PIN_TIPS_RELAY1_B 	P54
+#else
+
+	#define PIN_TIPS_RELAY1_R 	P20
+	#define PIN_TIPS_RELAY2_R 	P26
+	#define PIN_TIPS_RELAY3_R 	P01
+	#define PIN_TIPS_ZIGBNWK_R 	P55
+
+	#define PIN_TIPS_RELAY1_G 	P21
+	#define PIN_TIPS_RELAY2_G 	P25
+	#define PIN_TIPS_RELAY3_G 	P00
+	#define PIN_TIPS_ZIGBNWK_G 	P54
+
+	#define PIN_TIPS_RELAY1_B 	P22
+	#define PIN_TIPS_RELAY2_B 	P24
+	#define PIN_TIPS_RELAY3_B 	P27
+	#define PIN_TIPS_ZIGBNWK_B 	P03
+	
+#endif
 
 typedef struct{
 
@@ -116,6 +132,7 @@ void tips_statusChangeToFactoryRecover(u8 timeHold);
 void beeps_usrActive(u8 tons, u8 time, u8 loop);
 
 void tipLED_pinInit(void);
+void pinBeep_Init(void);
 void ledBKGColorSw_Reales(void);
 void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B);
 

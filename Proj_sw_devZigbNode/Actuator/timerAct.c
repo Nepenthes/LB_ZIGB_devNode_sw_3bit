@@ -200,6 +200,11 @@ void thread_Timing(void){
 			(systemTime_current.time_Hour >= 24)?(systemTime_current.time_Hour = 0):(systemTime_current.time_Hour ++);
 			(systemTime_current.time_Week >   7)?(systemTime_current.time_Week = 1):(systemTime_current.time_Week ++);
 		}
+		
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //插座电量每小时定点清零
+		
+		if(!(systemTime_current.time_Minute) && !(systemTime_current.time_Second))socket_eleDetParam.ele_Consum = 0.0F;
+#endif
 	}
 	
 	/*判断是否为夜间模式*/
@@ -220,14 +225,14 @@ void thread_Timing(void){
 			
 			if(!timeTab_reserveFLG){ //时段反序判断 -顺序
 			
-				((minutesTemp_CalibrateTab_cur >  minutesTemp_CalibrateTab_A)&&\
-			     (minutesTemp_CalibrateTab_cur <= minutesTemp_CalibrateTab_B))?\
+				((minutesTemp_CalibrateTab_cur >=  	minutesTemp_CalibrateTab_A)&&\
+			     (minutesTemp_CalibrateTab_cur <	minutesTemp_CalibrateTab_B))?\
 					(ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
 			
 			}else{ //时段反序判断 -反序
 			
-				((minutesTemp_CalibrateTab_cur >  minutesTemp_CalibrateTab_A)||\
-			     (minutesTemp_CalibrateTab_cur <= minutesTemp_CalibrateTab_B))?\
+				((minutesTemp_CalibrateTab_cur >=  	minutesTemp_CalibrateTab_A)||\
+			     (minutesTemp_CalibrateTab_cur < 	minutesTemp_CalibrateTab_B))?\
 					(ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
 			}
 			
@@ -312,6 +317,11 @@ void thread_Timing(void){
 						//普通开关动作响应
 						swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 						swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
+						
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //调光值 1 改为 100
+	if(swCommand_fromUsr.objRelay == 1)swCommand_fromUsr.objRelay = 100;
+#else
+#endif
 						devActionPush_IF.push_IF = 1; //推送使能
 						dev_agingCmd_sndInitative.agingCmd_timerSetOpreat = 1; //对应主动上传时效占位置一
 						

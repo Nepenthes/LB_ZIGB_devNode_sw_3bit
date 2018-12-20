@@ -21,6 +21,7 @@ void bsp_Init(void){
 	zigbUart_pinInit();
 	uartObjZigb_Init();
 	tipLED_pinInit();
+	pinBeep_Init();
 	usrKin_pinInit();
 	relay_pinInit();
 }
@@ -46,11 +47,21 @@ int main(void){
 	
 //	while(1)PIN_RELAY_1 = touchPad_1;
 	
+//	while(1){
+//	
+//		P32 = !P32;
+//		delay_ms(1);
+//	}
+	
 	while(1){
 		
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)  //设备类型为插座时，没有触摸按键驱动和拨码驱动
+		UsrKEYScan(usrKeyFun_relayOpreation, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
+#else
 		touchPad_Scan();
-		UsrKEYScan(fun_touchReset, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
 		DcodeScan();
+		UsrKEYScan(fun_touchReset, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
+#endif
 		
 		thread_Timing();
 		

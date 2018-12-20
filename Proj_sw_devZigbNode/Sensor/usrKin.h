@@ -19,18 +19,22 @@
 
 #define	timeDef_touchPressContinue	350		//连按间隔定义时间 <单位：ms>
 
-sbit Dcode0		= P1^0;
-sbit Dcode1 	= P1^1;
-sbit Dcode2 	= P1^2;
-sbit Dcode3 	= P1^3;//暂缺保留
-sbit Dcode4 	= P1^4;
-sbit Dcode5 	= P1^3;
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)	
+	sbit Usr_key 	= P2^4;
+#else
+	sbit Dcode0		= P1^0;
+	sbit Dcode1 	= P1^1;
+	sbit Dcode2 	= P1^2;
+	sbit Dcode3 	= P1^3;//暂缺保留
+	sbit Dcode4 	= P1^4;
+	sbit Dcode5 	= P1^3;
 
-sbit Usr_key 	= P0^2;
+	sbit Usr_key 	= P0^2;
 
-sbit touchPad_1 = P1^6;
-sbit touchPad_2 = P1^7;
-sbit touchPad_3 = P1^5;
+	sbit touchPad_1 = P1^6;
+	sbit touchPad_2 = P1^7;
+	sbit touchPad_3 = P1^5;
+#endif
 
 #define Dcode_FLG_ifAP			0x01
 #define Dcode_FLG_ifLED			0x02
@@ -86,6 +90,7 @@ void UsrKEYScan(funKey_Callback funCB_Short, funKey_Callback funCB_LongA, funKey
 void touchPad_Scan(void);
 
 void fun_Test(void);
+void usrKeyFun_relayOpreation(void);
 void usrKeyFun_zigbNwkRejoin(void);
 void fun_touchReset(void);
 void fun_factoryRecoverOpreat(void);

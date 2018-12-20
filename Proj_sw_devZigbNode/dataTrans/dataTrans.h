@@ -7,7 +7,11 @@
 #include "dataManage.h"
 #include "timerAct.h"
 
-#define zigbPin_RESET	P23
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ #define zigbPin_RESET	P26
+#else
+ #define zigbPin_RESET	P23
+#endif
 
 #define DATATRANS_WORKMODE_HEARTBEAT	0x0A
 #define DATATRANS_WORKMODE_KEEPACESS	0x0B
@@ -85,7 +89,7 @@
 
 #define rxBuff_WIFI	 RX1_Buffer
 
-#define NORMALDATS_DEFAULT_LENGTH	96 //默认数据发送缓存长度
+#define NORMALDATS_DEFAULT_LENGTH	(128 + 25) //默认数据发送缓存长度
 
 #define STATUSLOCALEACTRL_VALMASKRESERVE_ON		0x0A //互控本地轮询更新值，操作状态掩码 - 开
 #define STATUSLOCALEACTRL_VALMASKRESERVE_OFF	0x0B //互控本地轮询更新值，操作状态掩码 - 关
@@ -178,7 +182,7 @@ typedef struct{
 	u8 	portPoint;
 	u16	nwkAddr;
 	
-	u8 constant_Loop:7; //重复次数
+	u8 constant_Loop; //重复次数
 	
 }datsAttr_dtCtrlEach;
 

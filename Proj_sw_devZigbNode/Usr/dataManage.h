@@ -22,7 +22,22 @@
 #define 	SWITCH_TYPE_SOCKETS				 (0x38 + 0x07) //设备类型，插座
 #define 	SWITCH_TYPE_dIMMER				 (0x38 + 0x04) //设备类型，调光
 
-#define 	SWITCH_TYPE_FORCEDEF			 0 //强制开关类型定义,硬件不同,写 0 时则是非强制定义
+#define 	SWITCH_TYPE_FORCEDEF			 0 //强制定义开关类型,硬件不同,写 0 时则是非强制定义(根据拨码定义)
+ 
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+// #define 	COEFFICIENT_POW					4.411065F		//功率系数 --L6 英美
+// #define	COEFFICIENT_COMPENSATION_POW	0.000001F		//功率系数补偿 --L6 英美
+
+ #define 	COEFFICIENT_POW					3.780465F		//功率系数 --L7 通用 (通用底板 -20181214) //test L7-HMP
+ #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 通用 (通用底板 -20181214) //test L7-HMP
+
+// #define 	COEFFICIENT_POW					4.287465F		//功率系数 --L7 南非 (南非底板 -20181214) //test L7-HMA
+// #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 南非 (南非底板 -20181214) //test L7-HMA
+
+ #if(DEBUG_LOGOUT_EN == 1)
+  #error	插座设备不支持log打印，因为引脚冲突，同时调试时需要接强电
+ #endif
+#endif
 
 //#define 	ROMADDR_ROM_STC_ID		 		 0x3ff8		//STC单片机 全球ID地址
 #define 	ROMADDR_ROM_STC_ID		 		 0x7ff8		//STC单片机 全球ID地址
@@ -45,11 +60,11 @@
 #define  	EEPROM_ADDR_timeZone_M           0x0004		//04H - 04H 时区——分								01_Byte
 #define  	EEPROM_ADDR_deviceLockFLAG       0x0005		//05H - 05H 设备锁状态位							01_Byte
 #define		EEPROM_ADDR_portCtrlEachOther	 0x0006		//06H - 08H 互控位绑定端口,依次为1、2、3位			03_Byte 
+#define		EEPROM_ADDR_curtainOrbitalPeriod 0x0009		//09H - 09h 窗帘轨道周期对应时间					01_Byte
 #define  	EEPROM_ADDR_swTimeTab          	 0x0010		//10H - 28H 8组普通定时数据，每组3字节				24_Byte	
 #define  	EEPROM_ADDR_swDelayFLAG			 0x0030		//30H - 30H 开关延时标志位集合						01_Byte
 #define 	EEPROM_ADDR_periodCloseLoop		 0x0031		//31H - 31H	循环关闭时间间隔						01_Byte
 #define 	EEPROM_ADDR_TimeTabNightMode	 0x0032		//32H - 37H 夜间模式定时表							06_Byte
-#define 	EEPROM_ADDR_curtainActPeriod	 0x0033		//33H - 33H 窗帘导轨周期时间						01_Byte
 #define 	EEPROM_ADDR_ledSWBackGround		 0x0040		//40H - 41H	开关背景灯色索引						02_Byte
 #define		EEPROM_ADDR_swScenarioNum		 0x0050		//50H - 6FH 场景编号								31_Byte
 #define		EEPROM_ADDR_swScenarioAct	     0x0070		//70H - 8FH 场景响应动作							31_Byte
@@ -79,7 +94,7 @@ typedef struct agingDataSet_bitHold{ //数据结构_时效占位;	使用指针强转时注意，ag
 	u8 agingCmd_curtainOpPeriodSetOpreat:1; //时效_针对窗帘导轨运行周期时间设置 -bit4
 	u8 statusRef_bitReserve:3; //时效_bit保留 -bit5...bit7
 	
-	u8 agingCmd_byteReserve[4];	//5字节占位保留
+	u8 agingCmd_byteReserve[4];	//4字节占位保留
 	
 }stt_agingDataSet_bitHold; //standard_length = 6Bytes
 
@@ -113,6 +128,28 @@ typedef struct dataPonit{ //数据结构_数据点
 	u8									devData_bkLight[2]; //背光灯颜色数据, 2Bytes
 	u8									devData_devReset; //开关复位数据, 1Bytes
 	u8									devData_switchBitBind[3]; //开关位互控绑定数据, 3Bytes
+	
+	union devClassfication{ //数据从此处开始分类
+	
+		struct funParam_curtain{ //窗帘
+		
+			u8 orbital_Period; //轨道周期时间
+			
+		}curtain_param;
+		
+		struct funParam_socket{ //插座
+		
+			u8 data_elePower[4]; //功率数据
+			u8 data_eleConsum[3]; //电量数据
+			u8 data_corTime; //当前电量对应小时段
+			
+			u8 dataDebug_powerFreq[4]; //debug数据-power频率
+			
+		}socket_param;
+		
+	}union_devParam;
+	
+//	u8	devData_byteReserve[63];
 	
 }stt_devOpreatDataPonit; //standard_length = 49Bytes
 

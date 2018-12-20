@@ -14,7 +14,7 @@
 status_ifSave	xdata relayStatus_ifSave = statusSave_disable;	//开关记忆使能变量
 u8 				xdata status_Relay 		 = 0;
 
-stt_motorAttr 	xdata curtainAct_Param 	 = {0, 3, cTact_stop};	//当设备定义为窗帘时，对应动作属性
+stt_Curtain_motorAttr 	xdata curtainAct_Param 	 = {0, 10, cTact_stop};	//当设备定义为窗帘时，对应动作属性，默认轨道时间30s
 
 relay_Command	xdata swCommand_fromUsr	 = {0, actionNull};
 
@@ -26,7 +26,9 @@ relayStatus_PUSH xdata devActionPush_IF = {0};
 bit				idata statusRelay_saveEn= 0; //开关值本地存储使能,灵活使用,重复存储
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
-stt_attrFreq	xdata freq_Param		= {0};
+stt_Dimmer_attrFreq	xdata dimmer_freqParam		= {0};
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+stt_eleSocket_attrFreq xdata socket_eleDetParam = {0};
 #endif
 
 /*继电器状态更新，硬件执行*/
@@ -43,25 +45,26 @@ void relay_statusReales(void){
 		
 		case 1:{
 		
-			PIN_RELAY_1 = 1;PIN_RELAY_2 = 0;PIN_RELAY_3 = 0;
+			PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 1;
 			
 		}break;
 			
 		case 2:{
 		
-			PIN_RELAY_1 = 1;PIN_RELAY_2 = 1;PIN_RELAY_3 = 0;
+			PIN_RELAY_1 = 0;PIN_RELAY_2 = 1;PIN_RELAY_3 = 0;
 			
 		}break;
 			
 		case 3:
 		default:{
 		
-			PIN_RELAY_1 = 1;PIN_RELAY_2 = 1;PIN_RELAY_3 = 1;
+			PIN_RELAY_1 = 1;PIN_RELAY_2 = 0;PIN_RELAY_3 = 0;
 			
 		}break;
 	}
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	(status_Relay)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
 #else
 	switch(SWITCH_TYPE){
 		
@@ -71,16 +74,16 @@ void relay_statusReales(void){
 			
 				case 1:{
 				
-					PIN_RELAY_1 = 1;
-					PIN_RELAY_2 = PIN_RELAY_3 = 0;
+					PIN_RELAY_2 = 1;
+					PIN_RELAY_1 = PIN_RELAY_3 = 0;
 					curtainAct_Param.act = cTact_open;
 					
 				}break;
 					
 				case 4:{
 				
-					PIN_RELAY_3 = 1;
-					PIN_RELAY_1 = PIN_RELAY_2 = 0;
+					PIN_RELAY_1 = 1;
+					PIN_RELAY_2 = PIN_RELAY_3 = 0;
 					curtainAct_Param.act = cTact_close;
 					
 				}break;
@@ -140,8 +143,20 @@ void relay_pinInit(void){
     INT1 = 0;
     IT1 = 1; 
 	PX1 = 0; //高优先级
-    EX1 = 1;                    
-
+    EX1 = 1;           
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	//推挽
+	P3M1	&= ~0x08;
+	P3M0	|= 0x08;
+	PIN_RELAY_1 = 0;
+	
+	//高阻入
+	P3M1	|= 0xC0;
+	P3M0	&= ~0xC0;
+	INT_CLKO |=  (1 << 4); //外部中断2使能
+	INT_CLKO |=  (1 << 5); //外部中断3使能
+	
 #else
 	//推挽
 	P3M1	&= ~0x38;
@@ -166,16 +181,42 @@ void relay_pinInit(void){
 		coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
 		relay_statusReales(); //硬件加载
 	}
+	
+	//窗帘轨道周期恢复
+	EEPROM_read_n(EEPROM_ADDR_curtainOrbitalPeriod, &(curtainAct_Param.act_period), 1);
+	if(!curtainAct_Param.act_period)curtainAct_Param.act_period = 240;
+	else
+	if(curtainAct_Param.act_period == 0xff)curtainAct_Param.act_period = 10;
+	
+#if(DEBUG_LOGOUT_EN == 1)
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+			u8 xdata log_buf[64];
+			
+			sprintf(log_buf, ">>>curtain orbitalPeriod recover val:%d.\n", (int)curtainAct_Param.act_period);
+			PrintString1_logOut(log_buf);
+		}			
+#endif
 }
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 void Ext_INT1 (void) interrupt INT1_VECTOR{
 	
-	freq_Param.periodBeat_cfm = freq_Param.periodBeat_counter;
-	freq_Param.periodBeat_counter = 0;
+	dimmer_freqParam.periodBeat_cfm = dimmer_freqParam.periodBeat_counter;
+	dimmer_freqParam.periodBeat_counter = 0;
 	
-	freq_Param.pwm_actEN = 1;
+	dimmer_freqParam.pwm_actEN = 1;
 }
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+void Ext_INT2 (void) interrupt INT2_VECTOR{ //中断2
+	
+	socket_eleDetParam.eleParamFun_powerPulseCount += 1.0F;
+}
+
+void Ext_INT3 (void) interrupt INT3_VECTOR{ //中断3
+	
+	
+}
+#else
 #endif
 
 /*开关动作*/
@@ -190,8 +231,6 @@ void relay_Act(relay_Command dats){
 #else
 	
 	statusTemp = status_Relay; //当前开关值暂存
-	
-	if(!countEN_ifTipsFree)countEN_ifTipsFree = 1; //触摸释放计时使能
 	
 	switch(dats.actMethod){
 	
