@@ -5,10 +5,13 @@
 #include "USART.h"
 
 #include "dataManage.h"
-#include "timerAct.h"
+
+#include "Relay.h"
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
  #define zigbPin_RESET	P26
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+ #define zigbPin_RESET	P21
 #else
  #define zigbPin_RESET	P23
 #endif
@@ -116,6 +119,17 @@
 #define zigbDatsDefault_Option		0
 #define zigbDatsDefault_Radius		8   //多跳次数
 
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+ #define DATATRANS_KEEPACESS_SCENARIOSW_SONSCOMMAND_SCENARIOreg		0x20    //场景开关时效操作子命令：按键绑定场景号注册
+ #define DATATRANS_KEEPACESS_SCENARIOSW_SONSCOMMAND_SCENARIOdel		0x21	//场景开关时效操作子命令：按键绑定场景号注销
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+#else
+#endif
+
 typedef enum{
 
 	status_NULL = 0,
@@ -146,6 +160,18 @@ typedef struct{
 	u8 statusChange_IF:1; //状态切换使能
 	threadRunning_Status statusChange_standBy; //需要切换到的状态
 }stt_statusChange;
+
+typedef struct{
+
+	enum{
+
+		zigbScenarioReverseCtrlCMD_scenarioCtrl = 0xCA,
+
+	}command; //命令
+
+	u8 scenario_Num; //场景号
+	u8 dataOnceReserve_pWord; //数据包口令 -用于在通信恶劣的环境下判断数据重发
+}frame_zigbScenarioReverseCtrl;
 
 typedef struct{
 

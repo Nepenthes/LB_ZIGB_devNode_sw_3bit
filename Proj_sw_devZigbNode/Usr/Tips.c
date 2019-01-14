@@ -5,32 +5,35 @@
 #include "string.h"
 #include "stdio.h"
 
+#include "driver_I2C_HXD019D.h"
+
 #include "Relay.h"
 #include "dataManage.h"
 #include "timerAct.h"
+#include "appTimer.h"
 #include "usrKin.h"
 
 #include "eeprom.h"
 #include "delay.h"
+
+color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = { //选色表
+
+	{ 0,  0,  0}, {20, 10, 31}, {31,  0,  0}, //黑0、白1、红2
+	{31,  0, 10}, { 8,  0, 16}, {0,  31,  0}, //粉3、紫4、绿5
+	{16, 31,  0}, {31, 10,  0}, {0,   0, 31}, //橙6、靛7、蓝8
+	{ 0, 10, 31}, //冰蓝9
+};
 
 color_Attr xdata relay1_Tips 	= {0};
 color_Attr xdata relay2_Tips 	= {0};
 color_Attr xdata relay3_Tips 	= {0};
 color_Attr xdata zigbNwk_Tips 	= {0};
 
-u8 tipsInsert_swLedBKG_ON 		= TIPSBKCOLOR_DEFAULT_ON;
-u8 tipsInsert_swLedBKG_OFF 		= TIPSBKCOLOR_DEFAULT_OFF;
-color_Attr code  tips_relayUnused= {0, 0, 0};
+bkLightColorInsert_paramAttr xdata devBackgroundLight_param = {0}; //背光灯索引参数缓存
+
+color_Attr code  tips_relayUnused= {0, 0, 0}; //无效继电器背景灯颜色
 
 bit	idata ifHorsingLight_running_FLAG = 1;	//跑马灯运行标志位  默认开
-
-color_Attr code color_Tab[TIPS_SWBKCOLOR_TYPENUM] = {
-
-	{ 0,  0,  0}, {20, 10, 31}, {31,  0,  0},
-	{31,  0, 10}, { 8,  0, 16}, {0,  31,  0},
-	{16, 31,  0}, {31, 10,  0}, {0,   0, 31},
-	{ 0, 10, 31},
-};
 
 tips_Status devTips_status 		= status_Null; //系统状态指示
 tips_nwkZigbStatus devTips_nwkZigb = nwkZigb_Normal; //zigbee网络状态指示灯
@@ -48,14 +51,17 @@ enum_beeps xdata dev_statusBeeps= beepsMode_null; //状态机状态：蜂鸣器状态指示
 void tipLED_pinInit(void){
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
-	
 	P5M1 &= ~(0x10);
 	P5M0 |= 0x10;
 	
 	P2M1 &= ~(0x20);
 	P2M0 |= 0x20;
-#else
 	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	P2M1 &= ~(0x0C);
+	P2M0 |= 0x0C;
+	
+#else
 	P2M1 &= ~0xF7;
 	P2M0 |= 0xF7;
 	
@@ -64,6 +70,7 @@ void tipLED_pinInit(void){
 	
 	P5M1 &= ~0x30;
 	P5M0 |= 0x30;
+	
 #endif
 	
 	devTips_status = status_Normal;
@@ -81,21 +88,78 @@ void tipLED_pinInit(void){
 
 void pinBeep_Init(void){
 
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	P2M1 &= ~0x01;
+	P2M0 |= 0x01;
+	
+#else
 	P3M1 &= ~(0x04);
 	P3M0 |= 0x04;
+	
+#endif
 }
 
 /*从内部eeprom更新tips背景灯色*/
 void ledBKGColorSw_Reales(void){
 
-	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
-	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
+//	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
+//	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
+//	
+//	if(tipsInsert_swLedBKG_ON > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_ON = TIPSBKCOLOR_DEFAULT_ON;
+//	if(tipsInsert_swLedBKG_OFF > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_OFF = TIPSBKCOLOR_DEFAULT_OFF;
+//	
+//	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
+//	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
 	
-	if(tipsInsert_swLedBKG_ON > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_ON = TIPSBKCOLOR_DEFAULT_ON;
-	if(tipsInsert_swLedBKG_OFF > TIPS_SWBKCOLOR_TYPENUM - 1)tipsInsert_swLedBKG_OFF = TIPSBKCOLOR_DEFAULT_OFF;
+	EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, (u8 *)&devBackgroundLight_param, sizeof(bkLightColorInsert_paramAttr)); //参数读取
 	
-	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &tipsInsert_swLedBKG_ON, 1);
-	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &tipsInsert_swLedBKG_OFF, 1);
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS) //参数预处理
+	if(devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0 > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0 = 0; //黑
+	if(devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1 > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1 = 5; //绿
+	if(devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2 > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2 = 8; //蓝
+	if(devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3 > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3 = 2; //红
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //参数预处理
+	if(devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_press > 			 (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_press = 0; //黑
+	if(devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness0 > 	 (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness0 = 5; //绿
+	if(devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness1to99 > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness1to99 = 8; //蓝
+	if(devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness100 > 	 (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness100 = 2; //红
+	
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //参数预处理，无特殊，随默认
+//#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //参数预处理，无特殊，随默认
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO) //参数预处理
+	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig = 5; //绿
+	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig = 8; //蓝
+
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER) //参数预处理，热水器为强制背光
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open = 5; //绿
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close = 0; //黑
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30 = 8; //蓝
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60 = 2; //红
+
+#else
+	switch(SWITCH_TYPE){
+	
+		case SWITCH_TYPE_CURTAIN:{
+		
+			if(devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press = 8; //蓝
+			if(devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce = 5; //绿
+		
+		}break;
+		
+		case SWITCH_TYPE_SWBIT1:
+		case SWITCH_TYPE_SWBIT2:
+		case SWITCH_TYPE_SWBIT3:{
+			
+			if(devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open = 8; //蓝
+			if(devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close = 5; //绿
+			
+		}break;
+		
+		default:{}break;
+	}
+
+#endif
 }
 
 /*触发非阻塞beeps_Tips*/
@@ -194,8 +258,7 @@ void thread_Tips(void){
 	}
 	
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
-	
-	ifHorsingLight_running_FLAG = 0;
+	ifHorsingLight_running_FLAG = 0; //插座不存在跑马灯
 	
 	switch(devTips_status){
 	
@@ -303,6 +366,117 @@ void thread_Tips(void){
 	
 		if((devTips_nwkZigb == nwkZigb_nwkOpen) && !tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_Normal; //网络开放后台tips过期恢复
 	}
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	ifHorsingLight_running_FLAG = 0; //红外不存在跑马灯
+	
+	switch(devTips_status){
+	
+		case status_Night:
+		case status_Normal:{
+			
+			/*zigb网络状态指示*/
+			{
+				static bit tips_Type = 0;
+				static u8 tipsEn_Loop = 0;
+				
+				static u8 xdata socketTips_R = 0,
+								socketTips_B = 0;
+				
+				(infraredStatus_GET() != infraredSMStatus_free)?(socketTips_R = 30):(socketTips_R = 0);
+				
+				if(!counter_tipsAct){
+				
+					tips_Type = !tips_Type;
+					
+					switch(devTips_nwkZigb){
+					
+						case nwkZigb_Normal:{
+							
+							socketTips_B = 5;
+						
+						}break;
+						
+						case nwkZigb_nwkOpen:{
+						
+							if(tipsEn_Loop < (3 * 2)){ //周期闪3
+							
+								tipsEn_Loop ++;
+								counter_tipsAct = 150;
+								(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+								
+							}else{
+							
+								tipsEn_Loop = 0;
+								counter_tipsAct = 2000;
+								socketTips_B = 0;
+							}
+							
+						}break;
+						
+						case nwkZigb_outLine:{
+						
+							socketTips_B = 0;
+						
+						}break;
+						
+						case nwkZigb_reConfig:{ //间接1000 常闪
+						
+							counter_tipsAct = 1000;
+							(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+							
+						}break;
+						
+						case nwkZigb_nwkREQ:{ //间接100 常闪
+						
+							counter_tipsAct = 100;
+							(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+						
+						}break;
+						
+						case nwkZigb_hold:{
+						
+							if(tipsEn_Loop < (5 * 2)){ //周期闪5
+							
+								tipsEn_Loop ++;
+								counter_tipsAct = 100;
+								(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+								
+							}else{
+							
+								tipsEn_Loop = 0;
+								counter_tipsAct = 2000;
+								socketTips_B = 0;
+							}
+							
+						}break;
+						
+						default:{
+						
+							devTips_nwkZigb = nwkZigb_Normal;
+						
+						}break;
+					}
+				}
+				
+				tipsLED_colorSet(obj_Relay1, socketTips_R, 0, socketTips_B);
+			}
+			
+		}break;
+		
+		default:{ //插座没有前台tips
+		
+			tips_statusChangeToNormal();
+			
+		}break;
+	}
+	
+	/*过期tips处理*/
+	{
+	
+		if((devTips_nwkZigb == nwkZigb_nwkOpen) && !tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_Normal; //网络开放后台tips过期恢复
+	}
+	
 #else
 	switch(devTips_status){
 	
@@ -321,8 +495,8 @@ void thread_Tips(void){
 		case status_Night:
 		case status_Normal:{
 			
-			static u16 tips_Counter = 0;
-			u16 code tips_Period = 500;
+			static u16 tipsNwk_Counter = 0;
+			u16 code tipsNwk_Period = 500;
 			u8 relayStatus_tipsTemp = status_Relay;
 			
 			if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){ //随继电器
@@ -363,34 +537,58 @@ void thread_Tips(void){
 							
 						case 0x01:{
 						
-							tipsLED_colorSet(obj_Relay1, 0, 31, 0);
-							tipsLED_colorSet(obj_Relay2, 0, 31, 0);
-							tipsLED_colorSet(obj_Relay3, 0, 31, 0);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear1].colorGray_B);
 						
 						}break;
 						
 						case 0x02:{
 						
-							tipsLED_colorSet(obj_Relay1, 0, 0, 31);
-							tipsLED_colorSet(obj_Relay2, 0, 0, 31);
-							tipsLED_colorSet(obj_Relay3, 0, 0, 31);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear2].colorGray_B);
 							
 						}break;
 							
 						case 0x03:{
 						
-							tipsLED_colorSet(obj_Relay1, 31, 0, 0);
-							tipsLED_colorSet(obj_Relay2, 31, 0, 0);
-							tipsLED_colorSet(obj_Relay3, 31, 0, 0);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorGray_B);
 							
 						}break;
 						
 						case 0x00:
 						default:{
 						
-							tipsLED_colorSet(obj_Relay1, 0, 0, 0);
-							tipsLED_colorSet(obj_Relay2, 0, 0, 0);
-							tipsLED_colorSet(obj_Relay3, 0, 0, 0);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear0].colorGray_B);
 							
 						}break;
 					}
@@ -400,12 +598,12 @@ void thread_Tips(void){
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)		
 				case SWITCH_TYPE_dIMMER:{
 					
-					u8 idata TIPSBKCOLOR_USRDEF_PRESS 	= 0;
-					u8 idata TIPSBKCOLOR_USRDEF_UP 		= 5;
+					u8 idata TIPSBKCOLOR_USRDEF_PRESS 	= devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_press; //按下色缓存
+					u8 idata TIPSBKCOLOR_USRDEF_UP 		= devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness0; //弹起色缓存
 					
-					if(!status_Relay)TIPSBKCOLOR_USRDEF_UP = 5;
-					else if(status_Relay == 100)TIPSBKCOLOR_USRDEF_UP = 2;
-					else TIPSBKCOLOR_USRDEF_UP = 8;
+					if(!status_Relay)TIPSBKCOLOR_USRDEF_UP = devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness0; //亮度为0时弹起色
+					else if(status_Relay == 100)TIPSBKCOLOR_USRDEF_UP = devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness100; //亮度为100时弹起色
+					else TIPSBKCOLOR_USRDEF_UP = devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_brightness1to99; //亮度为1-99时弹起色
 				
 					switch(relayStatus_tipsTemp){ //非占位指示
 					
@@ -443,6 +641,167 @@ void thread_Tips(void){
 					}
 				
 				}break;
+				
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+				case SWITCH_TYPE_SCENARIO:{
+				
+					u16 code tipsCounter_scenarioKeepTrigForce = 500; //场景触发强制间隔时，tips闪烁相关周期
+					static bit tipsFlash_flg = 0;
+					
+					if(!counter_tipsAct){
+					
+						counter_tipsAct = tipsCounter_scenarioKeepTrigForce;
+						tipsFlash_flg = !tipsFlash_flg;
+					}
+				
+					switch(scenario_ActParam.scenarioKey_currentTrig){
+					
+						case scenarioKey_current_S1:{
+						
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							
+							if(scenario_ActParam.scenarioKeepTrig_timeCounter && scenario_ActParam.scenarioKeepTrig_timeCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+							
+								(tipsFlash_flg)?\
+									(tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B)):\
+									(tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B));
+								
+							}else{
+							
+								tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B);
+							}
+						
+						}break;
+							
+						case scenarioKey_current_S2:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							
+							if(scenario_ActParam.scenarioKeepTrig_timeCounter && scenario_ActParam.scenarioKeepTrig_timeCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+							
+								(tipsFlash_flg)?\
+									(tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B)):\
+									(tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B));
+								
+							}else{
+							
+								tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B);
+							}
+						
+						}break;
+						
+						case scenarioKey_current_S3:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							
+							if(scenario_ActParam.scenarioKeepTrig_timeCounter && scenario_ActParam.scenarioKeepTrig_timeCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
+							
+								(tipsFlash_flg)?\
+									(tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B)):\
+									(tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+																  color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B));
+								
+							}else{
+							
+								tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_R, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_G, 
+															 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig].colorGray_B);
+							}
+						
+						}break;
+						
+						default:{
+						
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig].colorGray_B);
+							
+						}break;
+					}
+					
+				}break;
+				
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)	
+				case SWITCH_TYPE_HEATER:{
+					
+					tipsLED_colorSet(obj_Relay1, 0, 0, 0);
+					tipsLED_colorSet(obj_Relay3, 0, 0, 0);
+				
+					switch(heater_ActParam.heater_currentActMode){
+					
+						case heaterActMode_swClose:{
+						
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close].colorGray_B);
+						
+						}break;
+							
+						case heaterActMode_swKeepOpen:{
+						
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].colorGray_B);
+							
+						}break;
+							
+						case heaterActMode_swCloseDelay30min:{
+						
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30].colorGray_B);
+						
+						}break;
+							
+						case heaterActMode_swCloseDelay60min:{
+						
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60].colorGray_B);
+						
+						}break;
+							
+						default:{}break;
+					}
+						
+				}break;
+				
 #else			
 				case SWITCH_TYPE_CURTAIN:{
 				
@@ -450,25 +809,43 @@ void thread_Tips(void){
 					
 						case 0x01:{
 						
-							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
-							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
-							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_B);
 						
 						}break;
 							
 						case 0x04:{
 						
-							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
-							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
-							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
 						
 						}break;
 						
 						default:{
 						
-							tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
-							tipsLED_colorSet(obj_Relay2, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_ON].colorGray_B);
-							tipsLED_colorSet(obj_Relay3, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_R, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_G, color_Tab[TIPSBKCOLOR_DEFAULT_OFF].colorGray_B);
+							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
+							tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_B);
+							tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
+														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_B);
 						
 						}break;
 					}
@@ -478,28 +855,41 @@ void thread_Tips(void){
 				case SWITCH_TYPE_SWBIT1:
 				case SWITCH_TYPE_SWBIT2:
 				case SWITCH_TYPE_SWBIT3:
-#endif
 				default:{ //占位指示
 					
 					(DEV_actReserve & 0x01)?\
 						((relayStatus_tipsTemp & 0x01)?\
-							(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
-							(tipsLED_colorSet(obj_Relay1, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+							(tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_B))):\
 						(tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));
 					
 					(DEV_actReserve & 0x02)?\
 						((relayStatus_tipsTemp & 0x02)?\
-							(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
-							(tipsLED_colorSet(obj_Relay2, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+							(tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_B))):\
 						(tipsLED_colorSet(obj_Relay2, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));	
 					
 					(DEV_actReserve & 0x04)?\
 						((relayStatus_tipsTemp & 0x04)?\
-							(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_ON].colorGray_R, color_Tab[tipsInsert_swLedBKG_ON].colorGray_G, color_Tab[tipsInsert_swLedBKG_ON].colorGray_B)):\
-							(tipsLED_colorSet(obj_Relay3, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_R, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_G, color_Tab[tipsInsert_swLedBKG_OFF].colorGray_B))):\
+							(tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_B)):\
+							(tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_G, 
+														  color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_B))):\
 						(tipsLED_colorSet(obj_Relay3, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relayUnused.colorGray_B));	
 					
 				}break;
+				
+#endif
 			}
 			
 			/*过期tips处理*/
@@ -512,11 +902,11 @@ void thread_Tips(void){
 			{
 				static bit tips_Type = 0;
 				
-				if(tips_Counter < tips_Period)tips_Counter ++;
+				if(tipsNwk_Counter < tipsNwk_Period)tipsNwk_Counter ++;
 				else{
 				
 					tips_Type = !tips_Type;
-					tips_Counter = 0;
+					tipsNwk_Counter = 0;
 					
 					switch(devTips_nwkZigb){
 					

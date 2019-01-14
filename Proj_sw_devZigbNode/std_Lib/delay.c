@@ -41,3 +41,13 @@ void delayMs(unsigned int ms){
 
 	while(-- ms)delay_ms(1);
 }
+
+void I2C_delay_us(u8 count){ //@24.000MHz
+
+	u8 i;
+
+	_nop_();
+	_nop_();
+	(count == 1)?(i = 3):(i = (6 * count) - 3);
+	while (--i);
+}

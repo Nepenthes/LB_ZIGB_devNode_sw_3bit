@@ -4,23 +4,30 @@
 #include "STC15Fxxxx.H"
 
 #include "dataManage.h"
+#include "dataTrans.h"
 
 #define KEYPRESS_CONTINE_RESERVE_NUMMAX		10		//连按有效次数
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)	
  #define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
- #define	timeDef_touchPressLongA		500		//长按A时间 <单位：ms> ,dimmer触发连续调制
- #define	timeDef_touchPressLongB		15000	//长按B时间 <单位：ms>	
+ #define	timeDef_touchPressLongA		1500	//长按A时间 <单位：ms> ,dimmer触发连续调制
+ #define	timeDef_touchPressLongB		20000	//长按B时间 <单位：ms>	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+ #define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
+ #define	timeDef_touchPressLongA		3000	//长按A时间 <单位：ms>
+ #define	timeDef_touchPressLongB		20000	//长按B时间 <单位：ms>	
 #else
  #define	timeDef_touchPressCfm		20		//短按消抖时间 <单位：ms>
  #define	timeDef_touchPressLongA		3000	//长按A时间 <单位：ms>
- #define	timeDef_touchPressLongB		15000	//长按B时间 <单位：ms>	
+ #define	timeDef_touchPressLongB		20000	//长按B时间 <单位：ms>	
 #endif
 
 #define	timeDef_touchPressContinue	350		//连按间隔定义时间 <单位：ms>
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)	
 	sbit Usr_key 	= P2^4;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	sbit Usr_key 	= P5^4;
 #else
 	sbit Dcode0		= P1^0;
 	sbit Dcode1 	= P1^1;
@@ -53,6 +60,12 @@ typedef enum{
 	press_LongA,
 	press_LongB,
 }keyCfrm_Type;
+
+typedef struct{
+
+	u8 param_combinationFunPreTrig_standBy_FLG:1; //预触发标志
+	u8 param_combinationFunPreTrig_standBy_keyVal:7; //预触发按键键值缓存
+}param_combinationFunPreTrig;
 
 ///*回调注册函数形参类型*///为减少代码冗余，此段弃用
 //typedef enum{
@@ -94,5 +107,18 @@ void usrKeyFun_relayOpreation(void);
 void usrKeyFun_zigbNwkRejoin(void);
 void fun_touchReset(void);
 void fun_factoryRecoverOpreat(void);
+
+void fun_Test_short(void);
+void fun_Test_longA(void);
+
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+ void devHeater_actOpeartionExecute(enumDevHeater_ActMode opreatParam);
+#else
+#endif
 
 #endif

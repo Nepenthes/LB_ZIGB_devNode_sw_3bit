@@ -2,6 +2,8 @@
 
 #include "STC15Fxxxx.H"
 
+#include "Relay.h"
+
 #include "eeprom.h"
 #include "delay.h"
 #include "USART.h"
@@ -17,6 +19,12 @@
  u8 SWITCH_TYPE = SWITCH_TYPE_dIMMER;
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
  u8 SWITCH_TYPE = SWITCH_TYPE_SOCKETS;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+ u8 SWITCH_TYPE = SWITCH_TYPE_INFRARED;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+ u8 SWITCH_TYPE = SWITCH_TYPE_SCENARIO;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+ u8 SWITCH_TYPE = SWITCH_TYPE_HEATER;
 #else
  u8 SWITCH_TYPE = SWITCH_TYPE_CURTAIN;
 #endif
@@ -29,7 +37,7 @@ u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
 u16 dev_currentPanid = 0;
 
 #if(DEBUG_LOGOUT_EN == 1)	
- u8 xdata log_buf[LOGBUFF_LEN] = {0};
+ u8 idata log_buf[LOGBUFF_LEN] = {0};
 #endif		
 
 /********************本地文件变量创建区******************/
@@ -87,13 +95,18 @@ u8 switchTypeReserve_GET(void){
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 	act_Reserve = 0x01;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	act_Reserve = 0x01;
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 	act_Reserve = 0x07;
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 	act_Reserve = 0x07;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+	act_Reserve = 0x07;
 #else
 	switch(SWITCH_TYPE){
 	
+		case SWITCH_TYPE_HEATER:
 		case SWITCH_TYPE_SWBIT1:{
 		
 			act_Reserve = 0x02;
@@ -223,18 +236,25 @@ void Factory_recover(void){
 	
 	u8 xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
 	
-	coverEEPROM_write_n(EEPROM_ADDR_START, datsTemp, EEPROM_USE_OF_NUMBER); //首次启动EEPROM擦除
+	coverEEPROM_write_n(EEPROM_ADDR_START_USRDATA, datsTemp, EEPROM_USE_OF_NUMBER); //首次启动EEPROM擦除
 	datsTemp[0] = BIRTHDAY_FLAG;
 	coverEEPROM_write_n(EEPROM_ADDR_BirthdayMark, &datsTemp[0], 1);	//打出生标记
 	
-	datsTemp[0] = TIPSBKCOLOR_DEFAULT_ON; //背光初始化
-	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, &datsTemp[0], 1);
-	datsTemp[0] = TIPSBKCOLOR_DEFAULT_OFF;
-	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround + 1, &datsTemp[0], 1);	
+	memset(datsTemp, 0xff, sizeof(bkLightColorInsert_paramAttr)); //背光灯参数出厂化 --出厂化0xff填满，促使背光灯初始化时参数恢复至默认值
+	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, datsTemp, sizeof(bkLightColorInsert_paramAttr));
 	
-	datsTemp[0] = 10; //窗帘轨道时间 初始给10
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+#else
+	datsTemp[0] = CURTAIN_ORBITAL_PERIOD_INITTIME; //窗帘轨道时间 赋初始值
 	coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalPeriod, &datsTemp[0], 1);
 	
+#endif	
+
 	datsTemp[0] = 0;
 	coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
 	
@@ -256,7 +276,54 @@ void birthDay_Judge(void){
 	}
 }
 
-#if(DATASAVE_INTLESS_ENABLEIF)
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //红外数据存储，一个扇区一条数据
+void infrared_eeprom_dataSave(u8 insertNum, u8 dats[], u8 datsLen){
+	
+	//一个扇区为512 Bytes，一个红外指令为232 Bytes，故一个扇区可以存两个红外指令
+
+	u16 code EEPROM_SECTOR_HALFSIZE = EEPROM_SECTOR_SIZE / 2;
+	
+	u8	xdata dataSaveTemp[EEPROM_SECTOR_SIZE] = {0}; //数据存储缓存
+	u16 xdata EEadress_Insert = EEPROM_ADDR_START_IRDATA + ((u16)(insertNum / 2) * EEPROM_SECTOR_SIZE); //存储地址索引缓存
+	
+	EEPROM_read_n(EEadress_Insert, dataSaveTemp, EEPROM_SECTOR_SIZE); //整个扇区数据读到缓存
+	EEPROM_SectorErase(EEadress_Insert); //缓存获取后擦除整个扇区
+	
+	if(insertNum % 2){ //奇数，对应扇区后半
+	
+		memset(&dataSaveTemp[EEPROM_SECTOR_HALFSIZE], 0, EEPROM_SECTOR_HALFSIZE); //数据存储至扇区后半
+		memcpy(&dataSaveTemp[EEPROM_SECTOR_HALFSIZE], dats, datsLen);
+		
+	}else{ //偶数，对应扇区前半
+	
+		memset(&dataSaveTemp[0], 0, EEPROM_SECTOR_HALFSIZE); //数据存储至扇区前半
+		memcpy(&dataSaveTemp[0], dats, datsLen);
+	}
+	
+	EEPROM_write_n(EEadress_Insert, dataSaveTemp, EEPROM_SECTOR_SIZE);
+}
+
+void infrared_eeprom_dataRead(u8 insertNum, u8 dats[], u8 datsLen){
+	
+	//一个扇区为512 Bytes，一个红外指令为232 Bytes，故一个扇区可以存两个红外指令
+	
+	u16 code EEPROM_SECTOR_HALFSIZE = EEPROM_SECTOR_SIZE / 2;
+
+	u16 xdata EEadress_Insert = EEPROM_ADDR_START_IRDATA + ((u16)(insertNum / 2) * EEPROM_SECTOR_SIZE); //存储地址索引缓存
+	
+	if(insertNum % 2){ //奇数，对应扇区后半
+	
+		EEadress_Insert += EEPROM_SECTOR_HALFSIZE; //存储索引更新至扇区后半
+		
+	}else{ //偶数，对应扇区前半
+	
+		EEadress_Insert = EEadress_Insert; //存储索引更新至扇区前半
+	}
+	
+	EEPROM_read_n(EEadress_Insert, dats, datsLen);
+}
+#else
+ #if(DATASAVE_INTLESS_ENABLEIF) //继电器状态EEPROM独立存储相关函数定义
 void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
 	
 	u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
@@ -264,12 +331,12 @@ void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
 	if(loopInsert_relayStatusRealTime_record >= RECORDPERIOD_OPREATION_LOOP){
 	
 		loopInsert_relayStatusRealTime_record = 0;
-		EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+		EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //擦扇区
 	}
 	
 	dataRead_temp[loopInsert_relayStatusRealTime_record ++] = currentRelayStatus;
 	
-	EEPROM_write_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
+	EEPROM_write_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
 }
 
 u8 devDataRecovery_relayStatus(void){
@@ -278,14 +345,14 @@ u8 devDataRecovery_relayStatus(void){
 	u8 xdata loop = 0;
 	u8 xdata res = 0;
 	
-	EEPROM_read_n(EEPROM_ADDR_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
+	EEPROM_read_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
 	
 	for(loop = 0; loop < RECORDPERIOD_OPREATION_LOOP; loop ++){
 	
 		if(dataRead_temp[loop] == 0xff){
 		
 			(!loop)?(res = 0):(res = dataRead_temp[loop - 1]);
-#if(DEBUG_LOGOUT_EN == 1)	
+  #if(DEBUG_LOGOUT_EN == 1)	
 			{ //输出打印，谨记 用后注释，否则占用大量代码空间
 
 				memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
@@ -293,13 +360,15 @@ u8 devDataRecovery_relayStatus(void){
 				sprintf(log_buf, "insert catch: %d, val:%02X.\n", (int)loop, (int)res);
 				PrintString1_logOut(log_buf);
 			}
-#endif
+  #endif
 			break;
 		}
 	}
 	
-	EEPROM_SectorErase(EEPROM_ADDR_STATUSRELAY); //擦扇区
+	EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //擦扇区
 	
 	return res;
 }
+ #endif
+
 #endif

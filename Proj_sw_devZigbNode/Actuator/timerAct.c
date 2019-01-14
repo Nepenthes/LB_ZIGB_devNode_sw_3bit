@@ -3,17 +3,20 @@
 #include "dataManage.h" 
 #include "Relay.h"
 #include "dataTrans.h"
+#include "usrKin.h"
 
 #include "string.h"
 #include "stdio.h"
+
+#include "driver_I2C_HXD019D.h"
 
 #include "eeprom.h"
 
 /****************本地文件变量定义区*************************/
 stt_Time xdata	systemTime_current				= {0};	//系统时间
-u8 		 xdata	sysTimeReales_counter			= PERIOD_SYSTIMEREALES;
-u8 	 	 xdata	sysTimeZone_H					= 8;
-u8 	 	 xdata	sysTimeZone_M					= 0;
+u8 		 xdata	sysTimeReales_counter			= PERIOD_SYSTIMEREALES;	//系统时间更新周期 计时变量
+u8 	 	 xdata	sysTimeZone_H					= 8;	//时区：时
+u8 	 	 xdata	sysTimeZone_M					= 0;	//时区：分
 
 u16		 idata  sysTimeKeep_counter				= 0;	//系统时间维持计数，一秒递增，用于系统时间查询周期到达之前维持系统时间运转
 
@@ -144,6 +147,12 @@ void time_Logout(stt_Time code timeDats){
 			(int)sysTimeZone_H);
 			
 	PrintString1_logOut(Log);
+			
+	sprintf(Log, 
+			"current PANID:%d.\n", 
+			(int)dev_currentPanid);
+			
+	PrintString1_logOut(Log);
 }
 #endif
 
@@ -266,7 +275,6 @@ void thread_Timing(void){
 //#if(DEBUG_LOGOUT_EN == 1)					
 //					{ //调试log代码-当前有效定时信息输出
 //						
-//						u8 xdata log_buf[80] = {0};
 //						u16 code log_period = 3000;
 //						static u16 log_Count = 0;
 //						
@@ -274,7 +282,8 @@ void thread_Timing(void){
 //						else{
 //						
 //							log_Count = 0;
-//							
+//		
+//							memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
 //							sprintf(log_buf, 
 //									"timer_%d is running, up time: %02dhour-%02dminute.\n", 
 //									(int)loop, 
@@ -310,21 +319,45 @@ void thread_Timing(void){
 							u8 code dats_Temp = 0;
 							
 							swTim_oneShoot_FLAG &= ~(1 << loop);
-							coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //定时信息清空
+							coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //定时信息清空，只清空三字节中的第一字节，周占位字节清空，后面的时间数据保留不清
 							itrf_datsTiming_read_eeprom(); //运行缓存更新
 						}
-					   
+						
+/*常规动作*/						
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+						//红外转发器开关则进行对应红外指令序号进行控制操作
+						EEPROM_read_n(EEPROM_ADDR_swTypeForceInfrared_timeUpActNum + loop, &(swCommand_fromUsr.objRelay), 1);
+						infraredOpreatAct_remoteControlStart(swCommand_fromUsr.objRelay);
+						
+#else		
 						//普通开关动作响应
 						swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 						swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
-						
-#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //调光值 1 改为 100
-	if(swCommand_fromUsr.objRelay == 1)swCommand_fromUsr.objRelay = 100;
-#else
-#endif
-						devActionPush_IF.push_IF = 1; //推送使能
+						devActionPush_IF.push_IF = 1; //推送使能 -主动上传
 						dev_agingCmd_sndInitative.agingCmd_timerSetOpreat = 1; //对应主动上传时效占位置一
 						
+#endif	
+
+/*补充动作*/						
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+						if(swCommand_fromUsr.objRelay == 1)swCommand_fromUsr.objRelay = 100; //调光值 1 改为 100
+						EACHCTRL_realesFLG = 1; //有效互控触发
+						statusRelay_saveEn = 1; //存储使能，连续调光弹起后进行存储，调光类型不进行自动存储，所以进行主动存储
+						
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+						(swCommand_fromUsr.objRelay == 0x01)?(heater_ActParam.heater_currentActMode = heaterActMode_swKeepOpen):(heater_ActParam.heater_currentActMode = heaterActMode_swClose); //按键状态立马更新
+						devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
+
+#else
+						if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
+						else
+						if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
+						
+#endif									
 					}else
 					if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >	//当前时间大于定时时间，直接清除一次性标志
 					   ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){

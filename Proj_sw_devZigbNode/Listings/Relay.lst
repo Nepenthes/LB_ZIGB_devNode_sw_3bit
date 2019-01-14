@@ -1,9 +1,9 @@
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 1   
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE RELAY
 OBJECT MODULE PLACED IN .\Output\Relay.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\Relay.c OMF2 OPTIMIZE(8,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\Relay.c OMF2 OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\
                     -std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\Relay.lst) OBJECT(.\Output\Relay.obj)
 
 line level    source
@@ -15,38 +15,43 @@ line level    source
    5          
    6          #include "Tips.h"
    7          #include "timerAct.h"
-   8          #include "dataTrans.h"
-   9          #include "dataManage.h"
-  10          
-  11          #include "eeprom.h"
-  12          
-  13          /**********************±¾µØÎÄ¼þ±äÁ¿¶¨ÒåÇø*****************************/
-  14          status_ifSave   xdata relayStatus_ifSave = statusSave_disable;  //¿ª¹Ø¼ÇÒäÊ¹ÄÜ±äÁ¿
-  15          u8                              xdata status_Relay               = 0;
-  16          
-  17          stt_Curtain_motorAttr   xdata curtainAct_Param   = {0, 10, cTact_stop}; //µ±Éè±¸¶¨ÒåÎª´°Á±Ê±£¬¶ÔÓ¦¶¯×÷ÊôÐÔ£
-             -¬Ä¬ÈÏ¹ìµÀÊ±¼ä30s
-  18          
-  19          relay_Command   xdata swCommand_fromUsr  = {0, actionNull};
-  20          
-  21          u8                              xdata EACHCTRL_realesFLG = 0; //»¥¿Ø¶¯×÷¸üÐÂÊ¹ÄÜ±êÖ¾£¨·¢Âë£©±êÖ¾<bit0£ºÒ»Î»¿ª¹Ø»¥¿Ø¸üÐÂ; bit1£º¶þÎ»¿
+   8          #include "appTimer.h"
+   9          #include "dataTrans.h"
+  10          #include "dataManage.h"
+  11          
+  12          #include "eeprom.h"
+  13          
+  14          /**********************±¾µØÎÄ¼þ±äÁ¿¶¨ÒåÇø*****************************/
+  15          status_ifSave   xdata relayStatus_ifSave = statusSave_disable;  //¿ª¹Ø¼ÇÒäÊ¹ÄÜ±äÁ¿
+  16          u8                              xdata status_Relay               = 0;
+  17          
+  18          relay_Command   xdata swCommand_fromUsr  = {0, actionNull};
+  19            
+  20          u8                              xdata EACHCTRL_realesFLG = 0; //»¥¿Ø¶¯×÷¸üÐÂÊ¹ÄÜ±êÖ¾£¨·¢Âë£©±êÖ¾<bit0£ºÒ»Î»¿ª¹Ø»¥¿Ø¸üÐÂ; bit1£º¶þÎ»¿
              -ª¹Ø»¥¿Ø¸üÐÂ; bit2£ºÈýÎ»¿ª¹Ø»¥¿Ø¸üÐÂ;>
-  22          bit                                       EACHCTRL_reportFLG = 0; //»¥¿Ø´¥·¢ºóÏòÍø¹ØÉÏ±¨×´Ì¬Ê¹ÄÜ
-  23          
-  24          relayStatus_PUSH xdata devActionPush_IF = {0};
-  25          
-  26          bit                             idata statusRelay_saveEn= 0; //¿ª¹ØÖµ±¾µØ´æ´¢Ê¹ÄÜ,Áé»îÊ¹ÓÃ,ÖØ¸´´æ´¢
-  27          
-  28          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+  21          bit                                       EACHCTRL_reportFLG = 0; //»¥¿Ø´¥·¢ºóÏòÍø¹ØÉÏ±¨×´Ì¬Ê¹ÄÜ
+  22          
+  23          relayStatus_PUSH xdata devActionPush_IF = {0};
+  24          
+  25          bit                             idata statusRelay_saveEn= 0; //¿ª¹ØÖµ±¾µØ´æ´¢Ê¹ÄÜ,Áé»îÊ¹ÓÃ,ÖØ¸´´æ´¢
+  26          
+  27          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               stt_Dimmer_attrFreq     xdata dimmer_freqParam          = {0};
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
               stt_eleSocket_attrFreq xdata socket_eleDetParam = {0};
-              #endif
-  33          
-  34          /*¼ÌµçÆ÷×´Ì¬¸üÐÂ£¬Ó²¼þÖ´ÐÐ*/
-  35          void relay_statusReales(void){
-  36   1              
-  37   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+              stt_scenario_attrAct xdata scenario_ActParam = {0};
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+              stt_heater_attrAct xdata heater_ActParam = {0};
+              #else
+  36          stt_Curtain_motorAttr xdata curtainAct_Param = {0, CURTAIN_ORBITAL_PERIOD_INITTIME, cTact_stop}; //µ±Éè±¸¶
+             -¨ÒåÎª´°Á±Ê±£¬¶ÔÓ¦¶¯×÷ÊôÐÔ£¬Ä¬ÈÏ¹ìµÀÊ±¼ä0s
+  37          #endif
+  38          
+  39          /*¼ÌµçÆ÷×´Ì¬¸üÐÂ£¬Ó²¼þÖ´ÐÐ*/
+  40          void relay_statusReales(void){
+  41   1              
+  42   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
                       switch(status_Relay){
                       
                               case 0:{
@@ -57,13 +62,13 @@ line level    source
                               
                               case 1:{
                               
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 2   
+
                                       PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 1;
                                       
                               }break;
                                       
                               case 2:{
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 2   
-
                               
                                       PIN_RELAY_1 = 0;PIN_RELAY_2 = 1;PIN_RELAY_3 = 0;
                                       
@@ -76,79 +81,155 @@ line level    source
                                       
                               }break;
                       }
+                      
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       (status_Relay)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
-              #else
-  69   1              switch(SWITCH_TYPE){
-  70   2                      
-  71   2                      case SWITCH_TYPE_CURTAIN:{
-  72   3                      
-  73   3                              switch(status_Relay){
-  74   4                              
-  75   4                                      case 1:{
-  76   5                                      
-  77   5                                              PIN_RELAY_2 = 1;
-  78   5                                              PIN_RELAY_1 = PIN_RELAY_3 = 0;
-  79   5                                              curtainAct_Param.act = cTact_open;
-  80   5                                              
-  81   5                                      }break;
-  82   4                                              
-  83   4                                      case 4:{
-  84   5                                      
-  85   5                                              PIN_RELAY_1 = 1;
-  86   5                                              PIN_RELAY_2 = PIN_RELAY_3 = 0;
-  87   5                                              curtainAct_Param.act = cTact_close;
-  88   5                                              
-  89   5                                      }break;
-  90   4                                              
-  91   4                                      case 2:
-  92   4                                      default:{
-  93   5                                      
-  94   5                                              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
-  95   5                                              curtainAct_Param.act = cTact_stop;
-  96   5                                              
-  97   5                                      }break;
-  98   4                              }
-  99   3                      
- 100   3                      }break;
- 101   2              
- 102   2                      case SWITCH_TYPE_SWBIT1:{ //¼ÌµçÆ÷Î»ÖÃµ÷Õû 2¶Ô1
- 103   3                      
- 104   3                              if(DEV_actReserve & 0x02)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
- 105   3                              
- 106   3                      }break;
- 107   2                      
- 108   2                      case SWITCH_TYPE_SWBIT2:{ //¼ÌµçÆ÷Î»ÖÃµ÷Õû 3¶Ô2
- 109   3                      
- 110   3                              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
- 111   3                              if(DEV_actReserve & 0x04)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
- 112   3                      
- 113   3                      }break;
- 114   2                      
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 3   
+                      
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+                      {
+                              
+                              bit scenarioTrigReserve_flg = 0;
+                              
+                              if((!scenario_ActParam.scenarioKeepTrig_timeCounter) || (scenario_ActParam.scenarioKeepTrig_timeCounter 
+             -== COUNTER_DISENABLE_MASK_SPECIALVAL_U8)){ //²»Í¬³¡¾°´¥·¢Ç¿ÖÆ¼ä¸ôÊ±¼ä½áÊøºó²ÅÔÊÐí¶¯×÷
+                              
+                                      switch(status_Relay){
+                                      
+                                              case 1:{
+                                              
+                                                      scenario_ActParam.scenarioKey_currentTrig = scenarioKey_current_S1;
+                                                      scenarioTrigReserve_flg = 1;
+                                              
+                                              }break;
+                                                      
+                                              case 2:{
+                                              
+                                                      scenario_ActParam.scenarioKey_currentTrig = scenarioKey_current_S2;
+                                                      scenarioTrigReserve_flg = 1;
+                                              
+                                              }break;
+                                                      
+                                              case 4:{
+                                              
+                                                      scenario_ActParam.scenarioKey_currentTrig = scenarioKey_current_S3;
+                                                      scenarioTrigReserve_flg = 1;
+                                              
+                                              }break;
+                                                      
+                                              default:{}break;
+                                      }
+                                      
+                                      if(scenarioTrigReserve_flg){
+                                      
+                                              scenario_ActParam.scenarioKeepTrig_timeCounter = SCENARIOTRIG_KEEPTIME_PERIOD;
+                                              scenario_ActParam.scenarioDataSend_FLG = 1;
+                                      }
+                              }
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 3   
 
- 115   2                      case SWITCH_TYPE_SWBIT3:{ //¼ÌµçÆ÷Î»ÖÃ±£³Ö
- 116   3                      
- 117   3                              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
- 118   3                              if(DEV_actReserve & 0x02)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
- 119   3                              if(DEV_actReserve & 0x04)(status_Relay & 0x04)?(PIN_RELAY_3 = 1):(PIN_RELAY_3 = 0);
- 120   3                      
- 121   3                      }break;
- 122   2                      
- 123   2                      default:break;
- 124   2              }
- 125   1      #endif  
- 126   1              
- 127   1              tips_statusChangeToNormal();
- 128   1      }
- 129          
- 130          /*¿ª¹Ø³õÊ¼»¯*/
- 131          void relay_pinInit(void){
- 132   1              
- 133   1              u8 idata statusTemp = 0;
- 134   1              
- 135   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+                      }
+                      
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+                      switch(status_Relay){
+              
+                              case 0:{
+                              
+                                      PIN_RELAY_1 = 0;
+                                      heater_ActParam.relayActDelay_counter = HEATER_RELAY_SYNCHRONIZATION_DELAYTIME; //´óÐ¡¼ÌµçÆ÷ÖÍºóÊ±¼äÉè¶
+             -¨
+                                      
+                              }break;
+                              
+                              case 1:{
+                              
+                                      PIN_RELAY_1 = 1;
+                                      heater_ActParam.relayActDelay_counter = HEATER_RELAY_SYNCHRONIZATION_DELAYTIME; //´óÐ¡¼ÌµçÆ÷ÖÍºóÊ±¼äÉè¶
+             -¨
+                              
+                              }break;
+                              
+                              default:{
+              
+                                      
+                              }break;
+                      }
+                      
+                      PIN_RELAY_2 = 0;
+                      
+              #else
+ 142   1              switch(SWITCH_TYPE){
+ 143   2                      
+ 144   2                      case SWITCH_TYPE_CURTAIN:{
+ 145   3                      
+ 146   3                              switch(status_Relay){
+ 147   4                              
+ 148   4                                      case 1:{
+ 149   5                                      
+ 150   5                                              PIN_RELAY_2 = 1;
+ 151   5                                              PIN_RELAY_1 = PIN_RELAY_3 = 0;
+ 152   5                                              curtainAct_Param.act = cTact_open;
+ 153   5                                              
+ 154   5                                      }break;
+ 155   4                                              
+ 156   4                                      case 4:{
+ 157   5                                      
+ 158   5                                              PIN_RELAY_1 = 1;
+ 159   5                                              PIN_RELAY_2 = PIN_RELAY_3 = 0;
+ 160   5                                              curtainAct_Param.act = cTact_close;
+ 161   5                                              
+ 162   5                                      }break;
+ 163   4                                              
+ 164   4                                      case 2:
+ 165   4                                      default:{
+ 166   5                                      
+ 167   5                                              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
+ 168   5                                              curtainAct_Param.act = cTact_stop;
+ 169   5                                              
+ 170   5                                              coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1); //Ã¿´Î´°Á±Ô
+             -Ë¶¯Í£Ö¹Ê±£¬¼ÇÂ¼µ±Ç°Î»ÖÃ¶ÔÓ¦µÄ¹ìµÀÖÜÆÚ¼ÆÊ±Öµ
+ 171   5                                              
+ 172   5                                      }break;
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 4   
+
+ 173   4                              }
+ 174   3                      
+ 175   3                      }break;
+ 176   2              
+ 177   2                      case SWITCH_TYPE_SWBIT1:{ //¼ÌµçÆ÷Î»ÖÃµ÷Õû 2¶Ô1
+ 178   3                      
+ 179   3                              if(DEV_actReserve & 0x02)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+ 180   3                              
+ 181   3                      }break;
+ 182   2                      
+ 183   2                      case SWITCH_TYPE_SWBIT2:{ //¼ÌµçÆ÷Î»ÖÃµ÷Õû 3¶Ô2
+ 184   3                      
+ 185   3                              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+ 186   3                              if(DEV_actReserve & 0x04)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
+ 187   3                      
+ 188   3                      }break;
+ 189   2                      
+ 190   2                      case SWITCH_TYPE_SWBIT3:{ //¼ÌµçÆ÷Î»ÖÃ±£³Ö
+ 191   3                      
+ 192   3                              if(DEV_actReserve & 0x01)(status_Relay & 0x01)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+ 193   3                              if(DEV_actReserve & 0x02)(status_Relay & 0x02)?(PIN_RELAY_2 = 1):(PIN_RELAY_2 = 0);
+ 194   3                              if(DEV_actReserve & 0x04)(status_Relay & 0x04)?(PIN_RELAY_3 = 1):(PIN_RELAY_3 = 0);
+ 195   3                      
+ 196   3                      }break;
+ 197   2                      
+ 198   2                      default:break;
+ 199   2              }
+ 200   1      #endif  
+ 201   1              
+ 202   1              tips_statusChangeToNormal();
+ 203   1      }
+ 204          
+ 205          /*¿ª¹Ø³õÊ¼»¯*/
+ 206          void relay_pinInit(void){
+ 207   1              
+ 208   1              u8 idata statusTemp = 0;
+ 209   1              
+ 210   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
                       //ÍÆÍì
                       P3M1    &= ~0x30;
                       P3M0    |= 0x30;
@@ -161,6 +242,8 @@ line level    source
                       PX1 = 0; //¸ßÓÅÏÈ¼¶
                   EX1 = 1;           
                       
+                      statusRelay_saveEn = 1; //ÖØ¸´Ö÷¶¯¼ÇÒäµ±Ç°Æô¶¯Öµ£¬·ÀÖ¹¿ª¹ØÎ´²Ù×÷Çé¿öÏÂµÚÈý´ÎÉÏµçÆô¶¯Ê±¼ÇÒäÖµ¶ªÊ§
+                      
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       //ÍÆÍì
                       P3M1    &= ~0x08;
@@ -171,55 +254,72 @@ line level    source
                       P3M1    |= 0xC0;
                       P3M0    &= ~0xC0;
                       INT_CLKO |=  (1 << 4); //Íâ²¿ÖÐ¶Ï2Ê¹ÄÜ
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 5   
+
                       INT_CLKO |=  (1 << 5); //Íâ²¿ÖÐ¶Ï3Ê¹ÄÜ
+              
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+                      //³¡¾°¿ª¹ØÃ»ÓÐ¼ÌµçÆ÷
+                      //¼üÎ»°ó¶¨³¡¾°ºÅµôµç¼ÇÒä»Ö¸´
+                      EEPROM_read_n(EEPROM_ADDR_swTypeForceScenario_scencarioNumKeyBind, scenario_ActParam.scenarioNum_record, 
+             -3);
+              
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+                      //ÍÆÍì
+                      P3M1    &= ~0x38;
+                      P3M0    |= 0x38;
+                      PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
                       
-              #else
- 161   1              //ÍÆÍì
- 162   1              P3M1    &= ~0x38;
- 163   1              P3M0    |= 0x38;
- 164   1              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
- 165   1              
- 166   1      #endif
- 167   1              
- 168   1              if(relayStatus_ifSave == statusSave_enable){
- 169   2              
- 170   2      #if(DATASAVE_INTLESS_ENABLEIF)
- 171   2                      swCommand_fromUsr.objRelay = devDataRecovery_relayStatus();
- 172   2      #else
+              #elif(SWITCH_TYPE_FORCEDEF == 0)
+ 249   1              //ÍÆÍì
+ 250   1              P3M1    &= ~0x38;
+ 251   1              P3M0    |= 0x38;
+ 252   1              PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
+ 253   1              
+ 254   1              //´°Á±¹ìµÀÖÜÆÚ¼°Æä¶ÔÓ¦Î»ÖÃ¼ÆÊ±Öµ»Ö¸´
+ 255   1              EEPROM_read_n(EEPROM_ADDR_curtainOrbitalPeriod, &(curtainAct_Param.act_period), 1);
+ 256   1              if(curtainAct_Param.act_period == 0xff)curtainAct_Param.act_period = CURTAIN_ORBITAL_PERIOD_INITTIME; //Ö
+             -µÏÞ¶¨        
+ 257   1              EEPROM_read_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1);
+ 258   1              if(curtainAct_Param.act_counter == 0xff)curtainAct_Param.act_counter = 0; //ÖµÏÞ¶¨      
+ 259   1              
+ 260   1       #if(DEBUG_LOGOUT_EN == 1)
+ 261   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 262   2                      
+ 263   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 264   2                      sprintf(log_buf, ">>>curtain param recover orbitalPeriod:%d, placeCounter:%d\n", (int)curtainAct_Param.a
+             -ct_period, (int)curtainAct_Param.act_counter);
+ 265   2                      PrintString1_logOut(log_buf);
+ 266   2              }                       
+ 267   1       #endif
+ 268   1      #else
+                      
+              #endif
+ 271   1              
+ 272   1              if(relayStatus_ifSave == statusSave_enable){
+ 273   2              
+ 274   2      #if(DATASAVE_INTLESS_ENABLEIF)
+ 275   2                      swCommand_fromUsr.objRelay = devDataRecovery_relayStatus();
+ 276   2      #else
                               EEPROM_read_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
                               swCommand_fromUsr.objRelay = statusTemp;
               #endif
- 176   2                      swCommand_fromUsr.actMethod = relay_OnOff; //Ó²¼þ¼ÓÔØ
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 4   
-
- 177   2                      
- 178   2              }else{
- 179   2              
- 180   2                      statusTemp = 0;
- 181   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
- 182   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
- 183   2              }
- 184   1              
- 185   1              //´°Á±¹ìµÀÖÜÆÚ»Ö¸´
- 186   1              EEPROM_read_n(EEPROM_ADDR_curtainOrbitalPeriod, &(curtainAct_Param.act_period), 1);
- 187   1              if(!curtainAct_Param.act_period)curtainAct_Param.act_period = 240;
- 188   1              else
- 189   1              if(curtainAct_Param.act_period == 0xff)curtainAct_Param.act_period = 10;
- 190   1              
- 191   1      #if(DEBUG_LOGOUT_EN == 1)
- 192   1                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 193   2                              u8 xdata log_buf[64];
- 194   2                              
- 195   2                              sprintf(log_buf, ">>>curtain orbitalPeriod recover val:%d.\n", (int)curtainAct_Param.act_period);
- 196   2                              PrintString1_logOut(log_buf);
- 197   2                      }                       
- 198   1      #endif
- 199   1      }
- 200          
- 201          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+ 280   2                      swCommand_fromUsr.actMethod = relay_OnOff; //Ó²¼þ¼ÓÔØ
+ 281   2                      
+ 282   2              }else{
+ 283   2              
+ 284   2                      statusTemp = 0;
+ 285   2                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+ 286   2                      relay_statusReales(); //Ó²¼þ¼ÓÔØ
+ 287   2              }
+ 288   1      }
+ 289          
+ 290          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               void Ext_INT1 (void) interrupt INT1_VECTOR{
                       
                       dimmer_freqParam.periodBeat_cfm = dimmer_freqParam.periodBeat_counter;
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 6   
+
                       dimmer_freqParam.periodBeat_counter = 0;
                       
                       dimmer_freqParam.pwm_actEN = 1;
@@ -235,120 +335,141 @@ line level    source
                       
               }
               #else
- 220          #endif
- 221          
- 222          /*¿ª¹Ø¶¯×÷*/
- 223          void relay_Act(relay_Command dats){
- 224   1              
- 225   1              u8 statusTemp = 0;
- 226   1              
- 227   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //ÈÎÒâÀàÐÍ¼ÓÔØ£¬²»×Ô¶¯´æ´¢
+ 309          #endif
+ 310          
+ 311          /*¿ª¹Ø¶¯×÷*/
+ 312          void relay_Act(relay_Command dats){
+ 313   1              
+ 314   1              u8 statusTemp = 0;
+ 315   1              
+ 316   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //ÈÎÒâÀàÐÍ¼ÓÔØ£¬²»Òª×Ô¶¯´æ´¢¼ÇÒä£¬ÒòÎª³¤°´°´¼üÁ¬Ðø¸ü¸ÄÁÁ¶È
+             -Öµ¶¼½øÐÐ¼ÇÒäµÄ»°»°Ôì³ÉµÆ¹âÁÁ¶ÈÍ»±ä£¬³¤°´ÔÚ½áÊøÊ±½øÐÐ¼ÇÒä¼´¿É
+                      status_Relay = dats.objRelay;
+                      relay_statusReales();
+                      
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+                      dats = dats;
+                      
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
                       status_Relay = dats.objRelay;
                       relay_statusReales();
                       
               #else
- 232   1              
- 233   1              statusTemp = status_Relay; //µ±Ç°¿ª¹ØÖµÔÝ´æ
- 234   1              
- 235   1              switch(dats.actMethod){
- 236   2              
- 237   2                      case relay_flip:{ 
- 238   3                              
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 5   
+ 328   1              
+ 329   1              statusTemp = status_Relay; //µ±Ç°¿ª¹ØÖµÔÝ´æ
+ 330   1              
+ 331   1              switch(dats.actMethod){
+ 332   2              
+ 333   2                      case relay_flip:{ 
+ 334   3                              
+ 335   3                              if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
+ 336   3                              if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
+ 337   3                              if(dats.objRelay & 0x04)status_Relay ^= 1 << 2;
+ 338   3                                      
+ 339   3                      }break;
+ 340   2                      
+ 341   2                      case relay_OnOff:{
+ 342   3                              
+ 343   3                              (dats.objRelay & 0x01)?(status_Relay |= 1 << 0):(status_Relay &= ~(1 << 0));
+ 344   3                              (dats.objRelay & 0x02)?(status_Relay |= 1 << 1):(status_Relay &= ~(1 << 1));
+ 345   3                              (dats.objRelay & 0x04)?(status_Relay |= 1 << 2):(status_Relay &= ~(1 << 2));
+ 346   3                              
+ 347   3                      }break;
+ 348   2                      
+ 349   2                      default:break;
+ 350   2                      
+ 351   2              }relay_statusReales(); //Ó²¼þ¼ÓÔØ
+ 352   1              
+ 353   1              devActionPush_IF.dats_Push = 0;
+ 354   1              devActionPush_IF.dats_Push |= (status_Relay & 0x07); //µ±Ç°¿ª¹ØÖµÎ»Ìî×°<µÍÈýÎ»>
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 7   
 
- 239   3                              if(dats.objRelay & 0x01)status_Relay ^= 1 << 0;
- 240   3                              if(dats.objRelay & 0x02)status_Relay ^= 1 << 1;
- 241   3                              if(dats.objRelay & 0x04)status_Relay ^= 1 << 2;
- 242   3                                      
- 243   3                      }break;
- 244   2                      
- 245   2                      case relay_OnOff:{
- 246   3                              
- 247   3                              (dats.objRelay & 0x01)?(status_Relay |= 1 << 0):(status_Relay &= ~(1 << 0));
- 248   3                              (dats.objRelay & 0x02)?(status_Relay |= 1 << 1):(status_Relay &= ~(1 << 1));
- 249   3                              (dats.objRelay & 0x04)?(status_Relay |= 1 << 2):(status_Relay &= ~(1 << 2));
- 250   3                              
- 251   3                      }break;
- 252   2                      
- 253   2                      default:break;
- 254   2                      
- 255   2              }relay_statusReales(); //Ó²¼þ¼ÓÔØ
- 256   1              
- 257   1              devActionPush_IF.dats_Push = 0;
- 258   1              devActionPush_IF.dats_Push |= (status_Relay & 0x07); //µ±Ç°¿ª¹ØÖµÎ»Ìî×°<µÍÈýÎ»>
- 259   1              
- 260   1      //      /*ÓÅÏÈ·½Ê½*/
- 261   1      //      if(             (statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //¸ü¸ÄÖµÌî×°<¸ßÈý
+ 355   1              
+ 356   1      //      /*ÓÅÏÈ·½Ê½*/
+ 357   1      //      if(             (statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //¸ü¸ÄÖµÌî×°<¸ßÈý
              -Î»>µÚÒ»Î»
- 262   1      //      else if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //¸ü¸ÄÖµÌî×°<¸
+ 358   1      //      else if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //¸ü¸ÄÖµÌî×°<¸
              -ßÈýÎ»>µÚ¶þÎ»
- 263   1      //      else if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //¸ü¸ÄÖµÌî×°<¸
+ 359   1      //      else if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //¸ü¸ÄÖµÌî×°<¸
              -ßÈýÎ»>µÚÈýÎ»
- 264   1              /*·ÇÓÅÏÈ·½Ê½*/
- 265   1              if((statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
+ 360   1              /*·ÇÓÅÏÈ·½Ê½*/
+ 361   1              if((statusTemp & 0x01) != (status_Relay & 0x01))devActionPush_IF.dats_Push |= 0x20; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
              -ÚÒ»Î»
- 266   1              if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
+ 362   1              if((statusTemp & 0x02) != (status_Relay & 0x02))devActionPush_IF.dats_Push |= 0x40; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
              -Ú¶þÎ»
- 267   1              if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
+ 363   1              if((statusTemp & 0x04) != (status_Relay & 0x04))devActionPush_IF.dats_Push |= 0x80; //¸ü¸ÄÖµÌî×°<¸ßÈýÎ»>µ
              -ÚÈýÎ»
- 268   1              
- 269   1              if(status_Relay)delayCnt_closeLoop = 0; //¿ª¹ØÒ»µ©´ò¿ªÁ¢¿Ì¸üÐÂÂÌÉ«Ä£Ê½Ê±¼ä¼ÆÊýÖµ
- 270   1              
- 271   1              if(relayStatus_ifSave == statusSave_enable){ //¿ª¹Ø×´Ì¬¼ÇÒä
- 272   2              
- 273   2       #if(DATASAVE_INTLESS_ENABLEIF)
- 274   2                      devParamDtaaSave_relayStatusRealTime(status_Relay);
- 275   2       #else
+ 364   1              
+ 365   1              if(status_Relay)delayCnt_closeLoop = 0; //¿ª¹ØÒ»µ©´ò¿ªÁ¢¿Ì¸üÐÂÂÌÉ«Ä£Ê½Ê±¼ä¼ÆÊýÖµ
+ 366   1              
+ 367   1              if(relayStatus_ifSave == statusSave_enable){ /*Ã¿´Î¸ü¸Ä¿ª¹ØÖµÊ±¶¼½øÐÐ´æ´¢¼ÇÒä*///¿ª¹Ø×´Ì¬´æ´¢×Ô¶¯±»¶¯¼ÇÒä
+ 368   2              
+ 369   2       #if(DATASAVE_INTLESS_ENABLEIF)
+ 370   2                      devParamDtaaSave_relayStatusRealTime(status_Relay);
+ 371   2       #else
                               statusTemp = status_Relay;
                               coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
                #endif
- 279   2              }
- 280   1              
- 281   1      #endif
- 282   1      }
- 283          
- 284          /*¼ÌµçÆ÷Ö÷Ïß³Ì*/
- 285          void thread_Relay(void){
- 286   1              
- 287   1              if(swCommand_fromUsr.actMethod != actionNull){ //ÇëÇóÏìÓ¦
- 288   2              
- 289   2                      relay_Act(swCommand_fromUsr);
- 290   2                      
- 291   2                      swCommand_fromUsr.actMethod = actionNull;
- 292   2                      swCommand_fromUsr.objRelay = 0;
- 293   2              }
- 294   1              
-C51 COMPILER V9.54   RELAY                                                                 12/20/2018 14:37:18 PAGE 6   
+ 375   2              }
+ 376   1              
+ 377   1      #endif
+ 378   1      }
+ 379          
+ 380          /*¼ÌµçÆ÷Ö÷Ïß³Ì*/
+ 381          void thread_Relay(void){
+ 382   1              
+ 383   1              if(swCommand_fromUsr.actMethod != actionNull){ //ÇëÇóÏìÓ¦
+ 384   2              
+ 385   2                      relay_Act(swCommand_fromUsr);
+ 386   2                      
+ 387   2                      swCommand_fromUsr.actMethod = actionNull;
+ 388   2                      swCommand_fromUsr.objRelay = 0;
+ 389   2              }
+ 390   1              
+ 391   1              if(statusRelay_saveEn){ /*Ö÷¶¯¼ÇÒäÊ¹ÄÜÅÐ¶Ï*///¿ª¹Ø×´Ì¬´æ´¢Ö÷¶¯¼ÇÒä
+ 392   2              
+ 393   2                      u8 idata statusTemp = 0;
+ 394   2                      
+ 395   2                      statusRelay_saveEn = 0;
+ 396   2                      
+ 397   2      //#if(DEBUG_LOGOUT_EN == 1)
+ 398   2      //              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 399   2      //                      
+ 400   2      //                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 401   2      //                      sprintf(log_buf, ">>>statusVal save cmp.\n");
+ 402   2      //                      PrintString1_logOut(log_buf);
+ 403   2      //              }                       
+ 404   2      //#endif
+ 405   2              
+ 406   2                      if(relayStatus_ifSave == statusSave_enable){ 
+ 407   3              
+ 408   3      #if(DATASAVE_INTLESS_ENABLEIF)
+ 409   3                              devParamDtaaSave_relayStatusRealTime(status_Relay);
+ 410   3      #else
+C51 COMPILER V9.54   RELAY                                                                 01/11/2019 12:04:14 PAGE 8   
 
- 295   1              if(statusRelay_saveEn){
- 296   2              
- 297   2                      u8 idata statusTemp = 0;
- 298   2                      
- 299   2                      statusRelay_saveEn = 0;
- 300   2                      
- 301   2      //#if(DEBUG_LOGOUT_EN == 1)
- 302   2      //              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 303   2      //                      u8 xdata log_buf[64];
- 304   2      //                      
- 305   2      //                      sprintf(log_buf, ">>>statusVal save cmp.\n");
- 306   2      //                      PrintString1_logOut(log_buf);
- 307   2      //              }                       
- 308   2      //#endif
- 309   2              
- 310   2      #if(DATASAVE_INTLESS_ENABLEIF)
- 311   2                      devParamDtaaSave_relayStatusRealTime(status_Relay);
- 312   2      #else
-                              statusTemp = status_Relay;
-                              coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
+                                      statusTemp = status_Relay;
+                                      coverEEPROM_write_n(EEPROM_ADDR_relayStatus, &statusTemp, 1);
               #endif
- 316   2              }
- 317   1      }
+ 414   3                      }
+ 415   2              }
+ 416   1              
+ 417   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+                      if(heater_ActParam.relayActDelay_actEn){
+                      
+                              heater_ActParam.relayActDelay_actEn = 0;
+                              PIN_RELAY_3 = PIN_RELAY_1; //ÈÈË®Æ÷¼ÌµçÆ÷µçÆ½Í¬²½¶¯×÷´¥·¢
+                      }
+                      
+              #else
+ 425   1      #endif
+ 426   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    597    ----
-   CONSTANT SIZE    =     42    ----
-   XDATA SIZE       =     10      64
+   CODE SIZE        =    660    ----
+   CONSTANT SIZE    =     60    ----
+   XDATA SIZE       =     10    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----       3
    IDATA SIZE       =   ----       2

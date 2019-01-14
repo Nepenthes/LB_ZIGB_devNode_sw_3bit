@@ -1,0 +1,656 @@
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE DRIVER_I2C_HXD019D
+OBJECT MODULE PLACED IN .\Output\driver_I2C_HXD019D.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\driver_I2C_HXD019D.c OMF2 OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Usr
+                    -;.\Usr_lib;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\driver_I2C_HXD019D.lst) OBJECT(.
+                    -\Output\driver_I2C_HXD019D.obj)
+
+line level    source
+
+   1          #include "driver_I2C_HXD019D.h"
+   2          
+   3          #include "DS18B20.h"
+   4          
+   5          #include "Tips.h"
+   6          #include "dataManage.h" 
+   7          #include "dataTrans.h"
+   8          #include "delay.h"
+   9          
+  10          #include "string.h"
+  11          #include "stdio.h"
+  12          
+  13          #include "eeprom.h"
+  14          
+  15          #include "Relay.h"
+  16          
+  17          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //强制设备类型为红外转发器时，此驱动生效
+              
+              u8 IR_currentOpreatRes = 0; //红外操作结果回复值
+              u8 IR_currentOpreatinsert = 0; //红外转发操作序号缓存
+              
+              u16 xdata infraredAct_timeCounter = 0; //红外操作相关计时，一般用于超时计时
+              
+              static enumInfrared_status xdata theadStatus_infrared = infraredSMStatus_null;
+              
+              static u8 xdata IR_dataTransBuff[232] = {0}; //红外芯片下发数据缓存
+              static u8 xdata IR_opToutLoop = 0; //红外转发操作超时次数
+              
+              void infrared_pinInit(void){
+              
+                      P3M1 |= 0x20;   //P35 -infrared_REST
+                      P3M0 &= ~0x20;
+                      
+                      hxd019d_pinREST = !hxd019d_resetLevel;
+                      
+                      P3M1 &= ~0x10;  //P34 -infrared_BUSY
+                      P3M0 &= ~0x10;
+                      
+                      hxd019d_pinBUSY = 1; //初始化拉高
+              }
+              
+              static void ir_Delay35us(void)          //@24.000MHz -25uS-45uS
+              {
+                      unsigned char i, j;
+              
+                      i = 1;
+                      j = 206;
+                      do
+                      {
+                              while (--j);
+                      } while (--i);
+              }
+              
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 2   
+
+              static void ir_Delay21ms(void)          //@24.000MHz -18mS-25mS
+              {
+                      unsigned char i, j, k;
+              
+                      _nop_();
+                      _nop_();
+                      i = 2;
+                      j = 235;
+                      k = 63;
+                      do
+                      {
+                              do
+                              {
+                                      while (--k);
+                              } while (--j);
+                      } while (--i);
+              }
+              
+              static u8 GetACKSign(void) 
+              {
+                      u8 ACKSign;
+              
+                      SetSDAInput();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      SetSCLHigh();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      ACKSign = GetDINStatus();                       
+              
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      SetSCLLow();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      return ACKSign;
+              }
+              
+              static void SendACKSign(void)
+              {
+                      SetSDAOutput();
+                      ir_Delay35us();
+                      SetSDALow();                    ///hxd;后加低SDA_Low,没有验证过
+                      ir_Delay35us();
+              
+                      SetSCLHigh();                   //第9次的CLK的高
+                      ir_Delay35us();                 //;1mS
+                      
+                      SetSCLLow(); 
+              }
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 3   
+
+              
+              static void I2COpen(void)
+              {       
+                      SetSDAOutput(); 
+                      SetSCLOutput(); 
+              
+                      SetSCLHigh();  
+                      SetSDAHigh();
+              }
+              
+              static void I2CClose(void)   
+              {
+                      SetSDAOutput(); 
+                      SetSCLOutput(); 
+              
+                      SetSCLHigh();
+                      SetSDAHigh();
+              }
+              
+              static void I2CStart(void) 
+              {
+                      SetSDAOutput();
+                      SetSCLOutput();
+                      SetSCLHigh();
+                      SetSDAHigh();
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      SetSDALow();
+                      ir_Delay35us();
+              
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      ir_Delay35us();
+              
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      ir_Delay35us();
+                      ir_Delay35us();
+              
+                      SetSCLLow();  
+                      ir_Delay35us();
+                      ir_Delay35us();
+              }
+              
+              static void I2CStop(void)
+              {
+                      SetSDAOutput();
+                      SetSCLOutput();
+                      SetSCLLow();
+                      SetSDALow();
+                      ir_Delay35us();
+              
+                      SetSCLHigh();
+                      ir_Delay35us();
+              
+                      SetSDAHigh();
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 4   
+
+                      ir_Delay35us();  
+              }
+              
+              static void I2CWriteData( char bData )
+              {
+                      u8 Data_Bit,ACKSign/*,TmpDat*/;
+                      char i; //kal_int8 i;
+              
+                      SetSDAOutput();
+                      SetSCLLow();
+                      ir_Delay35us();
+                  
+                      for(i=7;i>=0;i--)
+                      {
+                              ir_Delay35us();
+                              
+                              Data_Bit=(bData>>i)& 0x01;
+              
+                              if(Data_Bit)
+                              SetSDAHigh();
+                              else
+                              SetSDALow();
+              
+                              ir_Delay35us();
+                              SetSCLHigh();
+                              ir_Delay35us();
+                              SetSCLLow();            
+                      }
+                      
+                      ACKSign=GetACKSign();
+              }
+              
+              static void writeI2C(char *data2, u8 count)             //hxd;通用写　
+              {
+                      u8 i;
+                      u8 j = 0;
+                      char iBuffer;
+              
+                      I2COpen();
+                      ir_Delay35us();
+              
+                      SetSCLLow();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      SetSCLHigh();
+                      
+                      ir_Delay21ms(); //20ms  //14
+              
+                      I2CStart();
+                      ir_Delay35us();
+                      
+                      for(i = 0; i < count; i++)      //count=7,初值
+                      {
+                              iBuffer = data2[i];
+                              I2CWriteData(iBuffer);
+                              ir_Delay35us();
+                      }
+              
+                      ir_Delay35us();
+              
+                      I2CStop();
+                      ir_Delay35us();
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 5   
+
+              
+                      I2CClose();
+                      ir_Delay35us();
+              }
+              
+              static void Learn_start(void)
+              {
+                              
+                      I2COpen();
+                      ir_Delay35us();
+              
+                      SetSCLLow();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      SetSCLHigh();
+                      
+                      ir_Delay21ms(); //20ms  //14
+              
+                      I2CStart();
+                      ir_Delay35us();
+                      
+                      I2CWriteData(0x30);
+                      ir_Delay35us();
+              
+                      I2CWriteData(0x20);
+                      ir_Delay35us();
+                      
+                      I2CWriteData(0x50);
+                      ir_Delay35us();
+              
+                      ir_Delay35us(); 
+              
+                      I2CStop();
+                      ir_Delay35us();
+              
+                      I2CClose();
+                      ir_Delay35us();
+              }
+              
+              static void I2CReadData(u8* pbData)
+              {
+              //      u8 Data_Bit; u8 ACKSign;
+                      u8 readdata = 0;
+                      u8 i=8;
+              
+                      SetSDAInput(); 
+                      while (i--)
+                      {
+                              readdata<<=1;
+              
+                              SetSCLHigh(); 
+                              ir_Delay35us();
+              
+                              readdata |= GetDINStatus();  //读不到时可以这样试：readdata |= GetDINStatus()?0x01:0x00;
+              
+                              SetSCLLow();
+                              ir_Delay35us();
+                              ir_Delay35us();         //hxd;加delay
+                      }
+                      SetSCLLow(); 
+                      ir_Delay35us();
+              
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 6   
+
+                      *pbData = readdata;
+              
+                      SendACKSign();
+                      
+                      ir_Delay35us();
+                      ir_Delay35us();         //hxd;1G以上的系统要加,test
+              
+              }
+              
+              static void readI2C(char* readtempbuf)     //u8
+              {
+                      u8 bValue;
+                      u8 i=0;
+                      u8 checksum;
+              
+                      I2COpen();
+                      ir_Delay35us();
+              
+                      SetSCLLow();
+                      ir_Delay35us();
+                      ir_Delay35us();
+                      SetSCLHigh();
+                      ir_Delay21ms(); //20ms  
+              
+                      I2CStart();
+                      ir_Delay35us();
+              
+                      //----------------------------------------
+                      //write
+                      I2CWriteData(0x30);
+                      ir_Delay35us();
+                      //address point
+                      I2CWriteData(0x62);
+                      ir_Delay35us();
+              
+                      //---------------------------------------
+                      //read
+                      I2CStart();
+                      ir_Delay35us();
+              
+                      I2CWriteData(0x31);
+                      ir_Delay35us();
+              
+                      I2CReadData(&bValue);   //wjs;read:FCS(1B)
+                      ir_Delay35us();                 //wjs;1G以上的系统要加  
+                      
+                      if(bValue != 0x00)
+                      {
+                              I2CStop();
+                              ir_Delay35us();
+                              I2CClose();
+                              ir_Delay35us();
+                      //      kal_prompt_trace(MOD_TST, "remote_study_type_error");
+                      }
+              
+                      i = 0;
+                      readtempbuf[i] = bValue;
+              //      kal_prompt_trace(MOD_TST, "remote_I2C_data[%d] = %d",i,readtempbuf[i]);
+                      checksum = 0xc3;
+              
+                      for(i = 1; i < 230; i++)                        //wjs;read:learndata(109B)+120=230
+                      {
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 7   
+
+                              I2CReadData(&bValue);
+                              ir_Delay35us();
+                              readtempbuf[i] = bValue;
+                      //      kal_prompt_trace(MOD_TST, "remote_I2C_data[%d] = %d",i,readtempbuf[i]);
+                              checksum += bValue;
+                      }
+                      
+                      I2CReadData(&bValue);           //wjs;read:CK(1B)       ?????
+                      ir_Delay35us();
+                      //      kal_prompt_trace(MOD_MMI, "remote_read_checksum = %d",bValue);
+                      //      kal_prompt_trace(MOD_MMI, "remote_count_checksum = %d",checksum);
+              
+                      I2CStop();
+                      ir_Delay35us();
+                      I2CClose();
+                      ir_Delay35us();
+              //暂时不校
+              //      if(bValue != checksum)
+              //      {
+              //      //      kal_prompt_trace(MOD_MMI, "remote_study_checksum_error");
+              //      return 0;lg,
+              //      }
+              //      else
+              //      {
+              //      //      kal_prompt_trace(MOD_MMI, "remote_study_checksum_ok");
+              //              return 1;
+              //      }
+              }
+              
+              void infraredOpreatAct_learnningStart(u8 opInsert){ //对应操作序号
+                      
+                      hxd019d_pinREST = !hxd019d_resetLevel; //禁止硬件复位
+              
+                      if(theadStatus_infrared != infraredSMStatus_learnning){
+                      
+                              theadStatus_infrared = infraredSMStatus_learnningSTBY;
+                              infraredAct_timeCounter = IR_opStatusLearnningSTBY_TOUT;
+                              IR_opToutLoop = IR_opStatusLearnningSTBY_TOUTLOOP;
+                              
+                              IR_currentOpreatinsert = opInsert;
+                              
+                              Learn_start();
+                      }
+              }
+              
+              void infraredOpreatAct_remoteControlStart(u8 opInsert){ //对应操作序号
+                      
+                      hxd019d_pinREST = !hxd019d_resetLevel; //禁止硬件复位
+              
+                      theadStatus_infrared = infraredSMStatus_sigSendSTBY;
+                      
+                      infraredAct_timeCounter = IR_opStatusSigSendSTBY_TOUT; //控制就绪等待时间设定
+                      
+                      infrared_eeprom_dataRead(opInsert, (u8 *)IR_dataTransBuff, 232); //控制数据缓存读取
+                      IR_currentOpreatinsert = opInsert;
+                      
+              #if(DEBUG_LOGOUT_EN == 1)
+                      { //输出打印，谨记 用后注释，否则占用大量代码空间
+                              
+                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                              sprintf(log_buf, ">>>infrared data read[%02X] [%02X] [%02X].\n", (int)IR_dataTransBuff[7], (int)IR_dataT
+             -ransBuff[8], (int)IR_dataTransBuff[9]);
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 8   
+
+                              PrintString1_logOut(log_buf);
+                      }       
+              #endif
+              }
+              
+              void infraredOpreatAct_Stop(void){
+              
+                      hxd019d_pinREST = hxd019d_resetLevel; //硬件复位操作
+                      
+                      theadStatus_infrared = infraredSMStatus_free;
+                      infraredAct_timeCounter = 0;
+                      IR_opToutLoop = 0;
+                      
+                      memset(IR_dataTransBuff, 0, sizeof(u8) * 232);
+                      IR_currentOpreatinsert = 0;
+                      
+                      infraredAct_timeCounter = IR_resetOpreatTimeKeep; //复位引脚低电平保持时间
+              }
+              
+              enumInfrared_status infraredStatus_GET(void){
+              
+                      return theadStatus_infrared;
+              }
+              
+              /*红外转发器主线程*/
+              void thread_infraredSM(void){
+                      
+              #if(DEBUG_LOGOUT_EN == 1)
+                      static xdata status_Local = infraredSMStatus_free;
+                      
+                      if(status_Local != theadStatus_infrared){
+                      
+                              status_Local = theadStatus_infrared;
+                              
+                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+                                      
+                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                      sprintf(log_buf, "infrared change, currentStatus:%d.\n", (int)status_Local);
+                                      PrintString1_logOut(log_buf);
+                              }       
+                      }
+              #endif
+                      
+                      if(!couter_ds18b20Temperature_dtPeriod){ //温度值更新，ds18b20 温度采集业务合并至红外转发
+                      
+                              couter_ds18b20Temperature_dtPeriod = DS18B20_TEMPRATRUE_DTPERIOD;
+                              temperatureCurrent_VAL = Ds18b20ReadTemp();
+                              
+              #if(DEBUG_LOGOUT_EN == 1)
+                              { //输出打印，谨记 用后注释，否则占用大量代码空间
+                                      
+                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                      sprintf(log_buf, "current temprature reales:%.2f℃.\n", (float)temperatureCurrent_VAL / 100.0F);
+                                      PrintString1_logOut(log_buf);
+                              }       
+              #endif
+                      }
+                      
+                      if(!dev_agingCmd_sndInitative.agingCmd_infrareOpreat)IR_currentOpreatRes = 0; //若红外主动上发时效为0，则
+             -将红外当前操作结果数据值清零
+              
+                      switch(theadStatus_infrared){
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 9   
+
+                      
+                              case infraredSMStatus_free:{ //空闲
+                              
+                                      
+                              
+                              }break;
+                              
+                              case infraredSMStatus_learnningSTBY:{ //学习就绪
+                              
+                                      if(IR_opToutLoop){ //就绪态超时次数
+                                      
+                                              if(!hxd019d_pinBUSY){ //busy为低开是学习
+                                              
+                                                      theadStatus_infrared = infraredSMStatus_learnning; //切换至学习态
+                                                      infraredAct_timeCounter = IR_opStatusLearnning_TOUT; //学习态超时时间设定
+                                                      
+                                              }else{
+                                              
+                                                      if(!infraredAct_timeCounter){ //就绪态超时
+                                                      
+                                                              Learn_start();
+                                                              infraredAct_timeCounter = IR_opStatusLearnningSTBY_TOUT;
+                                                              IR_opToutLoop --;
+                                                      }
+                                              }
+                                      
+                                      }else{ //就绪态超时次数达到限定值
+                                      
+                                              theadStatus_infrared = infraredSMStatus_free;
+                                      }
+                                      
+                              }break;
+                                      
+                              case infraredSMStatus_learnning:{ //学习
+                              
+                                      if(infraredAct_timeCounter){ //学习态超时时间范围内，未超时，等待busy信号
+                                      
+                                              if(hxd019d_pinBUSY){
+                                              
+                                                      u8 xdata check_Num = 0,
+                                                                       loopTemp = 0;
+                                                      
+                                                      //读出数据
+                                                      readI2C((char *)IR_dataTransBuff);
+                                                      
+                                                      //数据处理
+                                                      for(loopTemp = 1; loopTemp < 230; loopTemp ++)check_Num += IR_dataTransBuff[loopTemp];
+                                                      check_Num += 0x03;
+                                                      check_Num += 0x30;
+                                                      for(loopTemp = 229; loopTemp > 0; loopTemp --)IR_dataTransBuff[loopTemp + 1] = IR_dataTransBuff[loopT
+             -emp];
+                                                      IR_dataTransBuff[0] = 0x30;
+                                                      IR_dataTransBuff[1] = 0x03;
+                                                      IR_dataTransBuff[231] = check_Num;
+                                                      
+                                                      //数据存储
+                                                      infrared_eeprom_dataSave(IR_currentOpreatinsert, (u8 *)IR_dataTransBuff, 232);
+                                                      theadStatus_infrared = infraredSMStatus_free; //操作成功，恢复空闲态
+                                                      beeps_usrActive(3, 50, 1);
+                                                      
+                                                      //通讯回复
+                                                      IR_currentOpreatRes = IR_OPREATRES_LEARNNING; //操作结果值填装
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 10  
+
+                                                      dev_agingCmd_sndInitative.agingCmd_infrareOpreat = 1; //对应主动上传时效占位置一
+                                                      devActionPush_IF.push_IF = 1; //推送使能
+              #if(DEBUG_LOGOUT_EN == 1)
+                                                      { //输出打印，谨记 用后注释，否则占用大量代码空间
+                                                              
+                                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                                              sprintf(log_buf, ">>>infrared learnning sig got data[%02X] [%02X] [%02X].\n", (int)IR_dataTransBuff[
+             -7], (int)IR_dataTransBuff[8], (int)IR_dataTransBuff[9]);
+                                                              PrintString1_logOut(log_buf);
+                                                      }       
+              #endif
+                                              }
+                                      
+                                      }else{ //学习态超时
+                                      
+                                              beeps_usrActive(3, 253, 2);
+                                              infraredOpreatAct_Stop(); //操作终止调用
+                                      }
+                                      
+                              }break;
+                              
+                              case infraredSMStatus_sigSendSTBY:{ //控制就绪
+                              
+                                      if(!infraredAct_timeCounter)theadStatus_infrared = infraredSMStatus_sigSend; //控制就绪等待时间，等待硬
+             -件稳定
+                                      
+                              }break;
+                                      
+                              case infraredSMStatus_sigSend:{ //控制
+                              
+                                      //控制操作
+                                      writeI2C((char *)IR_dataTransBuff, 232);
+                                      theadStatus_infrared = infraredSMStatus_free;
+                                      
+                                      //通讯回复
+                                      IR_currentOpreatRes = IR_OPREATRES_CONTROL; //操作结果值填装
+                                      dev_agingCmd_sndInitative.agingCmd_infrareOpreat = 1; //对应主动上传时效占位置一
+                                      devActionPush_IF.push_IF = 1; //推送使能
+                              
+                              }break;
+                                      
+                              case infraredSMStatus_opStop:{ //操作终止
+                              
+                                      if(!infraredAct_timeCounter){
+                                      
+                                              theadStatus_infrared = infraredSMStatus_free;
+                                              hxd019d_pinREST = !hxd019d_resetLevel;
+                                      }
+                              }break;
+                              
+                              default:{
+                              
+                                      theadStatus_infrared = infraredSMStatus_free;
+                              
+                              }break;
+                      }
+              }
+              #endif
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   ----    ----
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 11  
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+   EDATA SIZE       =   ----    ----
+   HDATA SIZE       =   ----    ----
+   XDATA CONST SIZE =   ----    ----
+   FAR CONST SIZE   =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -7,15 +7,17 @@
 
 #include "USART.h"
 
+#include "dataManage.h"
+#include "devlopeDebug.h"
+
 #include "Relay.h"
 #include "timerAct.h"
 #include "touchPad.h"
 #include "dataTrans.h"
 #include "Tips.h"
 #include "usrKin.h"
-#include "dataManage.h"
-
-#include "devlopeDebug.h"
+#include "driver_I2C_HXD019D.h"
+#include "DS18B20.h"
 
 //***************数据传输变量引用区***************************/
 extern bit 				rxTout_count_EN;	
@@ -181,11 +183,15 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
 #else
-	u16 code period_100ms 	= 4000;
-	static u16 counter_100ms = 0; 
-	u8 code period5_200ms 	= 5;
+	u16 code period_200ms 	= 4000; //counter_200ms计时频率 叠加 counter5_200ms计时频率 对应的1s计数周期  4000 * 5 * 50 us = 1s
+	static u16 counter_200ms = 0; 
+	u8 code period5_200ms 	= 5; //counter_200ms计时频率 叠加 counter5_200ms计时频率 对应的1s计数周期  4000 * 5 * 50 us = 1s
 	static u8 counter5_200ms = 0; 
+	
 #endif
 	
 	u8 code period_tipsColor = COLORGRAY_MAX * 3;
@@ -201,12 +207,15 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
 #else
 	//****************100ms特殊**********************************************/
-	if(counter_100ms < period_100ms)counter_100ms ++;
+	if(counter_200ms < period_200ms)counter_200ms ++;
 	else{
 		
-		counter_100ms = 0;
+		counter_200ms = 0;
 		counter5_200ms ++;
 	
 		/*窗帘逻辑业务，按照轨道时间动作*/
@@ -215,27 +224,33 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			switch(curtainAct_Param.act){
 			
 				case cTact_open:{
-				
-					if(curtainAct_Param.act_counter < curtainAct_Param.act_period){
 					
-						if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter ++;
+					if(curtainAct_Param.act_period){ //轨道周期时间非零时才进行有效轨道时间计时业务
+					
+						if(curtainAct_Param.act_counter < curtainAct_Param.act_period){
 						
-					}else{
-					
-						curtainAct_Param.act = cTact_stop;
+							if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter ++;
+							
+						}else{
+						
+							curtainAct_Param.act = cTact_stop;
+						}	
 					}
 					
 				}break;
 					
 				case cTact_close:{
-				
-					if(curtainAct_Param.act_counter > 0){
 					
-						if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter --;
+					if(curtainAct_Param.act_period){ //轨道周期时间非零时才进行有效轨道时间计时业务
+					
+						if(curtainAct_Param.act_counter > 0){
 						
-					}else{
-					
-						curtainAct_Param.act = cTact_stop;
+							if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter --;
+							
+						}else{
+						
+							curtainAct_Param.act = cTact_stop;
+						}						
 					}
 				
 				}break;
@@ -264,6 +279,29 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 	else{
 	
 		counter_1ms = 0;
+		
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+		/*红外转发状态机专用动作时间计数*/
+		if(infraredAct_timeCounter)infraredAct_timeCounter --;
+		
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+		/*热水器继电器滞后同步计时计数*/
+		if(heater_ActParam.relayActDelay_counter != COUNTER_DISENABLE_MASK_SPECIALVAL_U16){ //判断计时是否可用，是否为计时失效掩码
+		
+			if(heater_ActParam.relayActDelay_counter)heater_ActParam.relayActDelay_counter --; //继电器动作滞后同步计时业务逻辑
+			else{
+			
+				heater_ActParam.relayActDelay_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16;
+				heater_ActParam.relayActDelay_actEn = 1;
+			}
+		}
+		
+#else
+#endif
 		
 		/*zigb专用动作时间计数*/
 		if(zigbNwkAction_counter)zigbNwkAction_counter --;
@@ -302,7 +340,45 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 //		dev_debugInfoLog.debugInfoData.dimmerInfo.soureFreq = dimmer_freqParam.periodBeat_cfm;
 //		//usr_debug打印类型填装填装
 //		dev_debugInfoLog.debugInfoType = infoType_dimmerFreq;
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+		/*ds18b20温度读取周期计时计数业务*/
+		if(couter_ds18b20Temperature_dtPeriod)couter_ds18b20Temperature_dtPeriod --;
+		
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+		/*不同场景触发按键强制间隔时间计数*/
+		if(scenario_ActParam.scenarioKeepTrig_timeCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){ //判断计时是否可用，是否为计时失效掩码
+		
+			if(scenario_ActParam.scenarioKeepTrig_timeCounter)scenario_ActParam.scenarioKeepTrig_timeCounter --;
+			else{
+			
+				scenario_ActParam.scenarioKeepTrig_timeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
+//				scenario_ActParam.scenarioKey_currentTrig = scenarioKey_current_null; //暂时取消自恢复
+			}
+		}
+		
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+		/*热水器继电器自动关闭模式下计时计数*/
+		if(heater_ActParam.timerClose_counter != COUNTER_DISENABLE_MASK_SPECIALVAL_U16){ //判断计时是否可用，是否为计时失效掩码
+		
+			if(heater_ActParam.timerClose_counter)heater_ActParam.timerClose_counter --; //热水器延时关闭计时业务逻辑
+			else{
+			
+				heater_ActParam.timerClose_counter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16;
+				
+				if((heater_ActParam.heater_currentActMode == heaterActMode_swCloseDelay30min) || //延时关闭模式下 业务才有效
+				   (heater_ActParam.heater_currentActMode == heaterActMode_swCloseDelay60min)){
+				   
+					swCommand_fromUsr.objRelay = 0;
+					swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+					   
+					devActionPush_IF.push_IF = 1; //推送使能
+					
+					heater_ActParam.heater_currentActMode = heaterActMode_swClose;  
+				}
+			}
+		}
+		
 #else
 #endif
 		/*心跳包计时计数业务*/
@@ -328,9 +404,26 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 				
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = delayUp_act;
-				devActionPush_IF.push_IF = 1; //推送使能
+				devActionPush_IF.push_IF = 1; //推送使能 -主动上传
 				dev_agingCmd_sndInitative.agingCmd_delaySetOpreat = 1; //对应主动上传时效占位置一
 				
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+				EACHCTRL_realesFLG = 1;
+				
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+				(swCommand_fromUsr.objRelay == 0x01)?(heater_ActParam.heater_currentActMode = heaterActMode_swKeepOpen):(heater_ActParam.heater_currentActMode = heaterActMode_swClose); //按键状态立马更新
+				devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
+
+#else
+				if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
+				else
+				if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
+				
+#endif		
 				/*>>>usr_debug<<<*/
 				//usr_debug数据填装
 				dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 1;
@@ -349,8 +442,25 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			
 				swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
 				swCommand_fromUsr.objRelay = 0;
-				devActionPush_IF.push_IF = 1; //推送使能
+				devActionPush_IF.push_IF = 1; //推送使能 -主动上传
 				dev_agingCmd_sndInitative.agingCmd_greenModeSetOpreat = 1; //对应主动上传时效占位置一
+			
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+				EACHCTRL_realesFLG = 1;
+				
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
+				(swCommand_fromUsr.objRelay == 0x01)?(heater_ActParam.heater_currentActMode = heaterActMode_swKeepOpen):(heater_ActParam.heater_currentActMode = heaterActMode_swClose); //按键状态立马更新
+				devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
+				
+#else
+				if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
+				else
+				if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
+				
+#endif	
 			}
 		}
 		
@@ -516,7 +626,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 	
 		counter_tipsColor ++;
 		
-#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS || SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 		
 		if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
 			

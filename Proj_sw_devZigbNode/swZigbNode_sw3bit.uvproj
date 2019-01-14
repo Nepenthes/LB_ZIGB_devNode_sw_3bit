@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>Zigb子节点设备_三位开关</TargetName>
+      <TargetName>Zigb子节点设备_L7系列</TargetName>
       <ToolsetNumber>0x0</ToolsetNumber>
       <ToolsetName>MCS-51</ToolsetName>
       <TargetOption>
@@ -260,7 +260,7 @@
             <uAregs>0</uAregs>
             <UseInterruptVector>1</UseInterruptVector>
             <Fuzzy>3</Fuzzy>
-            <Optimize>8</Optimize>
+            <Optimize>9</Optimize>
             <WarningLevel>2</WarningLevel>
             <SizeSpeed>1</SizeSpeed>
             <ObjectExtend>1</ObjectExtend>
@@ -367,6 +367,11 @@
               <FileType>1</FileType>
               <FilePath>.\Sensor\usrKin.c</FilePath>
             </File>
+            <File>
+              <FileName>DS18B20.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Sensor\DS18B20.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -386,6 +391,11 @@
               <FileName>touchPad.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Actuator\touchPad.c</FilePath>
+            </File>
+            <File>
+              <FileName>driver_I2C_HXD019D.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Actuator\driver_I2C_HXD019D.c</FilePath>
             </File>
           </Files>
         </Group>

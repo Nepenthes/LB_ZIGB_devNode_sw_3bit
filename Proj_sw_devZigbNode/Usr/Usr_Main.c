@@ -9,6 +9,8 @@
 #include "Relay.h"
 #include "timerAct.h"
 #include "touchPad.h"
+#include "driver_I2C_HXD019D.h"
+#include "DS18B20.h"
 #include "devlopeDebug.h"
 
 #include "USART.h"
@@ -24,6 +26,11 @@ void bsp_Init(void){
 	pinBeep_Init();
 	usrKin_pinInit();
 	relay_pinInit();
+
+#if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+	infrared_pinInit();
+	ds18b20_pinInit();
+#endif
 }
 
 void bsp_datsReales(void){
@@ -57,6 +64,9 @@ int main(void){
 		
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)  //设备类型为插座时，没有触摸按键驱动和拨码驱动
 		UsrKEYScan(usrKeyFun_relayOpreation, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)  //设备类型为红外转发器时，没有触摸按键驱动和拨码驱动
+		UsrKEYScan(fun_Test, usrKeyFun_zigbNwkRejoin, fun_factoryRecoverOpreat);
+		thread_infraredSM(); //红外线程
 #else
 		touchPad_Scan();
 		DcodeScan();

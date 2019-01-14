@@ -121,14 +121,14 @@ void EEPROM_write_n(u16 EE_address,u8 *DataAddress,u16 number)
 //========================================================================
 void coverEEPROM_write_n(u16 EE_address,u8 *DataAddress,u16 number){	//仅限第一扇区写入操作！！！ 一个扇区就够用了
 	
-	u8  xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
+	u8  xdata datsTemp[0x80] = {0};
 	
-	EEPROM_read_n(EEPROM_ADDR_START, &datsTemp[0], EEPROM_USE_OF_NUMBER);	//缓存暂存
-	EEPROM_SectorErase(EEPROM_ADDR_START);	//擦扇区
+	EEPROM_read_n(EEPROM_ADDR_START_USRDATA, &datsTemp[0], EEPROM_USE_OF_NUMBER);	//缓存暂存
+	EEPROM_SectorErase(EEPROM_ADDR_START_USRDATA);	//擦扇区
 	
 	memcpy(&datsTemp[EE_address], DataAddress, number);	//数据覆盖
 	
-	EEPROM_write_n(EEPROM_ADDR_START, &datsTemp[0], EEPROM_USE_OF_NUMBER);	//数据重新存入
+	EEPROM_write_n(EEPROM_ADDR_START_USRDATA, &datsTemp[0], EEPROM_USE_OF_NUMBER);	//数据重新存入
 }
 
 
