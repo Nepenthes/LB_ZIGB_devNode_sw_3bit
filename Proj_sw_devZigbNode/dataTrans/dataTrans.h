@@ -16,6 +16,9 @@
  #define zigbPin_RESET	P23
 #endif
 
+#define ZIGBMOD_RESET_LEVEL_ENABLE		0
+#define ZIGBMOD_RESET_LEVEL_DISABLE		1
+
 #define DATATRANS_WORKMODE_HEARTBEAT	0x0A
 #define DATATRANS_WORKMODE_KEEPACESS	0x0B
 
@@ -39,7 +42,7 @@
 #endif
 
 #define PERIOD_SYSTIMEREALES			10 	//系统时间更新周期  单位：s
-#define ZIGBNWK_OPNETIME_DEFAULT		30	//默认zigb网络开放时间 单位：s
+#define ZIGBNWK_OPNETIME_DEFAULT		15	//默认zigb网络开放时间 单位：s
 #define DEVHOLD_TIME_DEFAULT			240 //设备挂起默认时间，时间到后重启网络 单位：s
 #define COLONYCTRLGET_QUERYPERIOD		3	//集群受控状态信息周期性轮询周期 单位：s
 #define COORDINATOR_LOST_PERIOD_CONFIRM	30	//网关主机丢失确认周期	单位：s
@@ -246,6 +249,9 @@ extern stt_agingDataSet_bitHold xdata dev_agingCmd_sndInitative;
 extern u8 xdata factoryRecover_HoldTimeCount;
 
 extern u8 xdata timeCounter_coordinatorLost_detecting;
+extern u8 xdata timeCounter_coordinatorLost_keeping;
+
+extern u16 idata devZigbNwk_startUp_delayCounter;
 
 void zigbUart_pinInit(void);
 void uartObjZigb_Init(void);

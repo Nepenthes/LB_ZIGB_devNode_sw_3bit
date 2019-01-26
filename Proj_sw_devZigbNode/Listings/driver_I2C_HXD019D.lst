@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 1   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DRIVER_I2C_HXD019D
@@ -62,7 +62,7 @@ line level    source
                       } while (--i);
               }
               
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 2   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 2   
 
               static void ir_Delay21ms(void)          //@24.000MHz -18mS-25mS
               {
@@ -126,7 +126,7 @@ line level    source
                       
                       SetSCLLow(); 
               }
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 3   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 3   
 
               
               static void I2COpen(void)
@@ -190,7 +190,7 @@ line level    source
                       ir_Delay35us();
               
                       SetSDAHigh();
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 4   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 4   
 
                       ir_Delay35us();  
               }
@@ -254,7 +254,7 @@ line level    source
               
                       I2CStop();
                       ir_Delay35us();
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 5   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 5   
 
               
                       I2CClose();
@@ -318,7 +318,7 @@ line level    source
                       SetSCLLow(); 
                       ir_Delay35us();
               
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 6   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 6   
 
                       *pbData = readdata;
               
@@ -382,7 +382,7 @@ line level    source
               
                       for(i = 1; i < 230; i++)                        //wjs;read:learndata(109B)+120=230
                       {
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 7   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 7   
 
                               I2CReadData(&bValue);
                               ir_Delay35us();
@@ -446,7 +446,7 @@ line level    source
                               memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
                               sprintf(log_buf, ">>>infrared data read[%02X] [%02X] [%02X].\n", (int)IR_dataTransBuff[7], (int)IR_dataT
              -ransBuff[8], (int)IR_dataTransBuff[9]);
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 8   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 8   
 
                               PrintString1_logOut(log_buf);
                       }       
@@ -510,7 +510,7 @@ line level    source
              -将红外当前操作结果数据值清零
               
                       switch(theadStatus_infrared){
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 9   
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 9   
 
                       
                               case infraredSMStatus_free:{ //空闲
@@ -574,7 +574,7 @@ line level    source
                                                       
                                                       //通讯回复
                                                       IR_currentOpreatRes = IR_OPREATRES_LEARNNING; //操作结果值填装
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 10  
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 10  
 
                                                       dev_agingCmd_sndInitative.agingCmd_infrareOpreat = 1; //对应主动上传时效占位置一
                                                       devActionPush_IF.push_IF = 1; //推送使能
@@ -638,7 +638,7 @@ line level    source
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
    CODE SIZE        =   ----    ----
-C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/11/2019 12:04:14 PAGE 11  
+C51 COMPILER V9.54   DRIVER_I2C_HXD019D                                                    01/23/2019 16:32:41 PAGE 11  
 
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =   ----    ----

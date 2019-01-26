@@ -49,6 +49,8 @@ extern bit		idata ifTim_sw_running_FLAG;
 void timeZone_Reales(void);
 void thread_Timing(void);
 
+void timerActionDone_FLG_RESET(void);
+
 void datsTimNight_read_eeprom(timing_Dats timDats_tab[2]);
 void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]);
 void itrf_datsTiming_read_eeprom(void);

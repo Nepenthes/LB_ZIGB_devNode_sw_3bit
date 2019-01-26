@@ -1,0 +1,19 @@
+".\Output\Usr_Main.obj",
+".\Output\appTimer.obj",
+".\Output\dataManage.obj",
+".\Output\Tips.obj",
+".\Output\devlopeDebug.obj",
+".\Output\dataTrans.obj",
+".\Output\usrKin.obj",
+".\Output\DS18B20.obj",
+".\Output\Relay.obj",
+".\Output\timerAct.obj",
+".\Output\touchPad.obj",
+".\Output\driver_I2C_HXD019D.obj",
+".\Output\USART.obj",
+".\Output\delay.obj",
+".\Output\EEPROM.obj",
+".\Output\pars_Method.obj" 
+TO ".\Output\swZigbNode_L7dev" 
+
+PRINT(".\Listings\swZigbNode_L7dev.map") REMOVEUNUSED 

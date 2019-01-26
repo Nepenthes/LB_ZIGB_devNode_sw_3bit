@@ -60,6 +60,10 @@
  #endif
 #endif
 
+/*数据存储掩码定义*/
+#define		DATASAVE_MASK_ZIGBNWK_EXIST		 0xF1
+#define		DATASAVE_MASK_ZIGBNWK_EXISTNOT	 0xF2
+
 /*存储数据宏定义*///存储数据相关的宏定义
 //#define 	ROMADDR_ROM_STC_ID		 		 0x3ff8		//STC单片机 全球ID地址
 #define 	ROMADDR_ROM_STC_ID		 		 0x7ff8		//STC单片机 全球ID地址
@@ -84,6 +88,7 @@
 #define		EEPROM_ADDR_curtainOrbitalCnter	 0x000A		//0AH - 0AH 窗帘轨道周期对应位置计时值				01_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define  	EEPROM_ADDR_swDelayFLAG			 0x000B		//0BH - 0BH 开关延时标志位集合						01_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define 	EEPROM_ADDR_periodCloseLoop		 0x000C		//0CH - 0CH	循环关闭时间间隔						01_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
+#define		EEPROM_ADDR_zigbNwkExistIF		 0x000D		//0DH - 0DH	zigb网络是否存在本地记录				01_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define  	EEPROM_ADDR_swTimeTab          	 0x0010		//10H - 28H 8组普通定时数据，每组3字节				24_Byte	-(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define 	EEPROM_ADDR_TimeTabNightMode	 0x0032		//32H - 37H 夜间模式定时表							06_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define 	EEPROM_ADDR_ledSWBackGround		 0x0038		//38H - 39H	开关背景灯色索引						02_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
@@ -219,10 +224,12 @@ extern unsigned char xdata MAC_ID[6];
 extern unsigned char xdata MAC_ID_DST[6];
 
 extern bit deviceLock_flag;
+extern bit zigbNwk_exist_FLG;
 
 u8 switchTypeReserve_GET(void);
 void MAC_ID_Relaes(void);
 void portCtrlEachOther_Reales(void);
+void devLockInfo_Reales(void);
 
 bit swScenario_oprateSave(u8 scenarioNum, u8 swAct);
 bit swScenario_oprateDele(u8 scenarioNum);
@@ -230,6 +237,10 @@ u8 swScenario_oprateCheck(u8 scenarioNum);
 
 void Factory_recover(void);
 void birthDay_Judge(void);
+
+void statusSave_zigbNwk_nwkExistIF(bit nwkExistIF);
+bit statusGet_zigbNwk_nwkExistIF(void);
+void zigbNwkExist_detectReales(void);
 
 void infrared_eeprom_dataSave(u8 insertNum, u8 dats[], u8 datsLen);
 void infrared_eeprom_dataRead(u8 insertNum, u8 dats[], u8 datsLen);

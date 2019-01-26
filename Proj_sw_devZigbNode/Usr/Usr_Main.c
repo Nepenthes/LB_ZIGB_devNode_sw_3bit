@@ -1,5 +1,8 @@
 #include "STC15Fxxxx.H"
 
+#include "string.h"
+#include "stdio.h"
+
 #include "dataTrans.h"
 #include "appTimer.h"
 #include "pars_Method.h"
@@ -38,21 +41,28 @@ void bsp_datsReales(void){
 	MAC_ID_Relaes();
 	portCtrlEachOther_Reales();
 	ledBKGColorSw_Reales();
+	devLockInfo_Reales();
 	timeZone_Reales();
+	zigbNwkExist_detectReales();
 }
 
 int main(void){
 	
+	/*板级初始化*/
 	bsp_Init();
 	bsp_datsReales();
 	birthDay_Judge();
 	
+	/*debug部分*/
 //	while(1)tips_specified(0);
 	
-	devStatus_switch.statusChange_standBy = status_nwkReconnect;
-	devStatus_switch.statusChange_IF = 1;
-	
 //	while(1)PIN_RELAY_1 = touchPad_1;
+	
+//	while(1){
+//	
+//		beeps_usrActive(3, 50, 1);
+//		delayMs(2000);
+//	}
 	
 //	while(1){
 //	
@@ -60,6 +70,17 @@ int main(void){
 //		delay_ms(1);
 //	}
 	
+	/*开机提示音*/
+	beeps_usrActive(3, 50, 1);
+	
+	/*提前进行指示灯可用位扫描*/
+	DEV_actReserve = switchTypeReserve_GET();
+	
+	/*通信模式初始化*/
+	devStatus_switch.statusChange_standBy = status_nwkReconnect;
+	devStatus_switch.statusChange_IF = 1;
+	
+	/*主进程开始运行*/
 	while(1){
 		
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)  //设备类型为插座时，没有触摸按键驱动和拨码驱动

@@ -605,7 +605,6 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 	swCommand_fromUsr.actMethod = relay_OnOff;
 	devActionPush_IF.push_IF = 1; //推送使能
 	tipsBeep_IF = 1;
-	
 	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
@@ -650,7 +649,6 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 	statusRelay_saveEn = 1; //存储使能，调光类型不进行自动存储，所以进行主动存储
 	devActionPush_IF.push_IF = 1; //推送使能
 	tipsBeep_IF = 1;
-	
 	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
@@ -672,6 +670,8 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 		default:{};
 	}
 	
+	devActionPush_IF.push_IF = 1; //推送使能
+	tipsBeep_IF = 1;
 	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
@@ -694,9 +694,8 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 			devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode);
 			
 			tipsBeep_IF = 1;
-			
 			devActionPush_IF.push_IF = 1; //推送使能
-			if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //触摸可用才tips
+			if(tipsBeep_IF)beeps_usrActive(3, 50, 1);
 		
 		}break;
 		
@@ -824,13 +823,13 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 		swCommand_fromUsr.actMethod = relay_flip;
 		
 	}else{
-	
+	 
 		swCommand_fromUsr.actMethod = relay_OnOff;
 	}
 	
 	if(!shortPressCnt_IF){ //非连按才触发互控
 	
-		if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
+		if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //有效互控触发(直接触发触摸对应键互控)
 		else
 		if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
 	}
@@ -972,7 +971,7 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //普通触
 
 void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//触摸连按触发
 	
-	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = statusPad; //有效互控触发，最后一次连按触发互控同步
+	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //有效互控触发，最后一次连按触发互控同步
 	else
 	if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发，最后一次连按触发互控同步
 	devActionPush_IF.push_IF = 1; //最后一次连按触发推送使能
@@ -1164,6 +1163,8 @@ void usrKeyFun_zigbNwkRejoin(void){
 
 	devStatus_switch.statusChange_standBy = status_nwkREQ;
 	devStatus_switch.statusChange_IF = 1;
+	
+	statusSave_zigbNwk_nwkExistIF(0); //网络存在本地存储判断值更新为不存在
 	
 	tips_statusChangeToZigbNwkFind(); //tips更新
 }

@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 1   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE APPTIMER
@@ -62,7 +62,7 @@ line level    source
   52          
   53          /*-----------------------------------------------------------------------------------------------*/
   54          void appTimer0_Init(void){      //50us 中断@24.000M
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 2   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 2   
 
   55   1      
   56   1              AUXR |= 0x80;           
@@ -126,7 +126,7 @@ line level    source
               ////                            PIN_PWM_OUT = 0;
               //                      
               //                      }else
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 3   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 3   
 
               //                      if(dimmer_freqParam.pwm_actCounter > freq_periodBeatHalf && dimmer_freqParam.pwm_actCounter <= dimmer
              -_freqParam.periodBeat_cfm){
@@ -190,7 +190,7 @@ line level    source
                       }
               #else
  172   1      #endif
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 4   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 4   
 
  173   1      }
  174          
@@ -254,7 +254,7 @@ line level    source
  230   6                                                      if(curtainAct_Param.act_counter < curtainAct_Param.act_period){
  231   7                                                      
  232   7                                                              if(counter5_200ms >= period5_200ms)curtainAct_Param.act_counter ++;
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 5   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 5   
 
  233   7                                                              
  234   7                                                      }else{
@@ -288,25 +288,26 @@ line level    source
  262   6                                                      swCommand_fromUsr.objRelay = 2;
  263   6                                                      swCommand_fromUsr.actMethod = relay_OnOff;
  264   6                                                      devActionPush_IF.push_IF = 1; //推送使能
- 265   6                                              }
- 266   5                                              
- 267   5                                      }break;
- 268   4                                              
- 269   4                                      default:{}break;
- 270   4                              }
- 271   3                      }
- 272   2                      
- 273   2                      if(counter5_200ms >= period5_200ms)counter5_200ms = 0;
- 274   2              }
- 275   1      #endif
- 276   1              
- 277   1              //****************1ms专用**********************************************/
- 278   1              if(counter_1ms < period_1ms)counter_1ms ++;
- 279   1              else{
- 280   2              
- 281   2                      counter_1ms = 0;
- 282   2                      
- 283   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 265   6                                                      EACHCTRL_realesFLG = 1; //有效互控触发
+ 266   6                                              }
+ 267   5                                              
+ 268   5                                      }break;
+ 269   4                                              
+ 270   4                                      default:{}break;
+ 271   4                              }
+ 272   3                      }
+ 273   2                      
+ 274   2                      if(counter5_200ms >= period5_200ms)counter5_200ms = 0;
+ 275   2              }
+ 276   1      #endif
+ 277   1              
+ 278   1              //****************1ms专用**********************************************/
+ 279   1              if(counter_1ms < period_1ms)counter_1ms ++;
+ 280   1              else{
+ 281   2              
+ 282   2                      counter_1ms = 0;
+ 283   2                      
+ 284   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
                               /*红外转发状态机专用动作时间计数*/
@@ -317,9 +318,9 @@ line level    source
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
                               /*热水器继电器滞后同步计时计数*/
                               if(heater_ActParam.relayActDelay_counter != COUNTER_DISENABLE_MASK_SPECIALVAL_U16){ //判断计时是否可用，
-             -是否为计时失效掩码
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 6   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 6   
 
+             -是否为计时失效掩码
                               
                                       if(heater_ActParam.relayActDelay_counter)heater_ActParam.relayActDelay_counter --; //继电器动作滞后同步
              -计时业务逻辑
@@ -331,38 +332,38 @@ line level    source
                               }
                               
               #else
- 304   2      #endif
- 305   2                      
- 306   2                      /*zigb专用动作时间计数*/
- 307   2                      if(zigbNwkAction_counter)zigbNwkAction_counter --;
- 308   2                      
- 309   2                      /*用户按键动作专用时间计数*/
- 310   2                      if(usrKeyCount_EN)usrKeyCount ++;
- 311   2                      else usrKeyCount = 0;
- 312   2                      
- 313   2                      /*触摸按键动作专用时间计数*/
- 314   2                      if(touchPadActCounter)touchPadActCounter --;
- 315   2                      
- 316   2                      /*触摸按键连按专用时间计数*/
- 317   2                      if(touchPadContinueCnt)touchPadContinueCnt --;
- 318   2                      
- 319   2                      /*Tips动作专用时间计数*/
- 320   2                      if(counter_tipsAct)counter_tipsAct --;
- 321   2                      
- 322   2                      /*扩展性(持续性)数据发送动作间隔时间计数*/
- 323   2                      if(dtReqEx_counter)dtReqEx_counter --;
- 324   2                      
- 325   2                      /*特殊组合动作按键触发 预标志衔接时间计数*/
- 326   2                      if(combinationFunFLG_3S5S_cancel_counter)combinationFunFLG_3S5S_cancel_counter --;
- 327   2              }
- 328   1              
- 329   1              //****************1s专用**********************************************/
- 330   1              if(counter_1second < period_1second)counter_1second ++;
- 331   1              else{
- 332   2              
- 333   2                      counter_1second = 0;
- 334   2                      
- 335   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 305   2      #endif
+ 306   2                      
+ 307   2                      /*zigb专用动作时间计数*/
+ 308   2                      if(zigbNwkAction_counter)zigbNwkAction_counter --;
+ 309   2                      
+ 310   2                      /*用户按键动作专用时间计数*/
+ 311   2                      if(usrKeyCount_EN)usrKeyCount ++;
+ 312   2                      else usrKeyCount = 0;
+ 313   2                      
+ 314   2                      /*触摸按键动作专用时间计数*/
+ 315   2                      if(touchPadActCounter)touchPadActCounter --;
+ 316   2                      
+ 317   2                      /*触摸按键连按专用时间计数*/
+ 318   2                      if(touchPadContinueCnt)touchPadContinueCnt --;
+ 319   2                      
+ 320   2                      /*Tips动作专用时间计数*/
+ 321   2                      if(counter_tipsAct)counter_tipsAct --;
+ 322   2                      
+ 323   2                      /*扩展性(持续性)数据发送动作间隔时间计数*/
+ 324   2                      if(dtReqEx_counter)dtReqEx_counter --;
+ 325   2                      
+ 326   2                      /*特殊组合动作按键触发 预标志衔接时间计数*/
+ 327   2                      if(combinationFunFLG_3S5S_cancel_counter)combinationFunFLG_3S5S_cancel_counter --;
+ 328   2              }
+ 329   1              
+ 330   1              //****************1s专用**********************************************/
+ 331   1              if(counter_1second < period_1second)counter_1second ++;
+ 332   1              else{
+ 333   2              
+ 334   2                      counter_1second = 0;
+ 335   2                      
+ 336   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               //              /*电源频率单周期节拍数统计*/
               //              /*>>>usr_debug<<<*/
@@ -381,9 +382,9 @@ line level    source
              -否可用，是否为计时失效掩码
                               
                                       if(scenario_ActParam.scenarioKeepTrig_timeCounter)scenario_ActParam.scenarioKeepTrig_timeCounter --;
-                                      else{
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 7   
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 7   
 
+                                      else{
                                       
                                               scenario_ActParam.scenarioKeepTrig_timeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U8;
               //                              scenario_ActParam.scenarioKey_currentTrig = scenarioKey_current_null; //暂时取消自恢复
@@ -416,38 +417,41 @@ line level    source
                               }
                               
               #else
- 383   2      #endif
- 384   2                      /*心跳包计时计数业务*/
- 385   2                      if(!heartBeatCycle_FLG){
- 386   3                      
- 387   3                              if(heartBeatCount < heartBeatPeriod)heartBeatCount ++;
- 388   3                              else{
- 389   4                              
- 390   4                                      heartBeatCount = 0;
- 391   4                                      heartBeatCycle_FLG = 1;
- 392   4                              }
- 393   3                      }
- 394   2                      
- 395   2                      /*延时计时业务，到点动作*/
- 396   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
- 397   3                      
- 398   3                              if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
- 399   3                              else{
- 400   4                              
- 401   4                                      delayPeriod_onoff = delayCnt_onoff = 0; 
- 402   4                                      
- 403   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
- 404   4                                      
- 405   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
- 406   4                                      swCommand_fromUsr.objRelay = delayUp_act;
- 407   4                                      devActionPush_IF.push_IF = 1; //推送使能 -主动上传
- 408   4                                      dev_agingCmd_sndInitative.agingCmd_delaySetOpreat = 1; //对应主动上传时效占位置一
- 409   4                                      
- 410   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 384   2      #endif
+ 385   2                      /*心跳包计时计数业务*/
+ 386   2                      if(!heartBeatCycle_FLG){
+ 387   3                      
+ 388   3                              if(heartBeatCount < heartBeatPeriod)heartBeatCount ++;
+ 389   3                              else{
+ 390   4                              
+ 391   4                                      heartBeatCount = 0;
+ 392   4                                      heartBeatCycle_FLG = 1;
+ 393   4                              }
+ 394   3                      }
+ 395   2                      
+ 396   2                      /*延时计时业务，到点动作*/
+ 397   2                      if(ifDelay_sw_running_FLAG & (1 << 1)){
+ 398   3                      
+ 399   3                              if(delayCnt_onoff < ((u16)delayPeriod_onoff * 60))delayCnt_onoff ++;
+ 400   3                              else{
+ 401   4                              
+ 402   4                                      delayPeriod_onoff = delayCnt_onoff = 0; 
+ 403   4                                      
+ 404   4                                      ifDelay_sw_running_FLAG &= ~(1 << 1);   //一次性标志清除
+ 405   4                                      
+ 406   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+ 407   4                                      swCommand_fromUsr.objRelay = delayUp_act;
+ 408   4                                      devActionPush_IF.push_IF = 1; //推送使能 -主动上传
+ 409   4                                      dev_agingCmd_sndInitative.agingCmd_delaySetOpreat = 1; //对应主动上传时效占位置一
+ 410   4                                      
+ 411   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+                                              if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //风扇响应值为1、2、4；实际值为1、2
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 8   
+
+             -、3 --转换
+                                              
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
                                               EACHCTRL_realesFLG = 1;
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 8   
-
                                               
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
@@ -458,34 +462,37 @@ line level    source
                                               devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
               
               #else
- 422   4                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYP
+ 425   4                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYP
              -E_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
- 423   4                                      else
- 424   4                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
- 425   4                                      
- 426   4      #endif          
- 427   4                                      /*>>>usr_debug<<<*/
- 428   4                                      //usr_debug数据填装
- 429   4                                      dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 1;
- 430   4                                      //usr_debug打印类型填装填装
- 431   4                                      dev_debugInfoLog.debugInfoType = infoType_delayUp;
- 432   4                              }
- 433   3                      }
- 434   2                      
- 435   2                      /*绿色模式计时业务，循环关闭*/
- 436   2                      if((ifDelay_sw_running_FLAG & (1 << 0)) && status_Relay){
- 437   3                      
- 438   3                              if(delayCnt_closeLoop < ((u16)delayPeriod_closeLoop * 60))delayCnt_closeLoop ++;
- 439   3                              else{
- 440   4                                      
- 441   4                                      delayCnt_closeLoop = 0;
- 442   4                              
- 443   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
- 444   4                                      swCommand_fromUsr.objRelay = 0;
- 445   4                                      devActionPush_IF.push_IF = 1; //推送使能 -主动上传
- 446   4                                      dev_agingCmd_sndInitative.agingCmd_greenModeSetOpreat = 1; //对应主动上传时效占位置一
- 447   4                              
- 448   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 426   4                                      else
+ 427   4                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
+ 428   4                                      
+ 429   4      #endif          
+ 430   4                                      /*>>>usr_debug<<<*/
+ 431   4                                      //usr_debug数据填装
+ 432   4                                      dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 1;
+ 433   4                                      //usr_debug打印类型填装填装
+ 434   4                                      dev_debugInfoLog.debugInfoType = infoType_delayUp;
+ 435   4                              }
+ 436   3                      }
+ 437   2                      
+ 438   2                      /*绿色模式计时业务，循环关闭*/
+ 439   2                      if((ifDelay_sw_running_FLAG & (1 << 0)) && status_Relay){
+ 440   3                      
+ 441   3                              if(delayCnt_closeLoop < ((u16)delayPeriod_closeLoop * 60))delayCnt_closeLoop ++;
+ 442   3                              else{
+ 443   4                                      
+ 444   4                                      delayCnt_closeLoop = 0;
+ 445   4                              
+ 446   4                                      swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+ 447   4                                      swCommand_fromUsr.objRelay = 0;
+ 448   4                                      devActionPush_IF.push_IF = 1; //推送使能 -主动上传
+ 449   4                                      dev_agingCmd_sndInitative.agingCmd_greenModeSetOpreat = 1; //对应主动上传时效占位置一
+ 450   4                              
+ 451   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+                                              if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //风扇响应值为1、2、4；实际值为1、2
+             -、3 --转换
+                                              
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
                                               EACHCTRL_realesFLG = 1;
                                               
@@ -497,184 +504,191 @@ line level    source
                                               devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
                                               
               #else
- 459   4                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYP
+ 464   4                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYP
              -E_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //有效互控触发
- 460   4                                      else
- 461   4                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
- 462   4                                      
- 463   4      #endif  
- 464   4                              }
- 465   3                      }
- 466   2                      
- 467   2                      /*场景周期询查挂起计时值更新*///挂起作用<<
- 468   2                      if(heartBeatHang_timeCnt)heartBeatHang_timeCnt --;
- 469   2                      
- 470   2                      /*心跳挂起计时值更新*///挂起作用<<
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 9   
+ 465   4                                      else
+ 466   4                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //有效互控触发
+ 467   4                                      
+ 468   4      #endif  
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 9   
 
- 471   2                      if(colonyCtrlGetHang_timeCnt)colonyCtrlGetHang_timeCnt --;
- 472   2                      
- 473   2                      /*系统时间本地维持计数值更新*/
- 474   2                      sysTimeKeep_counter ++;
- 475   2                      
- 476   2                      /*tips空闲释放计时计数业务*/
- 477   2                      if(counter_ifTipsFree && countEN_ifTipsFree)counter_ifTipsFree --;
- 478   2                      
- 479   2                      /*系统时间周期新更新计时计数业务*/
- 480   2                      if(sysTimeReales_counter)sysTimeReales_counter --;
- 481   2                      
- 482   2                      /*zigb网络开放倒计时*/
- 483   2                      if(tipsTimeCount_zigNwkOpen)tipsTimeCount_zigNwkOpen --;
- 484   2                      
- 485   2                      /*设备网络挂起时间倒计时*///挂起作用<<
- 486   2                      if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
- 487   2                      
- 488   2                      /*集群受控状态周期性轮询周期计时*/
- 489   2                      if(colonyCtrlGet_queryCounter)colonyCtrlGet_queryCounter --;
- 490   2                      
- 491   2                      /*触摸IC复位时间倒计时*/
- 492   2                      if(touchPad_resetTimeCount)touchPad_resetTimeCount --;
- 493   2                      
- 494   2                      /*触摸IC复位Tips倒计时*/
- 495   2                      if(tipsTimeCount_touchReset)tipsTimeCount_touchReset --;
- 496   2                      
- 497   2                      /*恢复预置动作倒计时*/
- 498   2                      if(factoryRecover_HoldTimeCount)factoryRecover_HoldTimeCount --;
- 499   2                      
- 500   2                      /*恢复出厂Tips倒计时*/
- 501   2                      if(tipsTimeCount_factoryRecover)tipsTimeCount_factoryRecover --;
- 502   2                      
- 503   2                      /*协调器失联/丢失 确认倒计时*/
- 504   2                      if(timeCounter_coordinatorLost_detecting)timeCounter_coordinatorLost_detecting --;
- 505   2              }
- 506   1      
- 507   1              //***************串口接收超时时长计数*******************************//
- 508   1              if(rxTout_count_EN){ //接收超时计时使能判断
- 509   2              
- 510   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
- 511   2                      else{
- 512   3                              
- 513   3                              if(!uartRX_toutFLG && datsRcv_length >= 5){ //超时时间判断及最小帧长判断
- 514   4                              
- 515   4                                      uartRX_toutFLG = 1;
- 516   4                              
- 517   4                                      memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
- 518   4                                      memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, COM_RX1_Lenth);
- 519   4                                      datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
- 520   4                                      
- 521   4                                      /*>>>usr_debug<<<*/
- 522   4                                      if(datsRcv_length != (datsRcv_ZIGB.rcvDats[1] + 5)){  //标的帧长判断，是否超长
- 523   5                                      
- 524   5                                              //usr_debug数据填装
- 525   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG = 1;
- 526   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frame_aLength = RX1_Buffer[1];
- 527   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frame_rLength = datsRcv_length;
- 528   5                                              //usr_debug打印类型填装填装
- 529   5                                              dev_debugInfoLog.debugInfoType = infoType_frameUart;
- 530   5                                              
- 531   5                                      }else{
- 532   5                                      
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 10  
+ 469   4                              }
+ 470   3                      }
+ 471   2                      
+ 472   2                      /*zigb硬件器件延迟启动计时变量更新*///延迟启动
+ 473   2                      if(devZigbNwk_startUp_delayCounter)devZigbNwk_startUp_delayCounter --;
+ 474   2                      
+ 475   2                      /*场景周期询查挂起计时值更新*///挂起作用<<
+ 476   2                      if(heartBeatHang_timeCnt)heartBeatHang_timeCnt --;
+ 477   2                      
+ 478   2                      /*心跳挂起计时值更新*///挂起作用<<
+ 479   2                      if(colonyCtrlGetHang_timeCnt)colonyCtrlGetHang_timeCnt --;
+ 480   2                      
+ 481   2                      /*系统时间本地维持计数值更新*/
+ 482   2                      sysTimeKeep_counter ++;
+ 483   2                      
+ 484   2                      /*tips空闲释放计时计数业务*/
+ 485   2                      if(counter_ifTipsFree && countEN_ifTipsFree)counter_ifTipsFree --;
+ 486   2                      
+ 487   2                      /*系统时间周期新更新计时计数业务*/
+ 488   2                      if(sysTimeReales_counter)sysTimeReales_counter --;
+ 489   2                      
+ 490   2                      /*zigb网络开放倒计时*/
+ 491   2                      if(tipsTimeCount_zigNwkOpen)tipsTimeCount_zigNwkOpen --;
+ 492   2                      
+ 493   2                      /*设备网络挂起时间倒计时*///挂起作用<<
+ 494   2                      if(devNwkHoldTime_Param.devHoldTime_counter)devNwkHoldTime_Param.devHoldTime_counter --;
+ 495   2                      
+ 496   2                      /*集群受控状态周期性轮询周期计时*/
+ 497   2                      if(colonyCtrlGet_queryCounter)colonyCtrlGet_queryCounter --;
+ 498   2                      
+ 499   2                      /*触摸IC复位时间倒计时*/
+ 500   2                      if(touchPad_resetTimeCount)touchPad_resetTimeCount --;
+ 501   2                      
+ 502   2                      /*触摸IC复位Tips倒计时*/
+ 503   2                      if(tipsTimeCount_touchReset)tipsTimeCount_touchReset --;
+ 504   2                      
+ 505   2                      /*恢复预置动作倒计时*/
+ 506   2                      if(factoryRecover_HoldTimeCount)factoryRecover_HoldTimeCount --;
+ 507   2                      
+ 508   2                      /*恢复出厂Tips倒计时*/
+ 509   2                      if(tipsTimeCount_factoryRecover)tipsTimeCount_factoryRecover --;
+ 510   2                      
+ 511   2                      /*协调器失联/丢失 确认倒计时*/
+ 512   2                      if(timeCounter_coordinatorLost_detecting)timeCounter_coordinatorLost_detecting --; 
+ 513   2                      else{
+ 514   3                      
+ 515   3                              timeCounter_coordinatorLost_keeping ++; //网关失联累计时间计时
+ 516   3                      }
+ 517   2              }
+ 518   1      
+ 519   1              //***************串口接收超时时长计数*******************************//
+ 520   1              if(rxTout_count_EN){ //接收超时计时使能判断
+ 521   2              
+ 522   2                      if(rxTout_count < TimeOutSet1)rxTout_count ++;
+ 523   2                      else{
+ 524   3                              
+ 525   3                              if(!uartRX_toutFLG && datsRcv_length >= 5){ //超时时间判断及最小帧长判断
+ 526   4                              
+ 527   4                                      uartRX_toutFLG = 1;
+ 528   4                              
+ 529   4                                      memset(datsRcv_ZIGB.rcvDats, 0xff, sizeof(char) * COM_RX1_Lenth);
+ 530   4                                      memcpy(datsRcv_ZIGB.rcvDats, RX1_Buffer, COM_RX1_Lenth);
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 10  
 
- 533   5      
- 534   5                                      }
- 535   4                              }
- 536   3                              rxTout_count_EN = 0;
- 537   3                      }
- 538   2              }
- 539   1              
- 540   1              //*******************beep计时计数业务**************************/
- 541   1              if(count_beep < period_beep)count_beep ++;
- 542   1              else{
- 543   2                      
- 544   2                      static u16 xdata        tips_Period = 20 * 50 / 2;
- 545   2                      static u16 xdata        tips_Count      = 0;
- 546   2                      static u8 xdata         tips_Loop       = 2 * 4;
- 547   2                      static bit                      beeps_en        = 1;
- 548   2              
- 549   2                      count_beep = 0;
- 550   2      
- 551   2                      switch(dev_statusBeeps){ //状态机
- 552   3                              
- 553   3                              case beepsMode_standBy:{
- 554   4                                      
- 555   4                                      period_beep = devTips_beep.tips_Period;
- 556   4                                      tips_Period = 20 * devTips_beep.tips_time / period_beep;
- 557   4                                      tips_Loop       = 2 * devTips_beep.tips_loop;
- 558   4                                      tips_Count      = 0;
- 559   4                                      beeps_en        = 1;
- 560   4                                      dev_statusBeeps = beepsWorking;
- 561   4              
- 562   4                              }break;
- 563   3                              
- 564   3                              case beepsWorking:{
- 565   4                              
- 566   4                                      if(tips_Loop){
- 567   5                                      
- 568   5                                              if(tips_Count < tips_Period){
- 569   6                                              
- 570   6                                                      tips_Count ++;
- 571   6                                                      (beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = !BEEP_OPEN_LEVEL);
- 572   6                                                      
- 573   6                                              }else{
- 574   6                                              
- 575   6                                                      tips_Count = 0;
- 576   6                                                      beeps_en = !beeps_en;
- 577   6                                                      tips_Loop --;
- 578   6                                              }
- 579   5                                              
- 580   5                                      }else{
- 581   5                                      
- 582   5                                              dev_statusBeeps = beepsComplete;
- 583   5                                      }
- 584   4                              
- 585   4                              }break;
- 586   3                              
- 587   3                              case beepsComplete:{
- 588   4                              
- 589   4                                      tips_Count = 0;
- 590   4                                      beeps_en = 1;
- 591   4                                      PIN_BEEP = !BEEP_OPEN_LEVEL;
- 592   4                                      dev_statusBeeps = beepsMode_null;
- 593   4                                      
- 594   4                              }break;
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 11  
+ 531   4                                      datsRcv_ZIGB.rcvDatsLen = datsRcv_length;
+ 532   4                                      
+ 533   4                                      /*>>>usr_debug<<<*/
+ 534   4                                      if(datsRcv_length != (datsRcv_ZIGB.rcvDats[1] + 5)){  //标的帧长判断，是否超长
+ 535   5                                      
+ 536   5                                              //usr_debug数据填装
+ 537   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG = 1;
+ 538   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frame_aLength = RX1_Buffer[1];
+ 539   5                                              dev_debugInfoLog.debugInfoData.frameInfo.frame_rLength = datsRcv_length;
+ 540   5                                              //usr_debug打印类型填装填装
+ 541   5                                              dev_debugInfoLog.debugInfoType = infoType_frameUart;
+ 542   5                                              
+ 543   5                                      }else{
+ 544   5                                      
+ 545   5      
+ 546   5                                      }
+ 547   4                              }
+ 548   3                              rxTout_count_EN = 0;
+ 549   3                      }
+ 550   2              }
+ 551   1              
+ 552   1              //*******************beep计时计数业务**************************/
+ 553   1              if(count_beep < period_beep)count_beep ++;
+ 554   1              else{
+ 555   2                      
+ 556   2                      static u16 xdata        tips_Period = 20 * 50 / 2;
+ 557   2                      static u16 xdata        tips_Count      = 0;
+ 558   2                      static u8 xdata         tips_Loop       = 2 * 4;
+ 559   2                      static bit                      beeps_en        = 1;
+ 560   2              
+ 561   2                      count_beep = 0;
+ 562   2      
+ 563   2                      switch(dev_statusBeeps){ //状态机
+ 564   3                              
+ 565   3                              case beepsMode_standBy:{
+ 566   4                                      
+ 567   4                                      period_beep = devTips_beep.tips_Period;
+ 568   4                                      tips_Period = 20 * devTips_beep.tips_time / period_beep;
+ 569   4                                      tips_Loop       = 2 * devTips_beep.tips_loop;
+ 570   4                                      tips_Count      = 0;
+ 571   4                                      beeps_en        = 1;
+ 572   4                                      dev_statusBeeps = beepsWorking;
+ 573   4              
+ 574   4                              }break;
+ 575   3                              
+ 576   3                              case beepsWorking:{
+ 577   4                              
+ 578   4                                      if(tips_Loop){
+ 579   5                                      
+ 580   5                                              if(tips_Count < tips_Period){
+ 581   6                                              
+ 582   6                                                      tips_Count ++;
+ 583   6                                                      (beeps_en)?(PIN_BEEP = !PIN_BEEP):(PIN_BEEP = !BEEP_OPEN_LEVEL);
+ 584   6                                                      
+ 585   6                                              }else{
+ 586   6                                              
+ 587   6                                                      tips_Count = 0;
+ 588   6                                                      beeps_en = !beeps_en;
+ 589   6                                                      tips_Loop --;
+ 590   6                                              }
+ 591   5                                              
+ 592   5                                      }else{
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 11  
 
- 595   3                      
- 596   3                              default:{
- 597   4                              
- 598   4                                      PIN_BEEP = !BEEP_OPEN_LEVEL;
- 599   4                                      
- 600   4                              }break;
- 601   3                      }
- 602   2              }
- 603   1              
- 604   1              //***************tips_Led 刷新业务*******************************//
- 605   1              if(counter_tipsColor > period_tipsColor){       //灰度值值加载
- 606   2              
- 607   2                      counter_tipsColor = 0;
- 608   2                      
- 609   2                      cnt_relay1_Tips.colorGray_R = relay1_Tips.colorGray_R;
- 610   2                      cnt_relay1_Tips.colorGray_G = relay1_Tips.colorGray_G;
- 611   2                      cnt_relay1_Tips.colorGray_B = relay1_Tips.colorGray_B;
- 612   2                      
- 613   2                      cnt_relay2_Tips.colorGray_R = relay2_Tips.colorGray_R;
- 614   2                      cnt_relay2_Tips.colorGray_G = relay2_Tips.colorGray_G;
- 615   2                      cnt_relay2_Tips.colorGray_B = relay2_Tips.colorGray_B;
- 616   2                      
- 617   2                      cnt_relay3_Tips.colorGray_R = relay3_Tips.colorGray_R;
- 618   2                      cnt_relay3_Tips.colorGray_G = relay3_Tips.colorGray_G;
- 619   2                      cnt_relay3_Tips.colorGray_B = relay3_Tips.colorGray_B;
+ 593   5                                      
+ 594   5                                              dev_statusBeeps = beepsComplete;
+ 595   5                                      }
+ 596   4                              
+ 597   4                              }break;
+ 598   3                              
+ 599   3                              case beepsComplete:{
+ 600   4                              
+ 601   4                                      tips_Count = 0;
+ 602   4                                      beeps_en = 1;
+ 603   4                                      PIN_BEEP = !BEEP_OPEN_LEVEL;
+ 604   4                                      dev_statusBeeps = beepsMode_null;
+ 605   4                                      
+ 606   4                              }break;
+ 607   3                      
+ 608   3                              default:{
+ 609   4                              
+ 610   4                                      PIN_BEEP = !BEEP_OPEN_LEVEL;
+ 611   4                                      
+ 612   4                              }break;
+ 613   3                      }
+ 614   2              }
+ 615   1              
+ 616   1              //***************tips_Led 刷新业务*******************************//
+ 617   1              if(counter_tipsColor > period_tipsColor){       //灰度值值加载
+ 618   2              
+ 619   2                      counter_tipsColor = 0;
  620   2                      
- 621   2                      cnt_zigbNwk_Tips.colorGray_R = zigbNwk_Tips.colorGray_R;
- 622   2                      cnt_zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_G;
- 623   2                      cnt_zigbNwk_Tips.colorGray_B = zigbNwk_Tips.colorGray_B;
- 624   2              }
- 625   1              else{ //pwm执行
- 626   2              
- 627   2                      counter_tipsColor ++;
+ 621   2                      cnt_relay1_Tips.colorGray_R = relay1_Tips.colorGray_R;
+ 622   2                      cnt_relay1_Tips.colorGray_G = relay1_Tips.colorGray_G;
+ 623   2                      cnt_relay1_Tips.colorGray_B = relay1_Tips.colorGray_B;
+ 624   2                      
+ 625   2                      cnt_relay2_Tips.colorGray_R = relay2_Tips.colorGray_R;
+ 626   2                      cnt_relay2_Tips.colorGray_G = relay2_Tips.colorGray_G;
+ 627   2                      cnt_relay2_Tips.colorGray_B = relay2_Tips.colorGray_B;
  628   2                      
- 629   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS || SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+ 629   2                      cnt_relay3_Tips.colorGray_R = relay3_Tips.colorGray_R;
+ 630   2                      cnt_relay3_Tips.colorGray_G = relay3_Tips.colorGray_G;
+ 631   2                      cnt_relay3_Tips.colorGray_B = relay3_Tips.colorGray_B;
+ 632   2                      
+ 633   2                      cnt_zigbNwk_Tips.colorGray_R = zigbNwk_Tips.colorGray_R;
+ 634   2                      cnt_zigbNwk_Tips.colorGray_G = zigbNwk_Tips.colorGray_G;
+ 635   2                      cnt_zigbNwk_Tips.colorGray_B = zigbNwk_Tips.colorGray_B;
+ 636   2              }
+ 637   1              else{ //pwm执行
+ 638   2              
+ 639   2                      counter_tipsColor ++;
+ 640   2                      
+ 641   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS || SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
                               
                               if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
                                       
@@ -688,70 +702,72 @@ line level    source
                               
                                        //指示可用核准
                                       if(cnt_relay1_Tips.colorGray_B && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_REL
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 12  
+
              -AY1_B = 0;}
                                       else PIN_TIPS_RELAY1_B = 1;
                               }               
               #else
- 645   2                      
- 646   2                      if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
- 647   3                              
- 648   3                               //指示可用核准
- 649   3                              if(cnt_relay1_Tips.colorGray_R && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_R --; PIN_TIPS_REL
+ 657   2                      
+ 658   2                      if((counter_tipsColor > 0) && (counter_tipsColor <= (COLORGRAY_MAX * 1))){
+ 659   3                              
+ 660   3                               //指示可用核准
+ 661   3                              if(cnt_relay1_Tips.colorGray_R && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_R --; PIN_TIPS_REL
              -AY1_R = 0;}
- 650   3                              else PIN_TIPS_RELAY1_R = 1;
- 651   3                              if(cnt_relay2_Tips.colorGray_R && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_R --; PIN_TIPS_REL
+ 662   3                              else PIN_TIPS_RELAY1_R = 1;
+ 663   3                              if(cnt_relay2_Tips.colorGray_R && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_R --; PIN_TIPS_REL
              -AY2_R = 0;}
- 652   3                              else PIN_TIPS_RELAY2_R = 1;
-C51 COMPILER V9.54   APPTIMER                                                              01/11/2019 12:04:13 PAGE 12  
-
- 653   3                              if(cnt_relay3_Tips.colorGray_R && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_R --; PIN_TIPS_REL
+ 664   3                              else PIN_TIPS_RELAY2_R = 1;
+ 665   3                              if(cnt_relay3_Tips.colorGray_R && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_R --; PIN_TIPS_REL
              -AY3_R = 0;}
- 654   3                              else PIN_TIPS_RELAY3_R = 1;
- 655   3                              if(cnt_zigbNwk_Tips.colorGray_R){cnt_zigbNwk_Tips.colorGray_R --; PIN_TIPS_ZIGBNWK_R = 0;}
- 656   3                              else PIN_TIPS_ZIGBNWK_R = 1;
- 657   3                              
- 658   3                      }else
- 659   2                      if((counter_tipsColor > (COLORGRAY_MAX * 1)) && (counter_tipsColor <= (COLORGRAY_MAX * 2))){
- 660   3                      
- 661   3                               //指示可用核准
- 662   3                              if(cnt_relay1_Tips.colorGray_G && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_G --; PIN_TIPS_REL
+ 666   3                              else PIN_TIPS_RELAY3_R = 1;
+ 667   3                              if(cnt_zigbNwk_Tips.colorGray_R){cnt_zigbNwk_Tips.colorGray_R --; PIN_TIPS_ZIGBNWK_R = 0;}
+ 668   3                              else PIN_TIPS_ZIGBNWK_R = 1;
+ 669   3                              
+ 670   3                      }else
+ 671   2                      if((counter_tipsColor > (COLORGRAY_MAX * 1)) && (counter_tipsColor <= (COLORGRAY_MAX * 2))){
+ 672   3                      
+ 673   3                               //指示可用核准
+ 674   3                              if(cnt_relay1_Tips.colorGray_G && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_G --; PIN_TIPS_REL
              -AY1_G = 0;}
- 663   3                              else PIN_TIPS_RELAY1_G = 1;
- 664   3                              if(cnt_relay2_Tips.colorGray_G && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_G --; PIN_TIPS_REL
+ 675   3                              else PIN_TIPS_RELAY1_G = 1;
+ 676   3                              if(cnt_relay2_Tips.colorGray_G && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_G --; PIN_TIPS_REL
              -AY2_G = 0;}
- 665   3                              else PIN_TIPS_RELAY2_G = 1;
- 666   3                              if(cnt_relay3_Tips.colorGray_G && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_G --; PIN_TIPS_REL
+ 677   3                              else PIN_TIPS_RELAY2_G = 1;
+ 678   3                              if(cnt_relay3_Tips.colorGray_G && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_G --; PIN_TIPS_REL
              -AY3_G = 0;}
- 667   3                              else PIN_TIPS_RELAY3_G = 1;
- 668   3                              if(cnt_zigbNwk_Tips.colorGray_G){cnt_zigbNwk_Tips.colorGray_G --; PIN_TIPS_ZIGBNWK_G = 0;}
- 669   3                              else PIN_TIPS_ZIGBNWK_G = 1;
- 670   3                              
- 671   3                      }else
- 672   2                      if((counter_tipsColor > (COLORGRAY_MAX * 2)) && (counter_tipsColor <= (COLORGRAY_MAX * 3))){
- 673   3                      
- 674   3                               //指示可用核准
- 675   3                              if(cnt_relay1_Tips.colorGray_B && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_REL
+ 679   3                              else PIN_TIPS_RELAY3_G = 1;
+ 680   3                              if(cnt_zigbNwk_Tips.colorGray_G){cnt_zigbNwk_Tips.colorGray_G --; PIN_TIPS_ZIGBNWK_G = 0;}
+ 681   3                              else PIN_TIPS_ZIGBNWK_G = 1;
+ 682   3                              
+ 683   3                      }else
+ 684   2                      if((counter_tipsColor > (COLORGRAY_MAX * 2)) && (counter_tipsColor <= (COLORGRAY_MAX * 3))){
+ 685   3                      
+ 686   3                               //指示可用核准
+ 687   3                              if(cnt_relay1_Tips.colorGray_B && (DEV_actReserve & 0x01)){cnt_relay1_Tips.colorGray_B --; PIN_TIPS_REL
              -AY1_B = 0;}
- 676   3                              else PIN_TIPS_RELAY1_B = 1;
- 677   3                              if(cnt_relay2_Tips.colorGray_B && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_B --; PIN_TIPS_REL
+ 688   3                              else PIN_TIPS_RELAY1_B = 1;
+ 689   3                              if(cnt_relay2_Tips.colorGray_B && (DEV_actReserve & 0x02)){cnt_relay2_Tips.colorGray_B --; PIN_TIPS_REL
              -AY2_B = 0;}
- 678   3                              else PIN_TIPS_RELAY2_B = 1;
- 679   3                              if(cnt_relay3_Tips.colorGray_B && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_B --; PIN_TIPS_REL
+ 690   3                              else PIN_TIPS_RELAY2_B = 1;
+ 691   3                              if(cnt_relay3_Tips.colorGray_B && (DEV_actReserve & 0x04)){cnt_relay3_Tips.colorGray_B --; PIN_TIPS_REL
              -AY3_B = 0;}
- 680   3                              else PIN_TIPS_RELAY3_B = 1;
- 681   3                              if(cnt_zigbNwk_Tips.colorGray_B){cnt_zigbNwk_Tips.colorGray_B --; PIN_TIPS_ZIGBNWK_B = 0;}
- 682   3                              else PIN_TIPS_ZIGBNWK_B = 1;
- 683   3                      }
- 684   2      #endif
- 685   2              }
- 686   1      }
+ 692   3                              else PIN_TIPS_RELAY3_B = 1;
+ 693   3                              if(cnt_zigbNwk_Tips.colorGray_B){cnt_zigbNwk_Tips.colorGray_B --; PIN_TIPS_ZIGBNWK_B = 0;}
+ 694   3                              else PIN_TIPS_ZIGBNWK_B = 1;
+ 695   3                      }
+ 696   2      #endif
+ 697   2              }
+ 698   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1690    ----
+   CODE SIZE        =   1716    ----
    CONSTANT SIZE    =      7    ----
    XDATA SIZE       =     19    ----
    PDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   APPTIMER                                                              01/23/2019 16:32:39 PAGE 13  
+
    DATA SIZE        =      7    ----
    IDATA SIZE       =   ----    ----
    BIT SIZE         =      1    ----

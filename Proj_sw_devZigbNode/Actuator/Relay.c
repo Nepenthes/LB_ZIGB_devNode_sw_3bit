@@ -136,7 +136,7 @@ void relay_statusReales(void){
 		}break;
 	}
 	
-	PIN_RELAY_2 = 0;
+	PIN_RELAY_3 = 0;
 	
 #else
 	switch(SWITCH_TYPE){
@@ -167,7 +167,7 @@ void relay_statusReales(void){
 					PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
 					curtainAct_Param.act = cTact_stop;
 					
-					coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1); //每次窗帘运动停止时，记录当前位置对应的轨道周期计时值
+					if(curtainAct_Param.act != cTact_stop)coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1); //每次窗帘运动停止时，记录当前位置对应的轨道周期计时值
 					
 				}break;
 			}
@@ -221,6 +221,12 @@ void relay_pinInit(void){
     EX1 = 1;           
 	
 	statusRelay_saveEn = 1; //重复主动记忆当前启动值，防止开关未操作情况下第三次上电启动时记忆值丢失
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+	//推挽
+	P3M1	&= ~0x38;
+	P3M0	|= 0x38;
+	PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 	//推挽
@@ -418,7 +424,7 @@ void thread_Relay(void){
 	if(heater_ActParam.relayActDelay_actEn){
 	
 		heater_ActParam.relayActDelay_actEn = 0;
-		PIN_RELAY_3 = PIN_RELAY_1; //热水器继电器电平同步动作触发
+		PIN_RELAY_2 = PIN_RELAY_1; //热水器继电器电平同步动作触发
 	}
 	
 #else

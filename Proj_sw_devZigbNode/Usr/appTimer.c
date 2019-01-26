@@ -262,6 +262,7 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 						swCommand_fromUsr.objRelay = 2;
 						swCommand_fromUsr.actMethod = relay_OnOff;
 						devActionPush_IF.push_IF = 1; //推送使能
+						EACHCTRL_realesFLG = 1; //有效互控触发
 					}
 					
 				}break;
@@ -408,6 +409,8 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 				dev_agingCmd_sndInitative.agingCmd_delaySetOpreat = 1; //对应主动上传时效占位置一
 				
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+				if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //风扇响应值为1、2、4；实际值为1、2、3 --转换
+				
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 				EACHCTRL_realesFLG = 1;
 				
@@ -446,6 +449,8 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 				dev_agingCmd_sndInitative.agingCmd_greenModeSetOpreat = 1; //对应主动上传时效占位置一
 			
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+				if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //风扇响应值为1、2、4；实际值为1、2、3 --转换
+				
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 				EACHCTRL_realesFLG = 1;
 				
@@ -463,6 +468,9 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 #endif	
 			}
 		}
+		
+		/*zigb硬件器件延迟启动计时变量更新*///延迟启动
+		if(devZigbNwk_startUp_delayCounter)devZigbNwk_startUp_delayCounter --;
 		
 		/*场景周期询查挂起计时值更新*///挂起作用<<
 		if(heartBeatHang_timeCnt)heartBeatHang_timeCnt --;
@@ -501,7 +509,11 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 		if(tipsTimeCount_factoryRecover)tipsTimeCount_factoryRecover --;
 		
 		/*协调器失联/丢失 确认倒计时*/
-		if(timeCounter_coordinatorLost_detecting)timeCounter_coordinatorLost_detecting --;
+		if(timeCounter_coordinatorLost_detecting)timeCounter_coordinatorLost_detecting --; 
+		else{
+		
+			timeCounter_coordinatorLost_keeping ++; //网关失联累计时间计时
+		}
 	}
 
 	//***************串口接收超时时长计数*******************************//

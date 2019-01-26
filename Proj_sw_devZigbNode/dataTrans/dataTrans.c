@@ -39,6 +39,9 @@ bit coordinatorOnline_IF = 0; //协调器在线标志
 //zigb网络动作专用时间计数
 u16 xdata zigbNwkAction_counter = 0;
 
+//zigb器件延时启动时间计时变量 --首次开机上电启动时，zigb器件延迟启动，防止上一次更换网关时子设备没有完全挂起
+u16 idata devZigbNwk_startUp_delayCounter = 20;
+
 //zigb设备网络挂起属性参数
 attr_devNwkHold	xdata devNwkHoldTime_Param = {0};
 
@@ -67,8 +70,10 @@ uartTout_datsRcv xdata datsRcv_ZIGB = {{0}, 0};
 //zigbee通信线程当前运行状态标志
 threadRunning_Status devRunning_Status = status_NULL;
 
-//zigbee协调器丢失检测计时变量
-u8 xdata timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM;
+//zigbee协调器丢失检测计时变量 --限定时间内没有收到网关的数据
+u8 xdata timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM; 
+//zigbee协调器丢失后有多长时间 --网关丢失后开始计时
+u8 xdata timeCounter_coordinatorLost_keeping = 0;
 
 u8	xdata factoryRecover_HoldTimeCount = 0; //恢复出厂等待时间
 bit idata factoryRecover_standBy_FLG = 0; //恢复出厂预置标志
@@ -800,7 +805,11 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		devRunning_Status = status_passiveDataRcv; //外部状态切换
 		devTips_status = status_Normal; //设备系统tips状态切换
 		
-		dev_currentPanid = ZigB_getPanIDCurrent(); //更新一次PANID,避免二次重新加网残留老的PANID
+		timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM; //网关失联检测时间重置 
+		
+		if(reJoin_IF)statusSave_zigbNwk_nwkExistIF(1); //网络存在本地存储判断值更新为已存在
+		
+		dev_currentPanid = ZigB_getPanIDCurrent(); //读取更新一次PANID,避免二次重新加网残留老的PANID
 		
 #if(DEBUG_LOGOUT_EN == 1)
 		{ //输出打印，谨记 用后注释，否则占用大量代码空间
@@ -813,7 +822,7 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		return;
 	}
 	
-	if(!reJoin_IF)if(step_CortexA == 0)step_CortexA = 7; //是否为重新主动加入新网络，否则不进行硬件复位(硬件复位将导致本地时间被重置)
+	if(!reJoin_IF)if(step_CortexA == 1)step_CortexA = 7; //是否为重新主动加入新网络，否则不进行硬件复位(硬件复位将导致本地时间被重置) 从1开始就有硬件复位，否则没用
 	if((step_CortexA == 7) || (step_CortexA == 0))sysTimeReales_counter	= PERIOD_SYSTIMEREALES; //非阻塞关键指令不能被阻塞指令打断（硬件复位 和 入网时 中断阻塞指令下达）
 	
 #if(DEBUG_LOGOUT_EN == 1)
@@ -1079,6 +1088,9 @@ void dataTransRequest_datsSend(void){
 	static u8 step = 0;
 	static u8 reactionLoop = 0;
 	
+	const  u8 dataReq_failLoop_limit = 15; //失败次数限定值
+	static u8 dataReq_failLoop_record = 0; //失败次数记录 -超出限制将触发重连
+	
 	if(devStatus_switch.statusChange_IF){	//状态强制切换时，将当前子状态内静态变量初始化后再进行外部切换
 	
 		devStatus_switch.statusChange_IF = 0;
@@ -1262,16 +1274,6 @@ void dataTransRequest_datsSend(void){
 		}break;
 		
 		case 4:{ //响应失败
-		
-			if(reConnectAfterDatsReq_IF){ //针对即刻注册互控特殊情况 状态切换
-			
-				reConnectAfterDatsReq_IF = 0;
-				devRunning_Status = status_nwkReconnect;
-				
-			}else{ 
-			
-				devRunning_Status = status_passiveDataRcv;
-			}
 			
 			//针对数据传输失败响应代码情况进行选择性重连，否则仅时区协调器设备就gg
 			if(datsTrans_respondCode){ 
@@ -1279,7 +1281,7 @@ void dataTransRequest_datsSend(void){
 #if(DEBUG_LOGOUT_EN == 1)				
 				{ //输出打印，谨记 用后注释，否则占用大量代码空间
 					memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-					sprintf(log_buf, "remote dataRequest fail, code:[0x%02X].\n", (int)datsTrans_respondCode);
+					sprintf(log_buf, "remote dataRequest fail, code:[0x%02X] --loop%d.\n", (int)datsTrans_respondCode, (int)dataReq_failLoop_record);
 					PrintString1_logOut(log_buf);
 				}
 #endif	
@@ -1311,6 +1313,36 @@ void dataTransRequest_datsSend(void){
 			/*死磕属性复位*///属性设置仅生效一次
 			devRemoteDataReqMethod.keepTxUntilCmp_IF = 0; //死磕使能复位
 			devRemoteDataReqMethod.datsTxKeep_Period = 0; //死磕周期复位
+			
+			if(dataReq_failLoop_record < dataReq_failLoop_limit){ //数据传输失败次数超限，触发应用层重连
+					
+				if(heartBeatPeriod == PERIOD_HEARTBEAT_ASR)dataReq_failLoop_record += (dataReq_failLoop_limit / 3);
+				else dataReq_failLoop_record ++;
+			}
+			else
+			{
+			
+				dataReq_failLoop_record = 0;
+				devRunning_Status = status_nwkReconnect;
+				
+#if(DEBUG_LOGOUT_EN == 1)				
+				{ //输出打印，谨记 用后注释，否则占用大量代码空间
+					PrintString1_logOut(">>>dtFail too more, zigbee reconnect right now.\n");
+				}
+#endif	
+				return; //立即执行
+			}
+		
+			if(reConnectAfterDatsReq_IF){ //针对即刻注册互控特殊情况 状态切换
+			
+				reConnectAfterDatsReq_IF = 0;
+				devRunning_Status = status_nwkReconnect;
+				return; //立即执行
+				
+			}else{ 
+			
+				devRunning_Status = status_passiveDataRcv;
+			}
 			
 		}break;
 			
@@ -1748,6 +1780,8 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 				
 				bit respond_IF 		= 0;	//是否回复
 				bit specialCmd_IF 	= 0;	//是否为特殊指令（特殊指令占用开关类型那一个字节）
+				
+				beeps_usrActive(3, 50, 1);
 				
 #if(DEBUG_LOGOUT_EN == 1)
 				{ //输出打印，谨记 用后注释，否则占用大量代码空间
@@ -2363,6 +2397,10 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 										(swCommand_fromUsr.objRelay == 0x01)?(heater_ActParam.heater_currentActMode = heaterActMode_swKeepOpen):(heater_ActParam.heater_currentActMode = heaterActMode_swClose); //按键状态立马更新
 									}
 									
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+									swCommand_fromUsr.objRelay = dev_dataPointTemp.devStatus_Reference.statusRef_swStatus; //相同场景按键可反复操作
+									swCommand_fromUsr.actMethod = relay_OnOff;
+									
 #else
 									if((status_Relay & 0x07) != dev_dataPointTemp.devStatus_Reference.statusRef_swStatus){ 
 									
@@ -2481,6 +2519,7 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 									}
 									coverEEPROM_write_n(EEPROM_ADDR_swTimeTab, dev_dataPointTemp.devData_timer, sizeof(timing_Dats) * TIMEER_TABLENGTH); //直接更新eeprom数据
 									itrf_datsTiming_read_eeprom(); //普通开关定时表更新<<<运行缓存更新
+									timerActionDone_FLG_RESET(); //定时段完成标志清空复位，允许重复进行当前时间定时立即响应
 									
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //强制开关类型为红外转发器时，因为3bit不足以表示红外指令序号，所以需要使用另外扩展的8bytes来进行业务操作
 									
@@ -2824,10 +2863,28 @@ void thread_dataTrans(void){
 			
 				if(devTips_status == status_tipsNwkFind)tips_statusChangeToNormal(); //tips复原(网络已加入，恢复正常tips)
 				
-				if(!timeCounter_coordinatorLost_detecting){ //被动丢失网关
+				if(!timeCounter_coordinatorLost_detecting){ //被动丢失网关 -与网关失联
 				
 					devTips_nwkZigb = nwkZigb_outLine; //网关丢失tips与掉线tips判为一类
 					if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //触摸释放计时失能，网络通信异常，不让跑跑马灯
+					
+					if(timeCounter_coordinatorLost_keeping > COORDINATOR_LOST_PERIOD_CONFIRM){ //网关失联时间过长，触发重连
+					
+						timeCounter_coordinatorLost_keeping = 0; //网关丢失后累计计时变量重置
+						timeCounter_coordinatorLost_detecting = COORDINATOR_LOST_PERIOD_CONFIRM; //检测网关丢失计时变量重置
+						
+#if(DEBUG_LOGOUT_EN == 1)				
+						{ //输出打印，谨记 用后注释，否则占用大量代码空间
+							PrintString1_logOut(">>>coordinator lost too long, zigbee reconnect right now.\n");
+						}
+#endif	
+						devRunning_Status = status_nwkReconnect;
+						return; //立即执行
+					}
+					
+				}else{
+				
+					timeCounter_coordinatorLost_keeping = 0; //网关丢失时间计时变量复位
 				}
 			}
 			
@@ -2847,9 +2904,10 @@ void thread_dataTrans(void){
 						if((constandLoop_reserve % 3) == 0){ //输出打印，谨记 用后注释，否则占用大量代码空间(3个loop打印一次)
 							
 							memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-							sprintf(log_buf, ">>>dtCtrlEach loopParam:%d %d %d.\n", (int)datsSend_requestEx[0].constant_Loop,
-																					(int)datsSend_requestEx[1].constant_Loop,
-																					(int)datsSend_requestEx[2].constant_Loop);
+							sprintf(log_buf, ">>>dtCtrlEach loopParam:%d %d %d, data:%d.\n", (int)datsSend_requestEx[0].constant_Loop,
+																							 (int)datsSend_requestEx[1].constant_Loop,
+																							 (int)datsSend_requestEx[2].constant_Loop,
+																							 (int)datsSend_requestEx[0].dats[0]);
 							PrintString1_logOut(log_buf);
 						}	
 #endif
@@ -3031,7 +3089,7 @@ void thread_dataTrans(void){
 //					}
 #endif	
 				}
-				EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, &dev_currentDataPoint.devData_bkLight, 2); //背景灯数据
+				memcpy(&dev_currentDataPoint.devData_bkLight, &devBackgroundLight_param, 2); //背景灯数据填装
 				dev_currentDataPoint.devData_devReset = 0;
 				EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, dev_currentDataPoint.devData_switchBitBind, clusterNum_usr); //互控绑定数据
 				{ //根据设备类型，分类填装数据
@@ -3271,25 +3329,25 @@ void thread_dataTrans(void){
 				
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //调光开关的互控直接放在互控组一内，互控数据为状态值
-				if(EACHCTRL_realesFLG == 1){
+					if(EACHCTRL_realesFLG == 1){
+						
+						EACHCTRL_realesFLG = 0; //互控有效位清零
 					
-					EACHCTRL_realesFLG = 0; //互控有效位清零
-				
-					paramTX_temp[0] = status_Relay; //直接给亮度值
-					colonyCtrlGet_statusLocalEaCtrl[0] = paramTX_temp[0]; //本地互控状态查询值更新
-					localDataRecord_eaCtrl[0] = paramTX_temp[0];  //本地互控记录值更新
-					colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
-					
-					/*无视回码，持续性发送*///非常规
-					datsSend_requestEx[0].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
-					datsSend_requestEx[0].portPoint = CTRLEATHER_PORT[0]; //互控位对应绑定端口
-					memset(datsSend_requestEx[0].dats, 0, 10 * sizeof(u8));
-					
-					datsSend_requestEx[0].dats[0] = paramTX_temp[0];
-					datsSend_requestEx[0].dats[1] = 0; //下标2为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
-					datsSend_requestEx[0].datsLen = 2;
-					datsSend_requestEx[0].constant_Loop = 30; //无视回码，发30次		
-				}
+						paramTX_temp[0] = status_Relay; //直接给亮度值
+						colonyCtrlGet_statusLocalEaCtrl[0] = paramTX_temp[0]; //本地互控状态查询值更新
+						localDataRecord_eaCtrl[0] = paramTX_temp[0];  //本地互控记录值更新
+						colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
+						
+						/*无视回码，持续性发送*///非常规
+						datsSend_requestEx[0].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+						datsSend_requestEx[0].portPoint = CTRLEATHER_PORT[0]; //互控位对应绑定端口
+						memset(datsSend_requestEx[0].dats, 0, 10 * sizeof(u8));
+						
+						datsSend_requestEx[0].dats[0] = paramTX_temp[0];
+						datsSend_requestEx[0].dats[1] = 0; //下标2为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
+						datsSend_requestEx[0].datsLen = 2;
+						datsSend_requestEx[0].constant_Loop = 30; //无视回码，发30次		
+					}
 							
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
@@ -3596,7 +3654,16 @@ void thread_dataTrans(void){
 				if((datsRcv_ZIGB.rcvDats[0] == ZIGB_FRAME_HEAD) &&
 				   !memcmp(&datsRcv_ZIGB.rcvDats[2], cmd_nwkOpenNote, 2)){ //网络开放通知
 					
-					tips_statusChangeToZigbNwkOpen(datsRcv_ZIGB.rcvDats[4]); //tips触发
+					if(datsRcv_ZIGB.rcvDats[4])tips_statusChangeToZigbNwkOpen(datsRcv_ZIGB.rcvDats[4]); //tips触发 --仅响应开触发，不响应关触发
+					   
+#if(DEBUG_LOGOUT_EN == 1)
+					{ //输出打印，谨记 用后注释，否则占用大量代码空间
+						
+						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+						sprintf(log_buf, "zigbNwk open notice get:%ds.\n", (int)datsRcv_ZIGB.rcvDats[4]);
+						PrintString1_logOut(log_buf);
+					}			
+#endif
 				}
 			}
 			
@@ -3606,6 +3673,9 @@ void thread_dataTrans(void){
 		
 			//--------------------------------协状态：清除本地网络后重新入网请求-----------------------------------------------//
 			devTips_nwkZigb = nwkZigb_nwkREQ;
+			
+			countEN_ifTipsFree = 0; //禁止跑马灯
+			
 			zigB_nwkJoinRequest(1);	//非阻塞主动加入附近开放网络
 			
 		}break;
@@ -3614,7 +3684,34 @@ void thread_dataTrans(void){
 		
 			//--------------------------------协状态：网络重连请求-----------------------------------------------//
 			devTips_nwkZigb = nwkZigb_reConfig;
-			zigB_nwkJoinRequest(0);	//非阻塞重连
+			
+			countEN_ifTipsFree = 0; //禁止跑马灯
+			
+			if(zigbNwk_exist_FLG){ //网络存在就重连，否则一直复位挂起
+			
+				if(devZigbNwk_startUp_delayCounter){ //延迟启动时间内禁止zigb器件操作
+				
+					zigbPin_RESET = ZIGBMOD_RESET_LEVEL_ENABLE; //zigb复位 --禁止操作期
+				
+				}else{
+				
+					zigB_nwkJoinRequest(0);	//非阻塞重连
+				}
+
+			}else{
+			
+				zigbPin_RESET = ZIGBMOD_RESET_LEVEL_ENABLE; //zigb复位
+				
+				if(devStatus_switch.statusChange_IF){ //状态强制切换时，将当前子状态内静态变量初始化后再进行外部切换
+				
+					zigbPin_RESET = ZIGBMOD_RESET_LEVEL_DISABLE; //zigb器件恢复
+					
+					devStatus_switch.statusChange_IF = 0;
+					devRunning_Status = devStatus_switch.statusChange_standBy;
+					
+					return;
+				}
+			}
 			
 		}break;
 		

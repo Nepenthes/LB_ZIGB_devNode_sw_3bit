@@ -51,6 +51,9 @@ unsigned char xdata MAC_ID_DST[6] 	= {1,1,1,1,1,1};  //Ô¶¶ËMACµØÖ·Ä¬ÈÏÈ«ÊÇ1£¬È«Ê
 //Éè±¸Ëø±êÖ¾
 bit	deviceLock_flag	= false;
 
+//zigbÍøÂç´æÔÚ±êÖ¾
+bit zigbNwk_exist_FLG = 0;
+
 /*MAC¸üÐÂ*/
 void MAC_ID_Relaes(void){
 	
@@ -83,7 +86,7 @@ void devLockInfo_Reales(void){
 
 	u8 xdata deviceLock_IF = 0;
 
-	coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+	EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
 	
 	(deviceLock_IF)?(deviceLock_flag = 1):(deviceLock_flag = 0);
 }
@@ -130,6 +133,53 @@ u8 switchTypeReserve_GET(void){
 #endif
 	
 	return act_Reserve;
+}
+
+void statusSave_zigbNwk_nwkExistIF(bit nwkExistIF){
+	
+	u8 idata dataTemp = 0;
+
+	zigbNwk_exist_FLG = nwkExistIF;
+	
+	(nwkExistIF)?(dataTemp = DATASAVE_MASK_ZIGBNWK_EXIST):(dataTemp = DATASAVE_MASK_ZIGBNWK_EXISTNOT);
+	
+	coverEEPROM_write_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
+	
+#if(DEBUG_LOGOUT_EN == 1)	
+	{ //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+
+		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+		
+		sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
+		PrintString1_logOut(log_buf);
+	}
+#endif
+
+}
+
+bit statusGet_zigbNwk_nwkExistIF(void){
+
+	u8 idata dataTemp = 0;
+	
+	EEPROM_read_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
+	
+	if(dataTemp == DATASAVE_MASK_ZIGBNWK_EXIST)return 1;
+	else return 0;
+}
+
+void zigbNwkExist_detectReales(void){
+
+	zigbNwk_exist_FLG = statusGet_zigbNwk_nwkExistIF();
+	
+#if(DEBUG_LOGOUT_EN == 1)	
+	{ //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+
+		memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+		
+		sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
+		PrintString1_logOut(log_buf);
+	}
+#endif
 }
 
 ///*³¡¾°ºÅ¶ÔÓ¦EEPROM´æ´¢Ë÷ÒýºÅ²éÕÒ*/
@@ -242,6 +292,9 @@ void Factory_recover(void){
 	
 	memset(datsTemp, 0xff, sizeof(bkLightColorInsert_paramAttr)); //±³¹âµÆ²ÎÊý³ö³§»¯ --³ö³§»¯0xffÌîÂú£¬´ÙÊ¹±³¹âµÆ³õÊ¼»¯Ê±²ÎÊý»Ö¸´ÖÁÄ¬ÈÏÖµ
 	coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, datsTemp, sizeof(bkLightColorInsert_paramAttr));
+	
+	datsTemp[0] = 0;
+	coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &datsTemp[0], 1); //ÖØÐÂ½âËø
 	
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)

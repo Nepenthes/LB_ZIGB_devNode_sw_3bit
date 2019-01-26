@@ -32,6 +32,8 @@ u8		 idata	delayUp_act						= 0;	//延时动作具体动作
 u16		 idata	delayCnt_closeLoop				= 0;	//绿色模式计时计数
 u8		 idata	delayPeriod_closeLoop			= 0;	//绿色模式动作周期
 
+static idata timeUp_actionDone_flg = 0; //静态值, 同一分钟内定时器响应动作完成标志<避免重复响应>, bit0对应定时段0, bit7对应定时段7, 以此类推
+
 static	timing_Dats xdata timDatsTemp_CalibrateTab[TIMEER_TABLENGTH] = {0};	/*定时起始时刻表缓存*///起始时刻及属性
 static	timing_Dats xdata nightDatsTemp_CalibrateTab[2] = {0};	/*夜间模式起始时刻表缓存*///起始时刻及属性
 
@@ -156,11 +158,14 @@ void time_Logout(stt_Time code timeDats){
 }
 #endif
 
+void timerActionDone_FLG_RESET(void){
+
+	timeUp_actionDone_flg = 0;
+}
+
 void thread_Timing(void){
 
 	u8 loop = 0;
-	
-	static idata timeUp_actionDone_flg = 0; //静态值, 同一分钟内定时器响应动作完成标志<避免重复响应>, bit0对应定时段0, bit7对应定时段7, 以此类推
 
 #if(DEBUG_LOGOUT_EN == 1)	
 	{ //调试log代码-当前时间输出
@@ -340,6 +345,8 @@ void thread_Timing(void){
 
 /*补充动作*/						
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+						if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //风扇响应值为1、2、4；实际值为1、2、3 --转换
+						
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 						if(swCommand_fromUsr.objRelay == 1)swCommand_fromUsr.objRelay = 100; //调光值 1 改为 100
 						EACHCTRL_realesFLG = 1; //有效互控触发

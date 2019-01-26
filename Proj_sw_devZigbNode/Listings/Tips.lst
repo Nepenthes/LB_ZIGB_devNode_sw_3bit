@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 1   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIPS
@@ -62,7 +62,7 @@ line level    source
   52   1      
   53   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       P5M1 &= ~(0x10);
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 2   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 2   
 
                       P5M0 |= 0x10;
                       
@@ -126,7 +126,7 @@ line level    source
  113   1              
  114   1              EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, (u8 *)&devBackgroundLight_param, sizeof(bkLightColorInsert_par
              -amAttr)); //²ÎÊý¶ÁÈ¡
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 3   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 3   
 
  115   1              
  116   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS) //²ÎÊýÔ¤´¦Àí
@@ -153,15 +153,15 @@ line level    source
               //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //²ÎÊýÔ¤´¦Àí£¬ÎÞÌØÊâ£¬ËæÄ¬ÈÏ
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO) //²ÎÊýÔ¤´¦Àí
                       if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig > (TIPS_SWBKCOLOR_TYP
-             -ENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig = 5; //ÂÌ
+             -ENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig = 8; //À¶
                       if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig > (TIPS_SWBKCOLOR_T
-             -YPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig = 8; //À¶
+             -YPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig = 5; //ÂÌ
               
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER) //²ÎÊýÔ¤´¦Àí£¬ÈÈË®Æ÷ÎªÇ¿ÖÆ±³¹â
-                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open = 5; //ÂÌ
+                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open = 2; //ºì
                       devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close = 0; //ºÚ
-                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30 = 8; //À¶
-                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60 = 2; //ºì
+                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30 = 5; //ÂÌ
+                      devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60 = 8; //À¶
               
               #else
  141   1              switch(SWITCH_TYPE){
@@ -190,7 +190,7 @@ line level    source
  156   3                              
  157   3                      }break;
  158   2                      
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 4   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 4   
 
  159   2                      default:{}break;
  160   2              }
@@ -254,7 +254,7 @@ line level    source
  217   1              thread_tipsGetDark(0x0F);
  218   1              beeps_usrActive(3, 40, 2);
  219   1      }
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 5   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 5   
 
  220          
  221          /*led×´Ì¬Ö¸Ê¾Ä£Ê½ÇÐ»»ÖÁ»Ö¸´³ö³§Ä£Ê½*/
@@ -318,7 +318,7 @@ line level    source
                                               
                                                       tips_Type = !tips_Type;
                                                       
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 6   
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 6   
 
                                                       switch(devTips_nwkZigb){
                                                       
@@ -354,7 +354,9 @@ line level    source
                                                               case nwkZigb_reConfig:{ //¼ä½Ó1000 ³£ÉÁ
                                                               
                                                                       counter_tipsAct = 1000;
-                                                                      (tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+                                                                      if(zigbNwk_exist_FLG)(tips_Type)?(socketTips_B = 5):(socketTips_B = 0); //ÖØÁ¬ --±¾µØÓÐÍøÂç¼ÇÂ¼£¬ÖØ
+             -Á¬
+                                                                      else socketTips_B = 0; //ÖØÁ¬ --±¾µØÃ»ÓÐÓÐÍøÂç¼ÇÂ¼£¬²»´æÔÚÖØÁ¬
                                                                       
                                                               }break;
                                                               
@@ -380,10 +382,10 @@ line level    source
                                                                               socketTips_B = 0;
                                                                       }
                                                                       
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 7   
+
                                                               }break;
                                                               
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 7   
-
                                                               default:{
                                                               
                                                                       devTips_nwkZigb = nwkZigb_Normal;
@@ -444,10 +446,10 @@ line level    source
                                                               case nwkZigb_nwkOpen:{
                                                               
                                                                       if(tipsEn_Loop < (3 * 2)){ //ÖÜÆÚÉÁ3
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 8   
+
                                                                       
                                                                               tipsEn_Loop ++;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 8   
-
                                                                               counter_tipsAct = 150;
                                                                               (tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
                                                                               
@@ -467,9 +469,11 @@ line level    source
                                                               }break;
                                                               
                                                               case nwkZigb_reConfig:{ //¼ä½Ó1000 ³£ÉÁ
-                                                              
+                                                                      
                                                                       counter_tipsAct = 1000;
-                                                                      (tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+                                                                      if(zigbNwk_exist_FLG)(tips_Type)?(socketTips_B = 5):(socketTips_B = 0); //ÖØÁ¬ --±¾µØÓÐÍøÂç¼ÇÂ¼£¬ÖØ
+             -Á¬
+                                                                      else socketTips_B = 0; //ÖØÁ¬ --±¾µØÃ»ÓÐÓÐÍøÂç¼ÇÂ¼£¬²»´æÔÚÖØÁ¬
                                                                       
                                                               }break;
                                                               
@@ -506,13 +510,13 @@ line level    source
                                               }
                                               
                                               tipsLED_colorSet(obj_Relay1, socketTips_R, 0, socketTips_B);
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 9   
+
                                       }
                                       
                               }break;
                               
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 9   
-
-                              default:{ //²å×ùÃ»ÓÐÇ°Ì¨tips
+                              default:{ //ºìÍâÃ»ÓÐÇ°Ì¨tips
                               
                                       tips_statusChangeToNormal();
                                       
@@ -527,61 +531,61 @@ line level    source
                       }
                       
               #else
- 481   1              switch(devTips_status){
- 482   2              
- 483   2                      case status_sysStandBy:{
- 484   3                      
- 485   3                              tips_sysStandBy();
- 486   3                              
- 487   3                      }break;
- 488   2                              
- 489   2                      case status_keyFree:{
- 490   3                      
- 491   3                              tips_sysButtonReales();
+ 483   1              switch(devTips_status){
+ 484   2              
+ 485   2                      case status_sysStandBy:{
+ 486   3                      
+ 487   3                              tips_sysStandBy();
+ 488   3                              
+ 489   3                      }break;
+ 490   2                              
+ 491   2                      case status_keyFree:{
  492   3                      
- 493   3                      }break;
- 494   2                      
- 495   2                      case status_Night:
- 496   2                      case status_Normal:{
- 497   3                              
- 498   3                              static u16 tipsNwk_Counter = 0;
- 499   3                              u16 code tipsNwk_Period = 500;
- 500   3                              u8 relayStatus_tipsTemp = status_Relay;
- 501   3                              
- 502   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){ //Ëæ¼ÌµçÆ÷
- 503   4                              
- 504   4                                      relayStatus_tipsTemp |= status_Relay & 0x01; //ÏÔ´æ1¼ÓÔØ
- 505   4                                      relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //ÏÔ´æ1´¦Àí
- 506   4      
- 507   4                              }else
- 508   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){ //Ëæ¼ÌµçÆ÷
- 509   4      
- 510   4                                      relayStatus_tipsTemp |= status_Relay & 0x02; //ÏÔ´æ2¼ÓÔØ
- 511   4                                      relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //ÏÔ´æ2´¦Àí
- 512   4                                      relayStatus_tipsTemp |= status_Relay & 0x01; //ÏÔ´æ1¼ÓÔØ
- 513   4      
- 514   4                              }else
- 515   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT3){ //Ëæ¼ÌµçÆ÷
- 516   4      
- 517   4                                      relayStatus_tipsTemp = status_Relay; //Ö±½Ó¼ÓÔØ£¬²»´¦Àí
- 518   4                                      
- 519   4                              }else
- 520   3                              if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN || SWITCH_TYPE == SWITCH_TYPE_FANS){ //Ëæ¼ÌµçÆ÷
- 521   4                                      
- 522   4                                      relayStatus_tipsTemp = status_Relay;
+ 493   3                              tips_sysButtonReales();
+ 494   3                      
+ 495   3                      }break;
+ 496   2                      
+ 497   2                      case status_Night:
+ 498   2                      case status_Normal:{
+ 499   3                              
+ 500   3                              static u16 tipsNwk_Counter = 0;
+ 501   3                              u16 code tipsNwk_Period = 500;
+ 502   3                              u8 relayStatus_tipsTemp = status_Relay;
+ 503   3                              
+ 504   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1){ //Ëæ¼ÌµçÆ÷
+ 505   4                              
+ 506   4                                      relayStatus_tipsTemp |= status_Relay & 0x01; //ÏÔ´æ1¼ÓÔØ
+ 507   4                                      relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //ÏÔ´æ1´¦Àí
+ 508   4      
+ 509   4                              }else
+ 510   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT2){ //Ëæ¼ÌµçÆ÷
+ 511   4      
+ 512   4                                      relayStatus_tipsTemp |= status_Relay & 0x02; //ÏÔ´æ2¼ÓÔØ
+ 513   4                                      relayStatus_tipsTemp = relayStatus_tipsTemp << 1; //ÏÔ´æ2´¦Àí
+ 514   4                                      relayStatus_tipsTemp |= status_Relay & 0x01; //ÏÔ´æ1¼ÓÔØ
+ 515   4      
+ 516   4                              }else
+ 517   3                              if(SWITCH_TYPE == SWITCH_TYPE_SWBIT3){ //Ëæ¼ÌµçÆ÷
+ 518   4      
+ 519   4                                      relayStatus_tipsTemp = status_Relay; //Ö±½Ó¼ÓÔØ£¬²»´¦Àí
+ 520   4                                      
+ 521   4                              }else
+ 522   3                              if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN || SWITCH_TYPE == SWITCH_TYPE_FANS){ //Ëæ¼ÌµçÆ÷
  523   4                                      
- 524   4                              }else
- 525   3                              if(SWITCH_TYPE == SWITCH_TYPE_dIMMER){ //Ëæ´¥Ãþ
- 526   4                                      
- 527   4                                      relayStatus_tipsTemp = touchPadScan_oneShoot();
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 10  
+ 524   4                                      relayStatus_tipsTemp = status_Relay;
+ 525   4                                      
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 10  
 
- 528   4                              }
- 529   3      
- 530   3                              /*¼ÌµçÆ÷×´Ì¬Ö¸Ê¾*/
- 531   3                              switch(SWITCH_TYPE){
- 532   4                                      
- 533   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)                           
+ 526   4                              }else
+ 527   3                              if(SWITCH_TYPE == SWITCH_TYPE_dIMMER){ //Ëæ´¥Ãþ
+ 528   4                                      
+ 529   4                                      relayStatus_tipsTemp = touchPadScan_oneShoot();
+ 530   4                              }
+ 531   3      
+ 532   3                              /*¼ÌµçÆ÷×´Ì¬Ö¸Ê¾*/
+ 533   3                              switch(SWITCH_TYPE){
+ 534   4                                      
+ 535   4      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)                           
                                               case SWITCH_TYPE_FANS:{
                                               
                                                       switch(relayStatus_tipsTemp){ //·ÇÕ¼Î»Ö¸Ê¾
@@ -634,12 +638,12 @@ line level    source
                                                                       
                                                               case 0x03:{
                                                               
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 11  
+
                                                                       tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColo
              -rInsert_gear3].colorGray_R, 
                                                                                                                                color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorG
              -ray_G, 
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 11  
-
                                                                                                                                color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColorInsert_gear3].colorG
              -ray_B);
                                                                       tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColo
@@ -698,12 +702,12 @@ line level    source
              -mer_BKlightColorInsert_brightness100; //ÁÁ¶ÈÎª100Ê±µ¯ÆðÉ«
                                                       else TIPSBKCOLOR_USRDEF_UP = devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_
              -brightness1to99; //ÁÁ¶ÈÎª1-99Ê±µ¯ÆðÉ«
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 12  
+
                                               
                                                       switch(relayStatus_tipsTemp){ //·ÇÕ¼Î»Ö¸Ê¾
                                                       
                                                               case 0x01:{
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 12  
-
                                                               
                                                                       tipsLED_colorSet(obj_Relay1, color_Tab[TIPSBKCOLOR_USRDEF_PRESS].colorGray_R, color_Tab[TIPSBKCOLOR
              -_USRDEF_PRESS].colorGray_G, color_Tab[TIPSBKCOLOR_USRDEF_PRESS].colorGray_B);
@@ -762,12 +766,12 @@ line level    source
                                                               tipsFlash_flg = !tipsFlash_flg;
                                                       }
                                               
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 13  
+
                                                       switch(scenario_ActParam.scenarioKey_currentTrig){
                                                       
                                                               case scenarioKey_current_S1:{
                                                               
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 13  
-
                                                                       tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKl
              -ightColorInsert_notrig].colorGray_R, 
                                                                                                                                color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notri
@@ -826,12 +830,12 @@ line level    source
              -g].colorGray_B);
                                                                       
                                                                       if(scenario_ActParam.scenarioKeepTrig_timeCounter && scenario_ActParam.scenarioKeepTrig_timeCounter
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 14  
+
              - != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
                                                                       
                                                                               (tipsFlash_flg)?\
                                                                                       (tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 14  
-
              -BKlightColorInsert_trig].colorGray_R, 
                                                                                                                                                 color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_tr
              -ig].colorGray_G, 
@@ -890,12 +894,12 @@ line level    source
                                                                               
                                                                       }else{
                                                                       
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 15  
+
                                                                               tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BK
              -lightColorInsert_trig].colorGray_R, 
                                                                                                                                        color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig
              -].colorGray_G, 
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 15  
-
                                                                                                                                        color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig
              -].colorGray_B);
                                                                       }
@@ -954,12 +958,12 @@ line level    source
                                                                                                                                color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].col
              -orGray_G, 
                                                                                                                                color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].col
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 16  
+
              -orGray_B);
                                                                       
                                                               }break;
                                                                       
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 16  
-
                                                               case heaterActMode_swCloseDelay30min:{
                                                               
                                                                       tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlight
@@ -988,976 +992,984 @@ line level    source
                                               }break;
                                               
               #else                   
- 806   4                                      case SWITCH_TYPE_CURTAIN:{
- 807   5                                      
- 808   5                                              switch(relayStatus_tipsTemp){ //·ÇÕ¼Î»Ö¸Ê¾
- 809   6                                              
- 810   6                                                      case 0x01:{
- 811   7                                                      
- 812   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+ 808   4                                      case SWITCH_TYPE_CURTAIN:{
+ 809   5                                      
+ 810   5                                              switch(relayStatus_tipsTemp){ //·ÇÕ¼Î»Ö¸Ê¾
+ 811   6                                              
+ 812   6                                                      case 0x01:{
+ 813   7                                                      
+ 814   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
              -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
- 813   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+ 815   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_bounce].colorGray_G, 
- 814   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_B);
- 815   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
  816   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_G, 
- 817   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_bounce].colorGray_B);
- 818   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+ 817   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+ 818   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_G, 
  819   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_press].colorGray_G, 
- 820   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_press].colorGray_B);
- 821   7                                                      
- 822   7                                                      }break;
- 823   6                                                              
- 824   6                                                      case 0x04:{
- 825   7                                                      
- 826   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -tain_BKlightColorInsert_bounce].colorGray_B);
+ 820   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
              -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
- 827   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+ 821   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_press].colorGray_G, 
- 828   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 17  
-
+ 822   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_press].colorGray_B);
- 829   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+ 823   7                                                      
+ 824   7                                                      }break;
+ 825   6                                                              
+ 826   6                                                      case 0x04:{
+ 827   7                                                      
+ 828   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 17  
+
+             -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+ 829   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_press].colorGray_G, 
  830   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_G, 
- 831   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_B);
- 832   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
- 833   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_G, 
- 834   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_B);
- 835   7                                                      
- 836   7                                                      }break;
- 837   6                                                      
- 838   6                                                      default:{
- 839   7                                                      
- 840   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
- 841   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_G, 
- 842   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_bounce].colorGray_B);
- 843   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-             -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
- 844   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
-             -tain_BKlightColorInsert_press].colorGray_G, 
- 845   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_press].colorGray_B);
- 846   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+ 831   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
              -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
- 847   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+ 832   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_bounce].colorGray_G, 
- 848   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+ 833   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
              -tain_BKlightColorInsert_bounce].colorGray_B);
- 849   7                                                      
- 850   7                                                      }break;
- 851   6                                              }
- 852   5                                      
- 853   5                                      }break;
- 854   4                                      
- 855   4                                      case SWITCH_TYPE_SWBIT1:
- 856   4                                      case SWITCH_TYPE_SWBIT2:
- 857   4                                      case SWITCH_TYPE_SWBIT3:
- 858   4                                      default:{ //Õ¼Î»Ö¸Ê¾
- 859   5                                              
- 860   5                                              (DEV_actReserve & 0x01)?\
- 861   5                                                      ((relayStatus_tipsTemp & 0x01)?\
- 862   5                                                              (tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+ 834   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+ 835   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_G, 
+ 836   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_B);
+ 837   7                                                      
+ 838   7                                                      }break;
+ 839   6                                                      
+ 840   6                                                      default:{
+ 841   7                                                      
+ 842   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+ 843   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_G, 
+ 844   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_B);
+ 845   7                                                              tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
+ 846   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_press].colorGray_G, 
+ 847   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_press].colorGray_B);
+ 848   7                                                              tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
+             -in_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
+ 849   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_G, 
+ 850   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
+             -tain_BKlightColorInsert_bounce].colorGray_B);
+ 851   7                                                      
+ 852   7                                                      }break;
+ 853   6                                              }
+ 854   5                                      
+ 855   5                                      }break;
+ 856   4                                      
+ 857   4                                      case SWITCH_TYPE_SWBIT1:
+ 858   4                                      case SWITCH_TYPE_SWBIT2:
+ 859   4                                      case SWITCH_TYPE_SWBIT3:
+ 860   4                                      default:{ //Õ¼Î»Ö¸Ê¾
+ 861   5                                              
+ 862   5                                              (DEV_actReserve & 0x01)?\
+ 863   5                                                      ((relayStatus_tipsTemp & 0x01)?\
+ 864   5                                                              (tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
              -t_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
- 863   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+ 865   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
              -t_BKlightColorInsert_open].colorGray_G, 
- 864   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_open].colorGray_B)):\
- 865   5                                                              (tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
-             -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
  866   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_close].colorGray_G, 
- 867   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_close].colorGray_B))):\
- 868   5                                                      (tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 18  
+             -t_BKlightColorInsert_open].colorGray_B)):\
+ 867   5                                                              (tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+             -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
+ 868   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 18  
 
+             -t_BKlightColorInsert_close].colorGray_G, 
+ 869   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+             -t_BKlightColorInsert_close].colorGray_B))):\
+ 870   5                                                      (tipsLED_colorSet(obj_Relay1, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
              -Unused.colorGray_B));
- 869   5                                              
- 870   5                                              (DEV_actReserve & 0x02)?\
- 871   5                                                      ((relayStatus_tipsTemp & 0x02)?\
- 872   5                                                              (tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+ 871   5                                              
+ 872   5                                              (DEV_actReserve & 0x02)?\
+ 873   5                                                      ((relayStatus_tipsTemp & 0x02)?\
+ 874   5                                                              (tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
              -t_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
- 873   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+ 875   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
              -t_BKlightColorInsert_open].colorGray_G, 
- 874   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_open].colorGray_B)):\
- 875   5                                                              (tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
-             -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
  876   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_close].colorGray_G, 
- 877   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_close].colorGray_B))):\
- 878   5                                                      (tipsLED_colorSet(obj_Relay2, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
-             -Unused.colorGray_B)); 
- 879   5                                              
- 880   5                                              (DEV_actReserve & 0x04)?\
- 881   5                                                      ((relayStatus_tipsTemp & 0x04)?\
- 882   5                                                              (tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
-             -t_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
- 883   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-             -t_BKlightColorInsert_open].colorGray_G, 
- 884   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
              -t_BKlightColorInsert_open].colorGray_B)):\
- 885   5                                                              (tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+ 877   5                                                              (tipsLED_colorSet(obj_Relay2, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
              -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
- 886   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+ 878   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
              -t_BKlightColorInsert_close].colorGray_G, 
- 887   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+ 879   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
              -t_BKlightColorInsert_close].colorGray_B))):\
- 888   5                                                      (tipsLED_colorSet(obj_Relay3, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
+ 880   5                                                      (tipsLED_colorSet(obj_Relay2, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
              -Unused.colorGray_B)); 
- 889   5                                              
- 890   5                                      }break;
- 891   4                                      
- 892   4      #endif
- 893   4                              }
- 894   3                              
- 895   3                              /*¹ýÆÚtips´¦Àí*/
- 896   3                              {
- 897   4                              
- 898   4                                      if((devTips_nwkZigb == nwkZigb_nwkOpen) && !tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_Normal;
+ 881   5                                              
+ 882   5                                              (DEV_actReserve & 0x04)?\
+ 883   5                                                      ((relayStatus_tipsTemp & 0x04)?\
+ 884   5                                                              (tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+             -t_BKlight_Param.sw3bit_BKlightColorInsert_open].colorGray_R, 
+ 885   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+             -t_BKlightColorInsert_open].colorGray_G, 
+ 886   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+             -t_BKlightColorInsert_open].colorGray_B)):\
+ 887   5                                                              (tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
+             -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
+ 888   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+             -t_BKlightColorInsert_close].colorGray_G, 
+ 889   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
+             -t_BKlightColorInsert_close].colorGray_B))):\
+ 890   5                                                      (tipsLED_colorSet(obj_Relay3, tips_relayUnused.colorGray_R, tips_relayUnused.colorGray_G, tips_relay
+             -Unused.colorGray_B)); 
+ 891   5                                              
+ 892   5                                      }break;
+ 893   4                                      
+ 894   4      #endif
+ 895   4                              }
+ 896   3                              
+ 897   3                              /*¹ýÆÚtips´¦Àí*/
+ 898   3                              {
+ 899   4                              
+ 900   4                                      if((devTips_nwkZigb == nwkZigb_nwkOpen) && !tipsTimeCount_zigNwkOpen)devTips_nwkZigb = nwkZigb_Normal;
              - //ÍøÂç¿ª·ÅºóÌ¨tips¹ýÆÚ»Ö¸´
- 899   4                              }
- 900   3                              
- 901   3                              /*zigbÍøÂç×´Ì¬Ö¸Ê¾*/
- 902   3                              {
- 903   4                                      static bit tips_Type = 0;
- 904   4                                      
- 905   4                                      if(tipsNwk_Counter < tipsNwk_Period)tipsNwk_Counter ++;
- 906   4                                      else{
- 907   5                                      
- 908   5                                              tips_Type = !tips_Type;
- 909   5                                              tipsNwk_Counter = 0;
- 910   5                                              
- 911   5                                              switch(devTips_nwkZigb){
- 912   6                                              
- 913   6                                                      case nwkZigb_Normal:{
- 914   7                                                      
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 19  
+ 901   4                              }
+ 902   3                              
+ 903   3                              /*zigbÍøÂç×´Ì¬Ö¸Ê¾*/
+ 904   3                              {
+ 905   4                                      static bit tips_Type = 0;
+ 906   4                                      
+ 907   4                                      if(tipsNwk_Counter < tipsNwk_Period)tipsNwk_Counter ++;
+ 908   4                                      else{
+ 909   5                                      
+ 910   5                                              tips_Type = !tips_Type;
+ 911   5                                              tipsNwk_Counter = 0;
+ 912   5                                              
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 19  
 
- 915   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)); //
-             -³£ÂÌ
+ 913   5                                              switch(devTips_nwkZigb){
+ 914   6                                              
+ 915   6                                                      case nwkZigb_Normal:{
  916   7                                                      
- 917   7                                                      }break;
- 918   6                                                      
- 919   6                                                      case nwkZigb_nwkOpen:{
- 920   7                                                      
- 921   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //Â
+ 917   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)); //
+             -³£ÂÌ
+ 918   7                                                      
+ 919   7                                                      }break;
+ 920   6                                                      
+ 921   6                                                      case nwkZigb_nwkOpen:{
+ 922   7                                                      
+ 923   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 0, 30, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //Â
              -ÌÉÁ
- 922   7                                                              
- 923   7                                                      }break;
- 924   6                                                      
- 925   6                                                      case nwkZigb_outLine:{
- 926   7                                                      
- 927   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)); //
-             -³£ºì
+ 924   7                                                              
+ 925   7                                                      }break;
+ 926   6                                                      
+ 927   6                                                      case nwkZigb_outLine:{
  928   7                                                      
- 929   7                                                      }break;
- 930   6                                                      
- 931   6                                                      case nwkZigb_reConfig:{
- 932   7                                                      
- 933   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)):(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)); 
-             -//³£»Æ
+ 929   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)); //
+             -³£ºì
+ 930   7                                                      
+ 931   7                                                      }break;
+ 932   6                                                      
+ 933   6                                                      case nwkZigb_reConfig:{
  934   7                                                              
- 935   7                                                      }break;
- 936   6                                                      
- 937   6                                                      case nwkZigb_nwkREQ:{
- 938   7                                                      
- 939   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //
+ 935   7                                                              if(zigbNwk_exist_FLG){ //ÍøÂç´æÔÚ
+ 936   8                                                              
+ 937   8                                                                      if(devZigbNwk_startUp_delayCounter)(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_
+             -colorSet(obj_zigbNwk, 0, 0, 0)); //ºìÉÁ
+ 938   8                                                                      else tipsLED_colorSet(obj_zigbNwk, 30, 10, 0); //³£»Æ --ÓÐÍøÂç¼ÇÂ¼£¬ÖØÁ¬ÖÐ
+ 939   8                                                              
+ 940   8                                                              }else{ //ÍøÂç²»´æÔÚ
+ 941   8                                                                      
+ 942   8                                                                      tipsLED_colorSet(obj_zigbNwk, 0, 0, 0); //³£ºÚ --±¾ÉíÃ»ÓÐÍøÂç¼ÇÂ¼
+ 943   8                                                              }
+ 944   7                                                              
+ 945   7                                                      }break;
+ 946   6                                                      
+ 947   6                                                      case nwkZigb_nwkREQ:{
+ 948   7                                                      
+ 949   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //
              -»ÆÉÁ
- 940   7                                                      
- 941   7                                                      }break;
- 942   6                                                      
- 943   6                                                      case nwkZigb_hold:{
- 944   7                                                      
- 945   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //º
-             -ìÉÁ
- 946   7                                                              
- 947   7                                                      }break;
- 948   6                                                      
- 949   6                                                      default:{
  950   7                                                      
- 951   7                                                              devTips_nwkZigb = nwkZigb_Normal;
- 952   7                                                      
- 953   7                                                      }break;
- 954   6                                              }
- 955   5                                      }
- 956   4                              }
- 957   3                              
- 958   3                      }break;
- 959   2                      
- 960   2                      case status_tipsNwkOpen:{
- 961   3                              
- 962   3                              if(tipsTimeCount_zigNwkOpen)tips_specified(1);
- 963   3                              else{
- 964   4      
- 965   4                                      tips_statusChangeToNormal();
- 966   4      #if(DEBUG_LOGOUT_EN == 1)
- 967   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 968   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 969   5                                              sprintf(log_buf, "zigbNwk Close.\n");
- 970   5                                              PrintString1_logOut(log_buf);
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 20  
+ 951   7                                                      }break;
+ 952   6                                                      
+ 953   6                                                      case nwkZigb_hold:{
+ 954   7                                                      
+ 955   7                                                              (tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //º
+             -ìÉÁ
+ 956   7                                                              
+ 957   7                                                      }break;
+ 958   6                                                      
+ 959   6                                                      default:{
+ 960   7                                                      
+ 961   7                                                              devTips_nwkZigb = nwkZigb_Normal;
+ 962   7                                                      
+ 963   7                                                      }break;
+ 964   6                                              }
+ 965   5                                      }
+ 966   4                              }
+ 967   3                              
+ 968   3                      }break;
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 20  
 
- 971   5                                      }                       
- 972   4      #endif  
- 973   4                              }
- 974   3                              
- 975   3                      }break;
- 976   2                      
- 977   2                      case status_tipsNwkFind:{
- 978   3                      
- 979   3                              tips_specified(0);
- 980   3                      
- 981   3                      }break;
- 982   2                      
- 983   2                      case status_devHold:{
- 984   3                      
- 985   3                              tips_warning();
- 986   3                              
- 987   3                      }break;
- 988   2                      
- 989   2                      case status_touchReset:{
+ 969   2                      
+ 970   2                      case status_tipsNwkOpen:{
+ 971   3                              
+ 972   3                              if(tipsTimeCount_zigNwkOpen)tips_specified(1);
+ 973   3                              else{
+ 974   4      
+ 975   4                                      tips_statusChangeToNormal();
+ 976   4      #if(DEBUG_LOGOUT_EN == 1)
+ 977   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+ 978   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 979   5                                              sprintf(log_buf, "zigbNwk Close.\n");
+ 980   5                                              PrintString1_logOut(log_buf);
+ 981   5                                      }                       
+ 982   4      #endif  
+ 983   4                              }
+ 984   3                              
+ 985   3                      }break;
+ 986   2                      
+ 987   2                      case status_tipsNwkFind:{
+ 988   3                      
+ 989   3                              tips_specified(0);
  990   3                      
- 991   3                              if(tipsTimeCount_touchReset)tips_sysTouchReset();
- 992   3                              else{
- 993   4                              
- 994   4                                      tips_statusChangeToNormal();
- 995   4      #if(DEBUG_LOGOUT_EN == 1)
- 996   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 997   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 998   5                                              sprintf(log_buf, "touch reset complete.\n");
- 999   5                                              PrintString1_logOut(log_buf);
-1000   5                                      }                       
-1001   4      #endif  
-1002   4                              }
-1003   3                              
-1004   3                      }break;
-1005   2                              
-1006   2                      default:{
-1007   3                      
-1008   3                              devTips_status = status_Normal;
-1009   3                              
-1010   3                      }break;
-1011   2              }
-1012   1      #endif
-1013   1      }
-1014          
-1015          void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B){
-1016   1      
-1017   1              if((devTips_status == status_Normal) ||
-1018   1                 (devTips_status == status_Night)){
-1019   2                         
-1020   2                      if(devTips_status == status_Night){     //Ò¹¼äÄ£Ê½£¬±³¹âÁÁ¶Èµ÷Õû
-1021   3                              
-1022   3                              u8 code bright_coef = 4;
-1023   3                      
-1024   3                              gray_R /= bright_coef;
-1025   3                              gray_G /= bright_coef;
-1026   3                              gray_B /= bright_coef;
-1027   3                      }
-1028   2              
-1029   2                      switch(obj){
-1030   3                      
-1031   3                              case obj_Relay1:{
-1032   4                              
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 21  
+ 991   3                      }break;
+ 992   2                      
+ 993   2                      case status_devHold:{
+ 994   3                      
+ 995   3                              tips_warning();
+ 996   3                              
+ 997   3                      }break;
+ 998   2                      
+ 999   2                      case status_touchReset:{
+1000   3                      
+1001   3                              if(tipsTimeCount_touchReset)tips_sysTouchReset();
+1002   3                              else{
+1003   4                              
+1004   4                                      tips_statusChangeToNormal();
+1005   4      #if(DEBUG_LOGOUT_EN == 1)
+1006   4                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+1007   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+1008   5                                              sprintf(log_buf, "touch reset complete.\n");
+1009   5                                              PrintString1_logOut(log_buf);
+1010   5                                      }                       
+1011   4      #endif  
+1012   4                              }
+1013   3                              
+1014   3                      }break;
+1015   2                              
+1016   2                      default:{
+1017   3                      
+1018   3                              devTips_status = status_Normal;
+1019   3                              
+1020   3                      }break;
+1021   2              }
+1022   1      #endif
+1023   1      }
+1024          
+1025          void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B){
+1026   1      
+1027   1              if((devTips_status == status_Normal) ||
+1028   1                 (devTips_status == status_Night)){
+1029   2                         
+1030   2                      if(devTips_status == status_Night){     //Ò¹¼äÄ£Ê½£¬±³¹âÁÁ¶Èµ÷Õû
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 21  
 
-1033   4                                      relay1_Tips.colorGray_R = gray_R;
-1034   4                                      relay1_Tips.colorGray_G = gray_G;
-1035   4                                      relay1_Tips.colorGray_B = gray_B;
-1036   4                                      
-1037   4                              }break;
-1038   3                              
-1039   3                              case obj_Relay2:{
-1040   4                              
-1041   4                                      relay2_Tips.colorGray_R = gray_R;
-1042   4                                      relay2_Tips.colorGray_G = gray_G;
-1043   4                                      relay2_Tips.colorGray_B = gray_B;
-1044   4                                      
-1045   4                              }break;
-1046   3                              
-1047   3                              case obj_Relay3:{
-1048   4                              
-1049   4                                      relay3_Tips.colorGray_R = gray_R;
-1050   4                                      relay3_Tips.colorGray_G = gray_G;
-1051   4                                      relay3_Tips.colorGray_B = gray_B;
-1052   4                                      
-1053   4                              }break;
-1054   3                                              
-1055   3                              case obj_zigbNwk:{
-1056   4                              
-1057   4                                      zigbNwk_Tips.colorGray_R = gray_R;
-1058   4                                      zigbNwk_Tips.colorGray_G = gray_G;
-1059   4                                      zigbNwk_Tips.colorGray_B = gray_B;
-1060   4                                      
-1061   4                              }break;
-1062   3                              
-1063   3                              default:break;
-1064   3                      }
-1065   2              }
-1066   1      }
-1067          
-1068          void tips_warning(void){
-1069   1      
-1070   1              static u8 xdata tipsStep = 0;
-1071   1              
-1072   1              switch(tipsStep){
-1073   2              
-1074   2                      case 0:{
-1075   3                      
-1076   3                              counter_tipsAct = 1000;
-1077   3                              tipsStep = 1;
-1078   3                      
-1079   3                      }break;
-1080   2                      
-1081   2                      case 1:{
-1082   3                      
-1083   3                              if(counter_tipsAct){
-1084   4                                      
-1085   4                                      if(counter_tipsAct % 199 > 99){
-1086   5                                      
-1087   5                                              zigbNwk_Tips.colorGray_R = \
-1088   5                                              relay3_Tips.colorGray_R = \
-1089   5                                              relay2_Tips.colorGray_R = \
-1090   5                                              relay1_Tips.colorGray_R = 31;
-1091   5                                      
-1092   5                                      }else{
-1093   5                                      
-1094   5                                              zigbNwk_Tips.colorGray_R = \
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 22  
+1031   3                              
+1032   3                              u8 code bright_coef = 4;
+1033   3                      
+1034   3                              gray_R /= bright_coef;
+1035   3                              gray_G /= bright_coef;
+1036   3                              gray_B /= bright_coef;
+1037   3                      }
+1038   2              
+1039   2                      switch(obj){
+1040   3                      
+1041   3                              case obj_Relay1:{
+1042   4                              
+1043   4                                      relay1_Tips.colorGray_R = gray_R;
+1044   4                                      relay1_Tips.colorGray_G = gray_G;
+1045   4                                      relay1_Tips.colorGray_B = gray_B;
+1046   4                                      
+1047   4                              }break;
+1048   3                              
+1049   3                              case obj_Relay2:{
+1050   4                              
+1051   4                                      relay2_Tips.colorGray_R = gray_R;
+1052   4                                      relay2_Tips.colorGray_G = gray_G;
+1053   4                                      relay2_Tips.colorGray_B = gray_B;
+1054   4                                      
+1055   4                              }break;
+1056   3                              
+1057   3                              case obj_Relay3:{
+1058   4                              
+1059   4                                      relay3_Tips.colorGray_R = gray_R;
+1060   4                                      relay3_Tips.colorGray_G = gray_G;
+1061   4                                      relay3_Tips.colorGray_B = gray_B;
+1062   4                                      
+1063   4                              }break;
+1064   3                                              
+1065   3                              case obj_zigbNwk:{
+1066   4                              
+1067   4                                      zigbNwk_Tips.colorGray_R = gray_R;
+1068   4                                      zigbNwk_Tips.colorGray_G = gray_G;
+1069   4                                      zigbNwk_Tips.colorGray_B = gray_B;
+1070   4                                      
+1071   4                              }break;
+1072   3                              
+1073   3                              default:break;
+1074   3                      }
+1075   2              }
+1076   1      }
+1077          
+1078          void tips_warning(void){
+1079   1      
+1080   1              static u8 xdata tipsStep = 0;
+1081   1              
+1082   1              switch(tipsStep){
+1083   2              
+1084   2                      case 0:{
+1085   3                      
+1086   3                              counter_tipsAct = 1000;
+1087   3                              tipsStep = 1;
+1088   3                      
+1089   3                      }break;
+1090   2                      
+1091   2                      case 1:{
+1092   3                      
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 22  
 
-1095   5                                              relay3_Tips.colorGray_R = \
-1096   5                                              relay2_Tips.colorGray_R = \
-1097   5                                              relay1_Tips.colorGray_R = 0;
-1098   5                                      }
-1099   4                              
-1100   4                              }else{
-1101   4                              
-1102   4                                      counter_tipsAct = 600;
-1103   4                                      thread_tipsGetDark(0x0F);
-1104   4                                      tipsStep = 2;
-1105   4                              }
-1106   3                      
-1107   3                      }break;
-1108   2                      
-1109   2                      
-1110   2                      case 2:{
-1111   3                      
-1112   3                              if(!counter_tipsAct)tipsStep = 0;
-1113   3                              
-1114   3                      }break;
-1115   2                      
-1116   2                      default:{
-1117   3                      
-1118   3                              tipsStep = 0;
-1119   3                      
-1120   3                      }break;
-1121   2              }
-1122   1      }
-1123          
-1124          void tips_breath(void){
-1125   1      
-1126   1              static u8       localTips_Count = COLORGRAY_MAX - 1; //²½ÖèÖÐÆÚÇÐ»»³õÊ¼Öµ
-1127   1              static bit      count_FLG = 1;
-1128   1              static u8       tipsStep = 0;
-1129   1      
-1130   1              u8 code speed = 3;
-1131   1              u8 code step_period = 3;
-1132   1              
-1133   1      //      if(!localTips_Count && !count_FLG)(tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++); //²½Öè³õÊ¼ÆÚÆ
+1093   3                              if(counter_tipsAct){
+1094   4                                      
+1095   4                                      if(counter_tipsAct % 199 > 99){
+1096   5                                      
+1097   5                                              zigbNwk_Tips.colorGray_R = \
+1098   5                                              relay3_Tips.colorGray_R = \
+1099   5                                              relay2_Tips.colorGray_R = \
+1100   5                                              relay1_Tips.colorGray_R = 31;
+1101   5                                      
+1102   5                                      }else{
+1103   5                                      
+1104   5                                              zigbNwk_Tips.colorGray_R = \
+1105   5                                              relay3_Tips.colorGray_R = \
+1106   5                                              relay2_Tips.colorGray_R = \
+1107   5                                              relay1_Tips.colorGray_R = 0;
+1108   5                                      }
+1109   4                              
+1110   4                              }else{
+1111   4                              
+1112   4                                      counter_tipsAct = 600;
+1113   4                                      thread_tipsGetDark(0x0F);
+1114   4                                      tipsStep = 2;
+1115   4                              }
+1116   3                      
+1117   3                      }break;
+1118   2                      
+1119   2                      
+1120   2                      case 2:{
+1121   3                      
+1122   3                              if(!counter_tipsAct)tipsStep = 0;
+1123   3                              
+1124   3                      }break;
+1125   2                      
+1126   2                      default:{
+1127   3                      
+1128   3                              tipsStep = 0;
+1129   3                      
+1130   3                      }break;
+1131   2              }
+1132   1      }
+1133          
+1134          void tips_breath(void){
+1135   1      
+1136   1              static u8       localTips_Count = COLORGRAY_MAX - 1; //²½ÖèÖÐÆÚÇÐ»»³õÊ¼Öµ
+1137   1              static bit      count_FLG = 1;
+1138   1              static u8       tipsStep = 0;
+1139   1      
+1140   1              u8 code speed = 3;
+1141   1              u8 code step_period = 3;
+1142   1              
+1143   1      //      if(!localTips_Count && !count_FLG)(tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++); //²½Öè³õÊ¼ÆÚÆ
              -Ú ÇÐ»»µ½ÏÂÒ»²½Öè
-1134   1              if(!localTips_Count)count_FLG = 1;
-1135   1              else 
-1136   1              if(localTips_Count >= (COLORGRAY_MAX - 1)){
-1137   2                      
-1138   2                      count_FLG = 0;
-1139   2                      
-1140   2                      localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
-1141   2                      (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
-1142   2              }
-1143   1              
-1144   1              if(!counter_tipsAct){
-1145   2              
-1146   2                      (!count_FLG)?(counter_tipsAct = speed * (localTips_Count --)):(counter_tipsAct = speed * (localTips_Coun
-             -t ++)); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
-1147   2              }       
-1148   1              
-1149   1              switch(tipsStep){
-1150   2              
-1151   2                      case 0:{
-1152   3                      
-1153   3                              zigbNwk_Tips.colorGray_G = 31 - localTips_Count;
-1154   3                              
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 23  
+1144   1              if(!localTips_Count)count_FLG = 1;
+1145   1              else 
+1146   1              if(localTips_Count >= (COLORGRAY_MAX - 1)){
+1147   2                      
+1148   2                      count_FLG = 0;
+1149   2                      
+1150   2                      localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
+1151   2                      (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
+1152   2              }
+1153   1              
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 23  
 
-1155   3                      }break;
-1156   2                      
-1157   2                      case 2:{
-1158   3                      
-1159   3                              relay3_Tips.colorGray_R = 31 - localTips_Count;
-1160   3                              
-1161   3                      }break;
-1162   2                      
-1163   2                      default:break;
-1164   2              }
-1165   1      }
-1166          
-1167          void tips_fadeOut(void){
-1168   1      
-1169   1              static u8       localTips_Count = 0; //²½Öè³õÆÚÇÐ»»³õÊ¼Öµ
-1170   1              static bit      count_FLG = 1;
-1171   1              static u8       tipsStep = 0;
-1172   1              static u8       pwmType_A = 0,
-1173   1                                      pwmType_B = 0,
-1174   1                                      pwmType_C = 0,
-1175   1                                      pwmType_D = 0;
-1176   1              
-1177   1              u8 code speed = 3;
-1178   1              u8 code step_period = 1;
-1179   1              
-1180   1              if(!localTips_Count && !count_FLG)(tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++); //²½Öè³õÊ¼ÆÚÆÚ 
+1154   1              if(!counter_tipsAct){
+1155   2              
+1156   2                      (!count_FLG)?(counter_tipsAct = speed * (localTips_Count --)):(counter_tipsAct = speed * (localTips_Coun
+             -t ++)); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
+1157   2              }       
+1158   1              
+1159   1              switch(tipsStep){
+1160   2              
+1161   2                      case 0:{
+1162   3                      
+1163   3                              zigbNwk_Tips.colorGray_G = 31 - localTips_Count;
+1164   3                              
+1165   3                      }break;
+1166   2                      
+1167   2                      case 2:{
+1168   3                      
+1169   3                              relay3_Tips.colorGray_R = 31 - localTips_Count;
+1170   3                              
+1171   3                      }break;
+1172   2                      
+1173   2                      default:break;
+1174   2              }
+1175   1      }
+1176          
+1177          void tips_fadeOut(void){
+1178   1      
+1179   1              static u8       localTips_Count = 0; //²½Öè³õÆÚÇÐ»»³õÊ¼Öµ
+1180   1              static bit      count_FLG = 1;
+1181   1              static u8       tipsStep = 0;
+1182   1              static u8       pwmType_A = 0,
+1183   1                                      pwmType_B = 0,
+1184   1                                      pwmType_C = 0,
+1185   1                                      pwmType_D = 0;
+1186   1              
+1187   1              u8 code speed = 3;
+1188   1              u8 code step_period = 1;
+1189   1              
+1190   1              if(!localTips_Count && !count_FLG)(tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++); //²½Öè³õÊ¼ÆÚÆÚ 
              -ÇÐ»»µ½ÏÂÒ»²½Öè
-1181   1              if(!localTips_Count)count_FLG = 1;
-1182   1              else 
-1183   1              if(localTips_Count > (COLORGRAY_MAX * 4)){
-1184   2              
-1185   2                      count_FLG = 0;
-1186   2                      
-1187   2      //              localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
-1188   2      //              (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
-1189   2              }
-1190   1              
-1191   1              if(!counter_tipsAct){
-1192   2              
-1193   2                      (!count_FLG)?(counter_tipsAct = speed * ((localTips_Count --) % COLORGRAY_MAX)):(counter_tipsAct = speed
-             - * ((localTips_Count ++) % COLORGRAY_MAX)); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
-1194   2                      
-1195   2                      if(localTips_Count >= 00 && localTips_Count< 32)pwmType_A = localTips_Count - 0;
-1196   2                      if(localTips_Count >= 32 && localTips_Count< 64)pwmType_B = localTips_Count - 32;
-1197   2                      if(localTips_Count >= 64 && localTips_Count< 96)pwmType_C = localTips_Count - 64;
-1198   2                      if(localTips_Count >= 96 && localTips_Count< 128)pwmType_D = localTips_Count - 96;
+1191   1              if(!localTips_Count)count_FLG = 1;
+1192   1              else 
+1193   1              if(localTips_Count > (COLORGRAY_MAX * 4)){
+1194   2              
+1195   2                      count_FLG = 0;
+1196   2                      
+1197   2      //              localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
+1198   2      //              (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
 1199   2              }
 1200   1              
-1201   1              switch(tipsStep){
+1201   1              if(!counter_tipsAct){
 1202   2              
-1203   2                      case 0:{
-1204   3                              
-1205   3                              if(count_FLG){ 
-1206   4                                      
-1207   4                                      zigbNwk_Tips.colorGray_B = pwmType_A;
-1208   4                                      relay3_Tips.colorGray_B = pwmType_B;
-1209   4                                      relay2_Tips.colorGray_B = pwmType_C;
-1210   4                                      relay1_Tips.colorGray_B = pwmType_D;
-1211   4                                      
-1212   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
-1213   4                                      relay3_Tips.colorGray_R = 31 - pwmType_B;
-1214   4                                      relay2_Tips.colorGray_R = 31 - pwmType_C;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 24  
+1203   2                      (!count_FLG)?(counter_tipsAct = speed * ((localTips_Count --) % COLORGRAY_MAX)):(counter_tipsAct = speed
+             - * ((localTips_Count ++) % COLORGRAY_MAX)); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
+1204   2                      
+1205   2                      if(localTips_Count >= 00 && localTips_Count< 32)pwmType_A = localTips_Count - 0;
+1206   2                      if(localTips_Count >= 32 && localTips_Count< 64)pwmType_B = localTips_Count - 32;
+1207   2                      if(localTips_Count >= 64 && localTips_Count< 96)pwmType_C = localTips_Count - 64;
+1208   2                      if(localTips_Count >= 96 && localTips_Count< 128)pwmType_D = localTips_Count - 96;
+1209   2              }
+1210   1              
+1211   1              switch(tipsStep){
+1212   2              
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 24  
 
-1215   4                                      relay1_Tips.colorGray_R = 31 - pwmType_D;
+1213   2                      case 0:{
+1214   3                              
+1215   3                              if(count_FLG){ 
 1216   4                                      
-1217   4                              }else{ 
-1218   4                                      
-1219   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_D;
-1220   4                                      relay3_Tips.colorGray_R = 31 - pwmType_C;
-1221   4                                      relay2_Tips.colorGray_R = 31 - pwmType_B;
-1222   4                                      relay1_Tips.colorGray_R = 31 - pwmType_A;
-1223   4                                      
-1224   4                                      zigbNwk_Tips.colorGray_B = pwmType_D;
-1225   4                                      relay3_Tips.colorGray_B = pwmType_C;
-1226   4                                      relay2_Tips.colorGray_B = pwmType_B;
-1227   4                                      relay1_Tips.colorGray_B = pwmType_A;
-1228   4                              }
-1229   3                              
-1230   3                      }break;
-1231   2                              
-1232   2                      case 1:{
-1233   3                              
-1234   3                              if(count_FLG){ 
-1235   4                                      
-1236   4                                      zigbNwk_Tips.colorGray_G = pwmType_A / 4;
-1237   4                                      relay3_Tips.colorGray_G = pwmType_B / 4;
-1238   4                                      relay2_Tips.colorGray_G = pwmType_C / 4;
-1239   4                                      relay1_Tips.colorGray_G = pwmType_D / 4;
-1240   4                                      
-1241   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
-1242   4                                      relay3_Tips.colorGray_R = 31 - pwmType_B;
-1243   4                                      relay2_Tips.colorGray_R = 31 - pwmType_C;
-1244   4                                      relay1_Tips.colorGray_R = 31 - pwmType_D;
+1217   4                                      zigbNwk_Tips.colorGray_B = pwmType_A;
+1218   4                                      relay3_Tips.colorGray_B = pwmType_B;
+1219   4                                      relay2_Tips.colorGray_B = pwmType_C;
+1220   4                                      relay1_Tips.colorGray_B = pwmType_D;
+1221   4                                      
+1222   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
+1223   4                                      relay3_Tips.colorGray_R = 31 - pwmType_B;
+1224   4                                      relay2_Tips.colorGray_R = 31 - pwmType_C;
+1225   4                                      relay1_Tips.colorGray_R = 31 - pwmType_D;
+1226   4                                      
+1227   4                              }else{ 
+1228   4                                      
+1229   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_D;
+1230   4                                      relay3_Tips.colorGray_R = 31 - pwmType_C;
+1231   4                                      relay2_Tips.colorGray_R = 31 - pwmType_B;
+1232   4                                      relay1_Tips.colorGray_R = 31 - pwmType_A;
+1233   4                                      
+1234   4                                      zigbNwk_Tips.colorGray_B = pwmType_D;
+1235   4                                      relay3_Tips.colorGray_B = pwmType_C;
+1236   4                                      relay2_Tips.colorGray_B = pwmType_B;
+1237   4                                      relay1_Tips.colorGray_B = pwmType_A;
+1238   4                              }
+1239   3                              
+1240   3                      }break;
+1241   2                              
+1242   2                      case 1:{
+1243   3                              
+1244   3                              if(count_FLG){ 
 1245   4                                      
-1246   4                              }else{ 
-1247   4                                      
-1248   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_D;
-1249   4                                      relay3_Tips.colorGray_R = 31 - pwmType_C;
-1250   4                                      relay2_Tips.colorGray_R = 31 - pwmType_B;
-1251   4                                      relay1_Tips.colorGray_R = 31 - pwmType_A;
-1252   4                                      
-1253   4                                      zigbNwk_Tips.colorGray_G = pwmType_D / 4;
-1254   4                                      relay3_Tips.colorGray_G = pwmType_C / 4;
-1255   4                                      relay2_Tips.colorGray_G = pwmType_B / 4;
-1256   4                                      relay1_Tips.colorGray_G = pwmType_A / 4;
-1257   4                              }
-1258   3                              
-1259   3                      }break;
-1260   2                              
-1261   2                      default:break;
-1262   2              }
-1263   1      }
-1264          
-1265          void tips_specified(u8 tips_Type){ //tipsÀà±ð
-1266   1      
-1267   1              static u8       localTips_Count = 0; //²½Öè³õÆÚÇÐ»»³õÊ¼Öµ
-1268   1              static bit      count_FLG = 1;
-1269   1              static u8       tipsStep = 0;
-1270   1              static u8       pwmType_A = 0,
-1271   1                                      pwmType_B = 0,
-1272   1                                      pwmType_C = 0,
-1273   1                                      pwmType_D = 0;
-1274   1              
-1275   1              u8 code speed_Mol = 5,
-1276   1                      speed_Den = 4;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 25  
+1246   4                                      zigbNwk_Tips.colorGray_G = pwmType_A / 4;
+1247   4                                      relay3_Tips.colorGray_G = pwmType_B / 4;
+1248   4                                      relay2_Tips.colorGray_G = pwmType_C / 4;
+1249   4                                      relay1_Tips.colorGray_G = pwmType_D / 4;
+1250   4                                      
+1251   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
+1252   4                                      relay3_Tips.colorGray_R = 31 - pwmType_B;
+1253   4                                      relay2_Tips.colorGray_R = 31 - pwmType_C;
+1254   4                                      relay1_Tips.colorGray_R = 31 - pwmType_D;
+1255   4                                      
+1256   4                              }else{ 
+1257   4                                      
+1258   4                                      zigbNwk_Tips.colorGray_R = 31 - pwmType_D;
+1259   4                                      relay3_Tips.colorGray_R = 31 - pwmType_C;
+1260   4                                      relay2_Tips.colorGray_R = 31 - pwmType_B;
+1261   4                                      relay1_Tips.colorGray_R = 31 - pwmType_A;
+1262   4                                      
+1263   4                                      zigbNwk_Tips.colorGray_G = pwmType_D / 4;
+1264   4                                      relay3_Tips.colorGray_G = pwmType_C / 4;
+1265   4                                      relay2_Tips.colorGray_G = pwmType_B / 4;
+1266   4                                      relay1_Tips.colorGray_G = pwmType_A / 4;
+1267   4                              }
+1268   3                              
+1269   3                      }break;
+1270   2                              
+1271   2                      default:break;
+1272   2              }
+1273   1      }
+1274          
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 25  
 
-1277   1              u8 code step_period = 0;
-1278   1              
-1279   1              if(!localTips_Count && !count_FLG){
-1280   2              
-1281   2                      if(tipsStep < step_period)tipsStep ++; //²½Öè³õÊ¼ÆÚÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
-1282   2                      else{
-1283   3                      
-1284   3                              tipsStep = 0;
-1285   3                              
-1286   3                              pwmType_A = pwmType_B = pwmType_C = pwmType_D = 0;
-1287   3                      }
-1288   2              }
-1289   1              if(!localTips_Count)count_FLG = 1;
-1290   1              else 
-1291   1              if(localTips_Count > 80){
-1292   2              
-1293   2                      count_FLG = 0;
-1294   2                      
-1295   2      //              localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
-1296   2      //              (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
-1297   2              }
-1298   1              
-1299   1              if(!counter_tipsAct){
-1300   2              
-1301   2                      (!count_FLG)?(counter_tipsAct = ((localTips_Count --) % COLORGRAY_MAX) / speed_Mol * speed_Den):(counter
-             -_tipsAct = ((localTips_Count ++) % COLORGRAY_MAX) / speed_Mol * speed_Den); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
-1302   2                      
-1303   2                      if(localTips_Count >= 00 && localTips_Count < 32)pwmType_A = localTips_Count - 0; 
-1304   2                      if(localTips_Count >= 16 && localTips_Count < 48)pwmType_B = localTips_Count - 16;
-1305   2                      if(localTips_Count >= 32 && localTips_Count < 64)pwmType_C = localTips_Count - 32;
-1306   2                      if(localTips_Count >= 48 && localTips_Count < 80)pwmType_D = localTips_Count - 48;
+1275          void tips_specified(u8 tips_Type){ //tipsÀà±ð
+1276   1      
+1277   1              static u8       localTips_Count = 0; //²½Öè³õÆÚÇÐ»»³õÊ¼Öµ
+1278   1              static bit      count_FLG = 1;
+1279   1              static u8       tipsStep = 0;
+1280   1              static u8       pwmType_A = 0,
+1281   1                                      pwmType_B = 0,
+1282   1                                      pwmType_C = 0,
+1283   1                                      pwmType_D = 0;
+1284   1              
+1285   1              u8 code speed_Mol = 5,
+1286   1                      speed_Den = 4;
+1287   1              u8 code step_period = 0;
+1288   1              
+1289   1              if(!localTips_Count && !count_FLG){
+1290   2              
+1291   2                      if(tipsStep < step_period)tipsStep ++; //²½Öè³õÊ¼ÆÚÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
+1292   2                      else{
+1293   3                      
+1294   3                              tipsStep = 0;
+1295   3                              
+1296   3                              pwmType_A = pwmType_B = pwmType_C = pwmType_D = 0;
+1297   3                      }
+1298   2              }
+1299   1              if(!localTips_Count)count_FLG = 1;
+1300   1              else 
+1301   1              if(localTips_Count > 80){
+1302   2              
+1303   2                      count_FLG = 0;
+1304   2                      
+1305   2      //              localTips_Count = COLORGRAY_MAX - 2; //¿ìËÙÍÑÀëµ±Ç°×´Ì¬
+1306   2      //              (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //²½ÖèÖÐÆÚ ÇÐ»»µ½ÏÂÒ»²½Öè
 1307   2              }
 1308   1              
-1309   1              switch(tips_Type){
+1309   1              if(!counter_tipsAct){
 1310   2              
-1311   2                      case 0:{
-1312   3                      
-1313   3                              switch(tipsStep){
-1314   4                              
-1315   4                                      case 0:{
-1316   5                                              
-1317   5                                              if(count_FLG){ 
-1318   6                                                      
-1319   6                                                      if(localTips_Count < 46){
-1320   7                                                      
-1321   7                                                              if(localTips_Count % 15 > 10){
-1322   8                                                              
-1323   8                                                                      zigbNwk_Tips.colorGray_R = 31;
-1324   8                                                                      zigbNwk_Tips.colorGray_G = 10;
-1325   8                                                                      
-1326   8                                                              }else{
-1327   8                                                              
-1328   8                                                                      zigbNwk_Tips.colorGray_R = 0;
-1329   8                                                                      zigbNwk_Tips.colorGray_G = 0;
-1330   8                                                              }
-1331   7                                                      
-1332   7                                                      }else{
-1333   7                                                      
-1334   7                                                              if(localTips_Count > 45){zigbNwk_Tips.colorGray_R = 31; zigbNwk_Tips.colorGray_G = 10;}
-1335   7                                                              if(localTips_Count > 50){relay3_Tips.colorGray_R = 31; relay3_Tips.colorGray_G = 10;}
-1336   7                                                              if(localTips_Count > 60){relay2_Tips.colorGray_R = 31; relay2_Tips.colorGray_G = 10;}
-1337   7                                                              if(localTips_Count > 70){relay1_Tips.colorGray_R = 31; relay1_Tips.colorGray_G = 10;}
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 26  
+1311   2                      (!count_FLG)?(counter_tipsAct = ((localTips_Count --) % COLORGRAY_MAX) / speed_Mol * speed_Den):(counter
+             -_tipsAct = ((localTips_Count ++) % COLORGRAY_MAX) / speed_Mol * speed_Den); //¸üÐÂµ¥ÖÜÆÚÊ±¼ä
+1312   2                      
+1313   2                      if(localTips_Count >= 00 && localTips_Count < 32)pwmType_A = localTips_Count - 0; 
+1314   2                      if(localTips_Count >= 16 && localTips_Count < 48)pwmType_B = localTips_Count - 16;
+1315   2                      if(localTips_Count >= 32 && localTips_Count < 64)pwmType_C = localTips_Count - 32;
+1316   2                      if(localTips_Count >= 48 && localTips_Count < 80)pwmType_D = localTips_Count - 48;
+1317   2              }
+1318   1              
+1319   1              switch(tips_Type){
+1320   2              
+1321   2                      case 0:{
+1322   3                      
+1323   3                              switch(tipsStep){
+1324   4                              
+1325   4                                      case 0:{
+1326   5                                              
+1327   5                                              if(count_FLG){ 
+1328   6                                                      
+1329   6                                                      if(localTips_Count < 46){
+1330   7                                                      
+1331   7                                                              if(localTips_Count % 15 > 10){
+1332   8                                                              
+1333   8                                                                      zigbNwk_Tips.colorGray_R = 31;
+1334   8                                                                      zigbNwk_Tips.colorGray_G = 10;
+1335   8                                                                      
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 26  
 
-1338   7                                                      }
-1339   6                                                      
-1340   6                                              }else{ 
-1341   6                                                      
-1342   6                                                      zigbNwk_Tips.colorGray_R = pwmType_D;
-1343   6                                                      relay3_Tips.colorGray_R = pwmType_C;
-1344   6                                                      relay2_Tips.colorGray_R = pwmType_B;
-1345   6                                                      relay1_Tips.colorGray_R = pwmType_A;
-1346   6                                                      
-1347   6                                                      zigbNwk_Tips.colorGray_G = pwmType_D / 3;
-1348   6                                                      relay3_Tips.colorGray_G = pwmType_C / 3;
-1349   6                                                      relay2_Tips.colorGray_G = pwmType_B / 3;
-1350   6                                                      relay1_Tips.colorGray_G = pwmType_A / 3;
-1351   6                                              }
-1352   5                                              
-1353   5                                      }break;
-1354   4                                              
-1355   4                                      default:break;
-1356   4                              }
-1357   3                              
-1358   3                      }break;
-1359   2                      
-1360   2                      case 1:{
-1361   3                      
-1362   3                              switch(tipsStep){
-1363   4                              
-1364   4                                      case 0:{
-1365   5                                              
-1366   5                                              if(count_FLG){ 
-1367   6                                                      
-1368   6                                                      if(localTips_Count < 46){
-1369   7                                                      
-1370   7      //                                                      if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_B = 31;else zigbNwk_Tips.colorGray_B = 0;
-1371   7                                                              if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_G = 31;else zigbNwk_Tips.colorGray_G = 0;
-1372   7                                                      
-1373   7                                                      }else{
-1374   7                                                      
-1375   7      //                                                      if(localTips_Count > 45)relay1_Tips.colorGray_B = 31;
-1376   7      //                                                      if(localTips_Count > 50)relay2_Tips.colorGray_B = 31;
-1377   7      //                                                      if(localTips_Count > 60)relay3_Tips.colorGray_B = 31;
-1378   7      //                                                      if(localTips_Count > 70)zigbNwk_Tips.colorGray_B = 31;
-1379   7                                                              
-1380   7                                                              if(localTips_Count > 45)relay1_Tips.colorGray_G = 31;
-1381   7                                                              if(localTips_Count > 50)relay2_Tips.colorGray_G = 31;
-1382   7                                                              if(localTips_Count > 60)relay3_Tips.colorGray_G = 31;
-1383   7                                                              if(localTips_Count > 70)zigbNwk_Tips.colorGray_G = 31;
-1384   7                                                      }
-1385   6                                                      
-1386   6                                              }else{ 
-1387   6                                                      
-1388   6      //                                              relay1_Tips.colorGray_B = pwmType_D;
-1389   6      //                                              relay2_Tips.colorGray_B = pwmType_C;
-1390   6      //                                              relay3_Tips.colorGray_B = pwmType_B;
-1391   6      //                                              zigbNwk_Tips.colorGray_B = pwmType_A;
-1392   6                                                      
-1393   6                                                      relay1_Tips.colorGray_G = pwmType_D;
-1394   6                                                      relay2_Tips.colorGray_G = pwmType_C;
-1395   6                                                      relay3_Tips.colorGray_G = pwmType_B;
-1396   6                                                      zigbNwk_Tips.colorGray_G = pwmType_A;
-1397   6                                              }
-1398   5                                              
-1399   5                                      }break;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 27  
+1336   8                                                              }else{
+1337   8                                                              
+1338   8                                                                      zigbNwk_Tips.colorGray_R = 0;
+1339   8                                                                      zigbNwk_Tips.colorGray_G = 0;
+1340   8                                                              }
+1341   7                                                      
+1342   7                                                      }else{
+1343   7                                                      
+1344   7                                                              if(localTips_Count > 45){zigbNwk_Tips.colorGray_R = 31; zigbNwk_Tips.colorGray_G = 10;}
+1345   7                                                              if(localTips_Count > 50){relay3_Tips.colorGray_R = 31; relay3_Tips.colorGray_G = 10;}
+1346   7                                                              if(localTips_Count > 60){relay2_Tips.colorGray_R = 31; relay2_Tips.colorGray_G = 10;}
+1347   7                                                              if(localTips_Count > 70){relay1_Tips.colorGray_R = 31; relay1_Tips.colorGray_G = 10;}
+1348   7                                                      }
+1349   6                                                      
+1350   6                                              }else{ 
+1351   6                                                      
+1352   6                                                      zigbNwk_Tips.colorGray_R = pwmType_D;
+1353   6                                                      relay3_Tips.colorGray_R = pwmType_C;
+1354   6                                                      relay2_Tips.colorGray_R = pwmType_B;
+1355   6                                                      relay1_Tips.colorGray_R = pwmType_A;
+1356   6                                                      
+1357   6                                                      zigbNwk_Tips.colorGray_G = pwmType_D / 3;
+1358   6                                                      relay3_Tips.colorGray_G = pwmType_C / 3;
+1359   6                                                      relay2_Tips.colorGray_G = pwmType_B / 3;
+1360   6                                                      relay1_Tips.colorGray_G = pwmType_A / 3;
+1361   6                                              }
+1362   5                                              
+1363   5                                      }break;
+1364   4                                              
+1365   4                                      default:break;
+1366   4                              }
+1367   3                              
+1368   3                      }break;
+1369   2                      
+1370   2                      case 1:{
+1371   3                      
+1372   3                              switch(tipsStep){
+1373   4                              
+1374   4                                      case 0:{
+1375   5                                              
+1376   5                                              if(count_FLG){ 
+1377   6                                                      
+1378   6                                                      if(localTips_Count < 46){
+1379   7                                                      
+1380   7      //                                                      if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_B = 31;else zigbNwk_Tips.colorGray_B = 0;
+1381   7                                                              if(localTips_Count % 15 > 10)zigbNwk_Tips.colorGray_G = 31;else zigbNwk_Tips.colorGray_G = 0;
+1382   7                                                      
+1383   7                                                      }else{
+1384   7                                                      
+1385   7      //                                                      if(localTips_Count > 45)relay1_Tips.colorGray_B = 31;
+1386   7      //                                                      if(localTips_Count > 50)relay2_Tips.colorGray_B = 31;
+1387   7      //                                                      if(localTips_Count > 60)relay3_Tips.colorGray_B = 31;
+1388   7      //                                                      if(localTips_Count > 70)zigbNwk_Tips.colorGray_B = 31;
+1389   7                                                              
+1390   7                                                              if(localTips_Count > 45)relay1_Tips.colorGray_G = 31;
+1391   7                                                              if(localTips_Count > 50)relay2_Tips.colorGray_G = 31;
+1392   7                                                              if(localTips_Count > 60)relay3_Tips.colorGray_G = 31;
+1393   7                                                              if(localTips_Count > 70)zigbNwk_Tips.colorGray_G = 31;
+1394   7                                                      }
+1395   6                                                      
+1396   6                                              }else{ 
+1397   6                                                      
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 27  
 
-1400   4                                              
-1401   4                                      default:break;
-1402   4                              }
-1403   3                              
-1404   3                      }break;
-1405   2                      
-1406   2                      default:break;
-1407   2              }
-1408   1      }
-1409          
-1410          void tips_sysTouchReset(void){
-1411   1              
-1412   1              static bit tipsStep = 0;
-1413   1      
-1414   1              if(counter_tipsAct){
-1415   2              
-1416   2                      if(tipsStep){
-1417   3                      
-1418   3                              zigbNwk_Tips.colorGray_R = 0;
-1419   3                              relay1_Tips.colorGray_R = 0;
-1420   3                              relay2_Tips.colorGray_R = 0;
-1421   3                              relay3_Tips.colorGray_R = 0;
-1422   3                              
-1423   3                      }else{
-1424   3                      
-1425   3                              zigbNwk_Tips.colorGray_R = 31;
-1426   3                              relay1_Tips.colorGray_R = 31;
-1427   3                              relay2_Tips.colorGray_R = 31;
-1428   3                              relay3_Tips.colorGray_R = 31;
-1429   3                      }
-1430   2                      
-1431   2              }else{
-1432   2              
-1433   2                      counter_tipsAct = 400;
-1434   2                      tipsStep = !tipsStep;
-1435   2              }
-1436   1      }
-1437          
-1438          void tips_sysStandBy(void){
-1439   1      
-1440   1              zigbNwk_Tips.colorGray_R = 31;
-1441   1              relay1_Tips.colorGray_R = 31;
-1442   1              relay2_Tips.colorGray_R = 31;
-1443   1              relay3_Tips.colorGray_R = 31;
-1444   1      }
-1445          
-1446          void tips_sysButtonReales(void){
-1447   1      
-1448   1      //      u8 code timUnit_period = 0;
-1449   1      //      static u8 timUnit_count = 0;
-1450   1              
-1451   1              static u8 localTips_Count = 0;
-1452   1              u8 code localTips_Period = 128;
-1453   1              static u8 tipsStep = 0;
-1454   1              static u8 pwmType_A = 0,
-1455   1                            pwmType_B = 0,
-1456   1                                pwmType_C = 0,
-1457   1                                pwmType_D = 0;
-1458   1              
-1459   1              if(!counter_tipsAct){
-1460   2                      
-1461   2                      counter_tipsAct = 12; //¸üÐÂµ¥ÖÜÆÚÊ±¼ä(@50usÖÐ¶Ï£¬ÖÐ¶ÏÆµÂÊÎªÍø¹ØÖ÷»úÁ½±¶)
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 28  
+1398   6      //                                              relay1_Tips.colorGray_B = pwmType_D;
+1399   6      //                                              relay2_Tips.colorGray_B = pwmType_C;
+1400   6      //                                              relay3_Tips.colorGray_B = pwmType_B;
+1401   6      //                                              zigbNwk_Tips.colorGray_B = pwmType_A;
+1402   6                                                      
+1403   6                                                      relay1_Tips.colorGray_G = pwmType_D;
+1404   6                                                      relay2_Tips.colorGray_G = pwmType_C;
+1405   6                                                      relay3_Tips.colorGray_G = pwmType_B;
+1406   6                                                      zigbNwk_Tips.colorGray_G = pwmType_A;
+1407   6                                              }
+1408   5                                              
+1409   5                                      }break;
+1410   4                                              
+1411   4                                      default:break;
+1412   4                              }
+1413   3                              
+1414   3                      }break;
+1415   2                      
+1416   2                      default:break;
+1417   2              }
+1418   1      }
+1419          
+1420          void tips_sysTouchReset(void){
+1421   1              
+1422   1              static bit tipsStep = 0;
+1423   1      
+1424   1              if(counter_tipsAct){
+1425   2              
+1426   2                      if(tipsStep){
+1427   3                      
+1428   3                              zigbNwk_Tips.colorGray_R = 0;
+1429   3                              relay1_Tips.colorGray_R = 0;
+1430   3                              relay2_Tips.colorGray_R = 0;
+1431   3                              relay3_Tips.colorGray_R = 0;
+1432   3                              
+1433   3                      }else{
+1434   3                      
+1435   3                              zigbNwk_Tips.colorGray_R = 31;
+1436   3                              relay1_Tips.colorGray_R = 31;
+1437   3                              relay2_Tips.colorGray_R = 31;
+1438   3                              relay3_Tips.colorGray_R = 31;
+1439   3                      }
+1440   2                      
+1441   2              }else{
+1442   2              
+1443   2                      counter_tipsAct = 400;
+1444   2                      tipsStep = !tipsStep;
+1445   2              }
+1446   1      }
+1447          
+1448          void tips_sysStandBy(void){
+1449   1      
+1450   1              zigbNwk_Tips.colorGray_R = 31;
+1451   1              relay1_Tips.colorGray_R = 31;
+1452   1              relay2_Tips.colorGray_R = 31;
+1453   1              relay3_Tips.colorGray_R = 31;
+1454   1      }
+1455          
+1456          void tips_sysButtonReales(void){
+1457   1      
+1458   1      //      u8 code timUnit_period = 0;
+1459   1      //      static u8 timUnit_count = 0;
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 28  
 
-1462   2              
-1463   2                      if(localTips_Count > localTips_Period){
-1464   3                      
-1465   3                              localTips_Count = 0;
-1466   3                              (tipsStep > 7)?(tipsStep = 0):(tipsStep ++);
-1467   3                              pwmType_A = pwmType_B = pwmType_C = pwmType_D = 0;
-1468   3                      }
-1469   2                      else{
-1470   3                      
-1471   3                              localTips_Count ++;
-1472   3                              
-1473   3                              if(localTips_Count >= 00 && localTips_Count< 32)pwmType_A = localTips_Count - 0;
-1474   3                              if(localTips_Count >= 32 && localTips_Count< 64)pwmType_B = localTips_Count - 32;
-1475   3                              if(localTips_Count >= 64 && localTips_Count< 96)pwmType_C = localTips_Count - 64;
-1476   3                              if(localTips_Count >= 96 && localTips_Count< 128)pwmType_D = localTips_Count - 96;
-1477   3                      }
-1478   2              }
-1479   1              
-1480   1              switch(tipsStep){
-1481   2                      
-1482   2      //              case 0:{
-1483   2      //              
-1484   2      //                      zigbNwk_Tips.colorGray_R        = pwmType_A / 3;
-1485   2      //                      relay3_Tips.colorGray_R         = pwmType_B / 3;
-1486   2      //                      relay2_Tips.colorGray_R         = pwmType_C / 3;
-1487   2      //                      relay1_Tips.colorGray_R         = pwmType_D / 3;
-1488   2      //                      
-1489   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A / 5;
-1490   2      //                      relay3_Tips.colorGray_G         = pwmType_B / 5;
-1491   2      //                      relay2_Tips.colorGray_G         = pwmType_C / 5;
-1492   2      //                      relay1_Tips.colorGray_G         = pwmType_D / 5;
-1493   2      //                      
-1494   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A / 2;
-1495   2      //                      relay3_Tips.colorGray_B         = pwmType_B / 2;
-1496   2      //                      relay2_Tips.colorGray_B         = pwmType_C / 2;
-1497   2      //                      relay1_Tips.colorGray_B         = pwmType_D / 2;
-1498   2      //              
-1499   2      //              }break;
-1500   2      //              
-1501   2      //              case 1:{
-1502   2      //              
-1503   2      //                      zigbNwk_Tips.colorGray_R        = 5 + (pwmType_A - 5);
-1504   2      //                      relay3_Tips.colorGray_R         = 5 + (pwmType_B - 5);
-1505   2      //                      relay2_Tips.colorGray_R         = 5 + (pwmType_C - 5);
-1506   2      //                      relay1_Tips.colorGray_R         = 5 + (pwmType_D - 5);
-1507   2      //                      
-1508   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
-1509   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_B / 5;
-1510   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
-1511   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
-1512   2      //                      
-1513   2      //                      zigbNwk_Tips.colorGray_B        = 7 - pwmType_A / 2;
-1514   2      //                      relay3_Tips.colorGray_B         = 7 - pwmType_B / 2;
-1515   2      //                      relay2_Tips.colorGray_B         = 7 - pwmType_C / 2;
-1516   2      //                      relay1_Tips.colorGray_B         = 7 - pwmType_D / 2;
-1517   2      //              
-1518   2      //              }break;
-1519   2      //              
-1520   2      //              case 2:{
-1521   2      //                      
-1522   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A / 5;
-1523   2      //                      relay3_Tips.colorGray_G         = pwmType_B / 5;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 29  
+1460   1              
+1461   1              static u8 localTips_Count = 0;
+1462   1              u8 code localTips_Period = 128;
+1463   1              static u8 tipsStep = 0;
+1464   1              static u8 pwmType_A = 0,
+1465   1                            pwmType_B = 0,
+1466   1                                pwmType_C = 0,
+1467   1                                pwmType_D = 0;
+1468   1              
+1469   1              if(!counter_tipsAct){
+1470   2                      
+1471   2                      counter_tipsAct = 12; //¸üÐÂµ¥ÖÜÆÚÊ±¼ä(@50usÖÐ¶Ï£¬ÖÐ¶ÏÆµÂÊÎªÍø¹ØÖ÷»úÁ½±¶)
+1472   2              
+1473   2                      if(localTips_Count > localTips_Period){
+1474   3                      
+1475   3                              localTips_Count = 0;
+1476   3                              (tipsStep > 7)?(tipsStep = 0):(tipsStep ++);
+1477   3                              pwmType_A = pwmType_B = pwmType_C = pwmType_D = 0;
+1478   3                      }
+1479   2                      else{
+1480   3                      
+1481   3                              localTips_Count ++;
+1482   3                              
+1483   3                              if(localTips_Count >= 00 && localTips_Count< 32)pwmType_A = localTips_Count - 0;
+1484   3                              if(localTips_Count >= 32 && localTips_Count< 64)pwmType_B = localTips_Count - 32;
+1485   3                              if(localTips_Count >= 64 && localTips_Count< 96)pwmType_C = localTips_Count - 64;
+1486   3                              if(localTips_Count >= 96 && localTips_Count< 128)pwmType_D = localTips_Count - 96;
+1487   3                      }
+1488   2              }
+1489   1              
+1490   1              switch(tipsStep){
+1491   2                      
+1492   2      //              case 0:{
+1493   2      //              
+1494   2      //                      zigbNwk_Tips.colorGray_R        = pwmType_A / 3;
+1495   2      //                      relay3_Tips.colorGray_R         = pwmType_B / 3;
+1496   2      //                      relay2_Tips.colorGray_R         = pwmType_C / 3;
+1497   2      //                      relay1_Tips.colorGray_R         = pwmType_D / 3;
+1498   2      //                      
+1499   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A / 5;
+1500   2      //                      relay3_Tips.colorGray_G         = pwmType_B / 5;
+1501   2      //                      relay2_Tips.colorGray_G         = pwmType_C / 5;
+1502   2      //                      relay1_Tips.colorGray_G         = pwmType_D / 5;
+1503   2      //                      
+1504   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A / 2;
+1505   2      //                      relay3_Tips.colorGray_B         = pwmType_B / 2;
+1506   2      //                      relay2_Tips.colorGray_B         = pwmType_C / 2;
+1507   2      //                      relay1_Tips.colorGray_B         = pwmType_D / 2;
+1508   2      //              
+1509   2      //              }break;
+1510   2      //              
+1511   2      //              case 1:{
+1512   2      //              
+1513   2      //                      zigbNwk_Tips.colorGray_R        = 5 + (pwmType_A - 5);
+1514   2      //                      relay3_Tips.colorGray_R         = 5 + (pwmType_B - 5);
+1515   2      //                      relay2_Tips.colorGray_R         = 5 + (pwmType_C - 5);
+1516   2      //                      relay1_Tips.colorGray_R         = 5 + (pwmType_D - 5);
+1517   2      //                      
+1518   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
+1519   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_B / 5;
+1520   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
+1521   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 29  
 
-1524   2      //                      relay2_Tips.colorGray_G         = pwmType_C / 5;
-1525   2      //                      relay1_Tips.colorGray_G         = pwmType_D / 5;
-1526   2      //              
-1527   2      //              }break;
-1528   2      //                      
-1529   2      //              case 3:{
-1530   2      //              
-1531   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
-1532   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_B / 5;
-1533   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
-1534   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
-1535   2      //                      
-1536   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A / 5;
-1537   2      //                      relay3_Tips.colorGray_B         = pwmType_B / 5;
-1538   2      //                      relay2_Tips.colorGray_B         = pwmType_C /5;
-1539   2      //                      relay1_Tips.colorGray_B         = pwmType_D / 5;
+1522   2      //                      
+1523   2      //                      zigbNwk_Tips.colorGray_B        = 7 - pwmType_A / 2;
+1524   2      //                      relay3_Tips.colorGray_B         = 7 - pwmType_B / 2;
+1525   2      //                      relay2_Tips.colorGray_B         = 7 - pwmType_C / 2;
+1526   2      //                      relay1_Tips.colorGray_B         = 7 - pwmType_D / 2;
+1527   2      //              
+1528   2      //              }break;
+1529   2      //              
+1530   2      //              case 2:{
+1531   2      //                      
+1532   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A / 5;
+1533   2      //                      relay3_Tips.colorGray_G         = pwmType_B / 5;
+1534   2      //                      relay2_Tips.colorGray_G         = pwmType_C / 5;
+1535   2      //                      relay1_Tips.colorGray_G         = pwmType_D / 5;
+1536   2      //              
+1537   2      //              }break;
+1538   2      //                      
+1539   2      //              case 3:{
 1540   2      //              
-1541   2      //              }break;
-1542   2      //                      
-1543   2      //              case 4:{
-1544   2      //                      
-1545   2      //                      zigbNwk_Tips.colorGray_R        = 15 - pwmType_A;
-1546   2      //                      relay3_Tips.colorGray_R         = 15 - pwmType_B;
-1547   2      //                      relay2_Tips.colorGray_R         = 15 - pwmType_C;
-1548   2      //                      relay1_Tips.colorGray_R         = 15 - pwmType_D;
-1549   2      
-1550   2      //                      zigbNwk_Tips.colorGray_B        = 3 + (pwmType_A - 3);
-1551   2      //                      relay3_Tips.colorGray_B         = 3 + (pwmType_B - 3);
-1552   2      //                      relay2_Tips.colorGray_B         = 3 + (pwmType_C - 3);
-1553   2      //                      relay1_Tips.colorGray_B         = 3 + (pwmType_D - 3);
+1541   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
+1542   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_B / 5;
+1543   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
+1544   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
+1545   2      //                      
+1546   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A / 5;
+1547   2      //                      relay3_Tips.colorGray_B         = pwmType_B / 5;
+1548   2      //                      relay2_Tips.colorGray_B         = pwmType_C /5;
+1549   2      //                      relay1_Tips.colorGray_B         = pwmType_D / 5;
+1550   2      //              
+1551   2      //              }break;
+1552   2      //                      
+1553   2      //              case 4:{
 1554   2      //                      
-1555   2      //              }break;
-1556   2      //                      
-1557   2      //              case 5:{
-1558   2      
-1559   2      //                      zigbNwk_Tips.colorGray_B        = 15 - pwmType_A;
-1560   2      //                      relay3_Tips.colorGray_B         = 15 - pwmType_B;
-1561   2      //                      relay2_Tips.colorGray_B         = 15 - pwmType_C;
-1562   2      //                      relay1_Tips.colorGray_B         = 15 - pwmType_D;
-1563   2      //                      
-1564   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A;
-1565   2      //                      relay3_Tips.colorGray_G         = pwmType_B;
-1566   2      //                      relay2_Tips.colorGray_G         = pwmType_C;
-1567   2      //                      relay1_Tips.colorGray_G         = pwmType_D;
-1568   2      //                      
-1569   2      //              }break;
-1570   2      //                      
-1571   2      //              case 6:{
-1572   2      //              
-1573   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A;
-1574   2      //                      relay3_Tips.colorGray_B         = pwmType_B;
-1575   2      //                      relay2_Tips.colorGray_B         = pwmType_C;
-1576   2      //                      relay1_Tips.colorGray_B         = pwmType_D;
-1577   2      //                      
-1578   2      //                      zigbNwk_Tips.colorGray_G        = 15 - pwmType_A + 3;
-1579   2      //                      relay3_Tips.colorGray_G         = 15 - pwmType_B + 3;
-1580   2      //                      relay2_Tips.colorGray_G         = 15 - pwmType_C + 3;
-1581   2      //                      relay1_Tips.colorGray_G         = 15 - pwmType_D + 3;
+1555   2      //                      zigbNwk_Tips.colorGray_R        = 15 - pwmType_A;
+1556   2      //                      relay3_Tips.colorGray_R         = 15 - pwmType_B;
+1557   2      //                      relay2_Tips.colorGray_R         = 15 - pwmType_C;
+1558   2      //                      relay1_Tips.colorGray_R         = 15 - pwmType_D;
+1559   2      
+1560   2      //                      zigbNwk_Tips.colorGray_B        = 3 + (pwmType_A - 3);
+1561   2      //                      relay3_Tips.colorGray_B         = 3 + (pwmType_B - 3);
+1562   2      //                      relay2_Tips.colorGray_B         = 3 + (pwmType_C - 3);
+1563   2      //                      relay1_Tips.colorGray_B         = 3 + (pwmType_D - 3);
+1564   2      //                      
+1565   2      //              }break;
+1566   2      //                      
+1567   2      //              case 5:{
+1568   2      
+1569   2      //                      zigbNwk_Tips.colorGray_B        = 15 - pwmType_A;
+1570   2      //                      relay3_Tips.colorGray_B         = 15 - pwmType_B;
+1571   2      //                      relay2_Tips.colorGray_B         = 15 - pwmType_C;
+1572   2      //                      relay1_Tips.colorGray_B         = 15 - pwmType_D;
+1573   2      //                      
+1574   2      //                      zigbNwk_Tips.colorGray_G        = pwmType_A;
+1575   2      //                      relay3_Tips.colorGray_G         = pwmType_B;
+1576   2      //                      relay2_Tips.colorGray_G         = pwmType_C;
+1577   2      //                      relay1_Tips.colorGray_G         = pwmType_D;
+1578   2      //                      
+1579   2      //              }break;
+1580   2      //                      
+1581   2      //              case 6:{
 1582   2      //              
-1583   2      //              }break;
-1584   2      //              
-1585   2      //              case 7:{
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 30  
+1583   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A;
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 30  
 
-1586   2      //              
-1587   2      //                      zigbNwk_Tips.colorGray_B        = 15 - pwmType_A;
-1588   2      //                      relay3_Tips.colorGray_B         = 15 - pwmType_B;
-1589   2      //                      relay2_Tips.colorGray_B         = 15 - pwmType_C;
-1590   2      //                      relay1_Tips.colorGray_B         = 15 - pwmType_D;
-1591   2      //                      
-1592   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
-1593   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_A / 5;
-1594   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_A / 5;
-1595   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_A / 5;
-1596   2      //                      
-1597   2      //              }break;
-1598   2              
-1599   2                      case 0:{ /*ÂÌ*///ÂÌÆð
-1600   3                              
-1601   3                              zigbNwk_Tips.colorGray_G = pwmType_A / 5;
-1602   3                              relay3_Tips.colorGray_G = pwmType_B / 5;
-1603   3                              relay2_Tips.colorGray_G = pwmType_C / 5;
-1604   3                              relay1_Tips.colorGray_G = pwmType_D / 5;
-1605   3                              
-1606   3                      }break;
-1607   2                      
-1608   2                      case 1:{ /*»Æ*///ºìÆð
-1609   3                              
-1610   3                              zigbNwk_Tips.colorGray_R = pwmType_A;
-1611   3                              relay3_Tips.colorGray_R = pwmType_B;
-1612   3                              relay2_Tips.colorGray_R = pwmType_C;
-1613   3                              relay1_Tips.colorGray_R = pwmType_D;
-1614   3                              
-1615   3                      }break;
-1616   2                      
-1617   2                      case 2:{ /*ºì*///ÂÌÏû
-1618   3                              
-1619   3                              zigbNwk_Tips.colorGray_G = 6 - pwmType_A / 5;
-1620   3                              relay3_Tips.colorGray_G = 6 - pwmType_B / 5;
-1621   3                              relay2_Tips.colorGray_G = 6 - pwmType_C / 5;
-1622   3                              relay1_Tips.colorGray_G = 6 - pwmType_D / 5;
-1623   3                              
-1624   3                      }break;
-1625   2                      
-1626   2                      case 3:{ /*·Û*///À¶Æð
-1627   3                              
-1628   3                              zigbNwk_Tips.colorGray_B = pwmType_A / 2;
-1629   3                              relay3_Tips.colorGray_B = pwmType_B / 2;
-1630   3                              relay2_Tips.colorGray_B = pwmType_C / 2;
-1631   3                              relay1_Tips.colorGray_B = pwmType_D / 2;
-1632   3                              
-1633   3                      }break;
-1634   2                      
-1635   2                      case 4:{ /*À¶*///ºìÏû
-1636   3                      
-1637   3                              zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
-1638   3                              relay3_Tips.colorGray_R = 31 - pwmType_B;
-1639   3                              relay2_Tips.colorGray_R = 31 - pwmType_C;
-1640   3                              relay1_Tips.colorGray_R = 31 - pwmType_D;
-1641   3                              
-1642   3                      }break;
-1643   2                      
-1644   2                      case 5:{ /*°×*///ÂÌÆðºìÆð
-1645   3                      
-1646   3                              zigbNwk_Tips.colorGray_G = pwmType_A / 3;
-1647   3                              relay3_Tips.colorGray_G = pwmType_B / 3;
-C51 COMPILER V9.54   TIPS                                                                  01/11/2019 12:04:13 PAGE 31  
+1584   2      //                      relay3_Tips.colorGray_B         = pwmType_B;
+1585   2      //                      relay2_Tips.colorGray_B         = pwmType_C;
+1586   2      //                      relay1_Tips.colorGray_B         = pwmType_D;
+1587   2      //                      
+1588   2      //                      zigbNwk_Tips.colorGray_G        = 15 - pwmType_A + 3;
+1589   2      //                      relay3_Tips.colorGray_G         = 15 - pwmType_B + 3;
+1590   2      //                      relay2_Tips.colorGray_G         = 15 - pwmType_C + 3;
+1591   2      //                      relay1_Tips.colorGray_G         = 15 - pwmType_D + 3;
+1592   2      //              
+1593   2      //              }break;
+1594   2      //              
+1595   2      //              case 7:{
+1596   2      //              
+1597   2      //                      zigbNwk_Tips.colorGray_B        = 15 - pwmType_A;
+1598   2      //                      relay3_Tips.colorGray_B         = 15 - pwmType_B;
+1599   2      //                      relay2_Tips.colorGray_B         = 15 - pwmType_C;
+1600   2      //                      relay1_Tips.colorGray_B         = 15 - pwmType_D;
+1601   2      //                      
+1602   2      //                      zigbNwk_Tips.colorGray_G        = 3 - pwmType_A / 5;
+1603   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_A / 5;
+1604   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_A / 5;
+1605   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_A / 5;
+1606   2      //                      
+1607   2      //              }break;
+1608   2              
+1609   2                      case 0:{ /*ÂÌ*///ÂÌÆð
+1610   3                              
+1611   3                              zigbNwk_Tips.colorGray_G = pwmType_A / 5;
+1612   3                              relay3_Tips.colorGray_G = pwmType_B / 5;
+1613   3                              relay2_Tips.colorGray_G = pwmType_C / 5;
+1614   3                              relay1_Tips.colorGray_G = pwmType_D / 5;
+1615   3                              
+1616   3                      }break;
+1617   2                      
+1618   2                      case 1:{ /*»Æ*///ºìÆð
+1619   3                              
+1620   3                              zigbNwk_Tips.colorGray_R = pwmType_A;
+1621   3                              relay3_Tips.colorGray_R = pwmType_B;
+1622   3                              relay2_Tips.colorGray_R = pwmType_C;
+1623   3                              relay1_Tips.colorGray_R = pwmType_D;
+1624   3                              
+1625   3                      }break;
+1626   2                      
+1627   2                      case 2:{ /*ºì*///ÂÌÏû
+1628   3                              
+1629   3                              zigbNwk_Tips.colorGray_G = 6 - pwmType_A / 5;
+1630   3                              relay3_Tips.colorGray_G = 6 - pwmType_B / 5;
+1631   3                              relay2_Tips.colorGray_G = 6 - pwmType_C / 5;
+1632   3                              relay1_Tips.colorGray_G = 6 - pwmType_D / 5;
+1633   3                              
+1634   3                      }break;
+1635   2                      
+1636   2                      case 3:{ /*·Û*///À¶Æð
+1637   3                              
+1638   3                              zigbNwk_Tips.colorGray_B = pwmType_A / 2;
+1639   3                              relay3_Tips.colorGray_B = pwmType_B / 2;
+1640   3                              relay2_Tips.colorGray_B = pwmType_C / 2;
+1641   3                              relay1_Tips.colorGray_B = pwmType_D / 2;
+1642   3                              
+1643   3                      }break;
+1644   2                      
+1645   2                      case 4:{ /*À¶*///ºìÏû
+C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 31  
 
-1648   3                              relay2_Tips.colorGray_G = pwmType_C / 3;
-1649   3                              relay1_Tips.colorGray_G = pwmType_D / 3;
-1650   3                              
-1651   3                              zigbNwk_Tips.colorGray_R = pwmType_A / 2;
-1652   3                              relay3_Tips.colorGray_R = pwmType_B / 2;
-1653   3                              relay2_Tips.colorGray_R = pwmType_C / 2;
-1654   3                              relay1_Tips.colorGray_R = pwmType_D / 2;
-1655   3                              
-1656   3                      }break;
-1657   2                      
-1658   2                      case 6:{ /*dark*///È«Ïû
-1659   3                      
-1660   3                              zigbNwk_Tips.colorGray_B = 15 - pwmType_A / 2;
-1661   3                              relay3_Tips.colorGray_B = 15 - pwmType_B / 2;
-1662   3                              relay2_Tips.colorGray_B = 15 - pwmType_C / 2;
-1663   3                              relay1_Tips.colorGray_B = 15 - pwmType_D / 2;
-1664   3                              
-1665   3                              zigbNwk_Tips.colorGray_G = 10 - pwmType_A / 3;
-1666   3                              relay3_Tips.colorGray_G = 10 - pwmType_B / 3;
-1667   3                              relay2_Tips.colorGray_G = 10 - pwmType_C / 3;
-1668   3                              relay1_Tips.colorGray_G = 10 - pwmType_D / 3;
-1669   3                              
-1670   3                              zigbNwk_Tips.colorGray_R = 15 - pwmType_A / 2;
-1671   3                              relay3_Tips.colorGray_R = 15 - pwmType_B / 2;
-1672   3                              relay2_Tips.colorGray_R = 15 - pwmType_C / 2;
-1673   3                              relay1_Tips.colorGray_R = 15 - pwmType_D / 2;
+1646   3                      
+1647   3                              zigbNwk_Tips.colorGray_R = 31 - pwmType_A;
+1648   3                              relay3_Tips.colorGray_R = 31 - pwmType_B;
+1649   3                              relay2_Tips.colorGray_R = 31 - pwmType_C;
+1650   3                              relay1_Tips.colorGray_R = 31 - pwmType_D;
+1651   3                              
+1652   3                      }break;
+1653   2                      
+1654   2                      case 5:{ /*°×*///ÂÌÆðºìÆð
+1655   3                      
+1656   3                              zigbNwk_Tips.colorGray_G = pwmType_A / 3;
+1657   3                              relay3_Tips.colorGray_G = pwmType_B / 3;
+1658   3                              relay2_Tips.colorGray_G = pwmType_C / 3;
+1659   3                              relay1_Tips.colorGray_G = pwmType_D / 3;
+1660   3                              
+1661   3                              zigbNwk_Tips.colorGray_R = pwmType_A / 2;
+1662   3                              relay3_Tips.colorGray_R = pwmType_B / 2;
+1663   3                              relay2_Tips.colorGray_R = pwmType_C / 2;
+1664   3                              relay1_Tips.colorGray_R = pwmType_D / 2;
+1665   3                              
+1666   3                      }break;
+1667   2                      
+1668   2                      case 6:{ /*dark*///È«Ïû
+1669   3                      
+1670   3                              zigbNwk_Tips.colorGray_B = 15 - pwmType_A / 2;
+1671   3                              relay3_Tips.colorGray_B = 15 - pwmType_B / 2;
+1672   3                              relay2_Tips.colorGray_B = 15 - pwmType_C / 2;
+1673   3                              relay1_Tips.colorGray_B = 15 - pwmType_D / 2;
 1674   3                              
-1675   3                      }break;
-1676   2                      
-1677   2                      default:{}break;
-1678   2              }
-1679   1      }
-1680          
-1681          
+1675   3                              zigbNwk_Tips.colorGray_G = 10 - pwmType_A / 3;
+1676   3                              relay3_Tips.colorGray_G = 10 - pwmType_B / 3;
+1677   3                              relay2_Tips.colorGray_G = 10 - pwmType_C / 3;
+1678   3                              relay1_Tips.colorGray_G = 10 - pwmType_D / 3;
+1679   3                              
+1680   3                              zigbNwk_Tips.colorGray_R = 15 - pwmType_A / 2;
+1681   3                              relay3_Tips.colorGray_R = 15 - pwmType_B / 2;
+1682   3                              relay2_Tips.colorGray_R = 15 - pwmType_C / 2;
+1683   3                              relay1_Tips.colorGray_R = 15 - pwmType_D / 2;
+1684   3                              
+1685   3                      }break;
+1686   2                      
+1687   2                      default:{}break;
+1688   2              }
+1689   1      }
+1690          
+1691          
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   3460    ----
+   CODE SIZE        =   3491    ----
    CONSTANT SIZE    =     83    ----
    XDATA SIZE       =     25    ----
    PDATA SIZE       =   ----    ----

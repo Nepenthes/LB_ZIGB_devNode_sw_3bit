@@ -45,7 +45,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>.\Output\</OutputDirectory>
-          <OutputName>swZigbNode_sw3bit</OutputName>
+          <OutputName>swZigbNode_L7dev</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>

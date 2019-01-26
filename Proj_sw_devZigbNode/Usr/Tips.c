@@ -128,14 +128,14 @@ void ledBKGColorSw_Reales(void){
 //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //参数预处理，无特殊，随默认
 //#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //参数预处理，无特殊，随默认
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO) //参数预处理
-	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig = 5; //绿
-	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig = 8; //蓝
+	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_trig = 8; //蓝
+	if(devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig > (TIPS_SWBKCOLOR_TYPENUM - 1))devBackgroundLight_param.scenario_BKlight_Param.scenario_BKlightColorInsert_notrig = 5; //绿
 
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER) //参数预处理，热水器为强制背光
-	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open = 5; //绿
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open = 2; //红
 	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_close = 0; //黑
-	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30 = 8; //蓝
-	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60 = 2; //红
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay30 = 5; //绿
+	devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_closeDelay60 = 8; //蓝
 
 #else
 	switch(SWITCH_TYPE){
@@ -313,7 +313,8 @@ void thread_Tips(void){
 						case nwkZigb_reConfig:{ //间接1000 常闪
 						
 							counter_tipsAct = 1000;
-							(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+							if(zigbNwk_exist_FLG)(tips_Type)?(socketTips_B = 5):(socketTips_B = 0); //重连 --本地有网络记录，重连
+							else socketTips_B = 0; //重连 --本地没有有网络记录，不存在重连
 							
 						}break;
 						
@@ -421,9 +422,10 @@ void thread_Tips(void){
 						}break;
 						
 						case nwkZigb_reConfig:{ //间接1000 常闪
-						
+							
 							counter_tipsAct = 1000;
-							(tips_Type)?(socketTips_B = 5):(socketTips_B = 0);
+							if(zigbNwk_exist_FLG)(tips_Type)?(socketTips_B = 5):(socketTips_B = 0); //重连 --本地有网络记录，重连
+							else socketTips_B = 0; //重连 --本地没有有网络记录，不存在重连
 							
 						}break;
 						
@@ -464,7 +466,7 @@ void thread_Tips(void){
 			
 		}break;
 		
-		default:{ //插座没有前台tips
+		default:{ //红外没有前台tips
 		
 			tips_statusChangeToNormal();
 			
@@ -929,8 +931,16 @@ void thread_Tips(void){
 						}break;
 						
 						case nwkZigb_reConfig:{
-						
-							(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)):(tipsLED_colorSet(obj_zigbNwk, 30, 10, 0)); //常黄
+							
+							if(zigbNwk_exist_FLG){ //网络存在
+							
+								if(devZigbNwk_startUp_delayCounter)(tips_Type)?(tipsLED_colorSet(obj_zigbNwk, 30, 0, 0)):(tipsLED_colorSet(obj_zigbNwk, 0, 0, 0)); //红闪
+								else tipsLED_colorSet(obj_zigbNwk, 30, 10, 0); //常黄 --有网络记录，重连中
+							
+							}else{ //网络不存在
+								
+								tipsLED_colorSet(obj_zigbNwk, 0, 0, 0); //常黑 --本身没有网络记录
+							}
 							
 						}break;
 						
