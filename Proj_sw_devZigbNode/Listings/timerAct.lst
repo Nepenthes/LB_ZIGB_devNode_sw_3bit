@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 1   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIMERACT
@@ -62,7 +62,7 @@ line level    source
   46          
   47          void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]){
   48   1      
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 2   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 2   
 
   49   1              u8 dats_Temp[TIMEER_TABLENGTH * 3] = {0};
   50   1              u8 loop = 0;
@@ -126,7 +126,7 @@ line level    source
  107          
  108          #if(DEBUG_LOGOUT_EN == 1)
  109          void time_Logout(stt_Time code timeDats){
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 3   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 3   
 
  110   1      
  111   1              u8 xdata Log[80]        = {0};
@@ -190,7 +190,7 @@ line level    source
  169   1      
  170   1      #if(DEBUG_LOGOUT_EN == 1)       
  171   1              { //调试log代码-当前时间输出
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 4   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 4   
 
  172   2                      
  173   2                      u16 code log_period = 10000;
@@ -254,7 +254,7 @@ line level    source
  228   2                      
  229   2              }else{
  230   2                      
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 5   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 5   
 
  231   2                      bit idata timeTab_reserveFLG = 0;
  232   2                      u16 xdata minutesTemp_CalibrateTab_A    = ((u16)nightDatsTemp_CalibrateTab[0].Hour * 60 + (u16)nightDatsTe
@@ -318,7 +318,7 @@ line level    source
  285   5      //                                              
  286   5      //                                              if(log_Count < log_period)log_Count ++;
  287   5      //                                              else{
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 6   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 6   
 
  288   5      //                                              
  289   5      //                                                      log_Count = 0;
@@ -382,7 +382,7 @@ line level    source
  343   6                                                      
  344   6      #endif  
  345   6      
-C51 COMPILER V9.54   TIMERACT                                                              01/23/2019 16:32:40 PAGE 7   
+C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 7   
 
  346   6      /*补充动作*/                                            
  347   6      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)

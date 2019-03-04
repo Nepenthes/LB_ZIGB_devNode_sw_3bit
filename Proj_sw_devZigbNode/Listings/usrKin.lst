@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 1   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE USRKIN
@@ -62,7 +62,7 @@ line level    source
   49          
   50          //      switch(key){
   51          //      
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 2   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 2   
 
   52          //              case kinObj_touch_1:{
   53          //              
@@ -126,7 +126,7 @@ line level    source
  108          void usrZigbNwkOpen(void){
  109   1              
  110   1              if(devTips_nwkZigb != nwkZigb_outLine &&  //网关失联，通信异常，不允许开放
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 3   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 3   
 
  111   1                 devRunning_Status != status_nwkREQ &&  //本身无网络不允许开放
  112   1                 devRunning_Status != status_nwkReconnect){  //本身无网络不允许开放
@@ -190,7 +190,7 @@ line level    source
  170   2                      case 2:{
  171   3                      
  172   3                              SWITCH_TYPE = SWITCH_TYPE_SWBIT2;       
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 4   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 4   
 
  173   3      
  174   3                      }break;
@@ -254,7 +254,7 @@ line level    source
  232   1              if(!UsrKEYScan_oneShoot()){             
  233   2                      
  234   2                      keyPress_FLG = 1;
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 5   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 5   
 
  235   2                      
  236   2      //              tips_statusChangeToNormal();
@@ -318,7 +318,7 @@ line level    source
  294   1              
  295   1              if(!Dcode3)val_Dcode |= 1 << 3;
  296   1              else val_Dcode &= ~(1 << 3);
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 6   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 6   
 
  297   1              
  298   1              if(!Dcode4)val_Dcode |= 1 << 4;
@@ -382,7 +382,7 @@ line level    source
  356   4                                      
  357   4                              }else{
  358   4                              
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 7   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 7   
 
  359   4      
  360   4                              }
@@ -446,7 +446,7 @@ line level    source
  418   1      }
  419          
  420          u8 touchPadScan_oneShoot(void){
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 8   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 8   
 
  421   1      
  422   1              u8 valKey_Temp = 0;
@@ -510,7 +510,7 @@ line level    source
  479   4                                      if(conterTemp > touchCfrmLoop_LongA && conterTemp <= touchCfrmLoop_LongB){
  480   5                                      
  481   5                                              normalBussiness_longA_touchKeepTrig(touchPad_temp); //持续性触发业务
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 9   
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 9   
 
  482   5                                              
  483   5                                              if(!funTrigFLG_LongA){
@@ -574,7 +574,7 @@ line level    source
  539   3                              
  540   3                              touchPad_temp = 0;
  541   3                      }
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 10  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 10  
 
  542   2      
  543   2                      if(funTrigFLG_LongA){
@@ -638,7 +638,7 @@ line level    source
                               PrintString1_logOut(log_buf);
                       }                       
                #endif
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 11  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 11  
 
                       
                       swCommand_fromUsr.actMethod = relay_OnOff;
@@ -702,7 +702,7 @@ line level    source
                               case 4:{
                               
                                       swCommand_fromUsr.objRelay = statusPad;
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 12  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 12  
 
                                       swCommand_fromUsr.actMethod = relay_OnOff;
                                       tipsBeep_IF = 1;
@@ -766,7 +766,7 @@ line level    source
  722   3                              else{
  723   4                              
  724   4                                      swCommand_fromUsr.objRelay = statusPad;
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 13  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 13  
 
  725   4                              }
  726   3                              
@@ -830,7 +830,7 @@ line level    source
  784   4                              
  785   4                                      case SWITCH_TYPE_SWBIT1:{
  786   5                                      
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 14  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 14  
 
  787   5                                              if(statusPad & 0x02)swCommand_fromUsr.objRelay |= 0x01;
  788   5                                              if(DEV_actReserve & 0x02)tipsBeep_IF = 1;
@@ -894,7 +894,7 @@ line level    source
  844   1              switch(statusCfm){
  845   2              
  846   2                      case press_Short:{
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 15  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 15  
 
  847   3                              
  848   3                              bit idata tipsBeep_IF = 0;
@@ -958,7 +958,7 @@ line level    source
  901   4                              }else{  //禁止 特殊组合动作触发 与 结束动作（长按） 产生触发重叠
  902   4                                      
  903   4      #if(DEBUG_LOGOUT_EN == 1)                               
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 16  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 16  
 
  904   4                                      { //输出打印，谨记 用后注释，否则占用大量代码空间
  905   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
@@ -1022,7 +1022,7 @@ line level    source
  963   3      
  964   3                              touchKeepCnt_record = 1; //连按进行时计数变量复原
  965   3                              memset(&param_combinationFunTrigger_3S1L, 0, sizeof(param_combinationFunPreTrig)); //特殊组合动作预触发
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 17  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 17  
 
              -标志复位、参数清空<3短1长>
  966   3                              
@@ -1086,7 +1086,7 @@ line level    source
 1020   2                      
 1021   2                      case 5:{
 1022   3                      
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 18  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 18  
 
 1023   3                              if(param_combinationFunTrigger_3S5S.param_combinationFunPreTrig_standBy_FLG && (statusPad == param_comb
              -inationFunTrigger_3S5S.param_combinationFunPreTrig_standBy_keyVal)){ //特殊组合动作对应业务响应<3短5短>
@@ -1150,7 +1150,7 @@ line level    source
               //      static idata bit k_flg = 0;
               //      
               //      k_flg = !k_flg;
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 19  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 19  
 
               //      
               //      infraredOpreatAct_Stop();
@@ -1214,7 +1214,7 @@ line level    source
 1140          
 1141          #endif
 1142          
-C51 COMPILER V9.54   USRKIN                                                                01/23/2019 16:32:40 PAGE 20  
+C51 COMPILER V9.54   USRKIN                                                                02/15/2019 15:28:05 PAGE 20  
 
 1143          void fun_touchReset(void){
 1144   1      

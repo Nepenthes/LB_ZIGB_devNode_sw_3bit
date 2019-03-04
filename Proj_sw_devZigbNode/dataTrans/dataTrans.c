@@ -1500,9 +1500,32 @@ void dataParing_scenarioCtrl(u8 datsFrame[]){
 	(datsFrame[0] == 0x01)?(heater_ActParam.heater_currentActMode = heaterActMode_swKeepOpen):(heater_ActParam.heater_currentActMode = heaterActMode_swClose); //按键状态立马更新
 	devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //动作执行
 	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)		
+	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	 
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
+	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
+	swCommand_fromUsr.actMethod = relay_OnOff;	
+
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
+	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
+	swCommand_fromUsr.actMethod = relay_OnOff;
+	
 #else
 	swCommand_fromUsr.objRelay = datsFrame[0]; //继电器响应即可
 	swCommand_fromUsr.actMethod = relay_OnOff;
+	
+	if((SWITCH_TYPE == SWITCH_TYPE_CURTAIN) && //开关类型为窗帘且控制状态为非停止且轨道时间可用时，禁止触发互控
+	   (swCommand_fromUsr.objRelay != 2) &&
+	   (curtainAct_Param.act_period)){
+		
+			specialFlg_curtainEachctrlEn = 0; 
+		}
 	
 #endif
 	

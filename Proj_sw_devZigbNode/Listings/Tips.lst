@@ -1,4 +1,4 @@
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 1   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIPS
@@ -62,7 +62,7 @@ line level    source
   52   1      
   53   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       P5M1 &= ~(0x10);
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 2   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 2   
 
                       P5M0 |= 0x10;
                       
@@ -126,7 +126,7 @@ line level    source
  113   1              
  114   1              EEPROM_read_n(EEPROM_ADDR_ledSWBackGround, (u8 *)&devBackgroundLight_param, sizeof(bkLightColorInsert_par
              -amAttr)); //参数读取
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 3   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 3   
 
  115   1              
  116   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS) //参数预处理
@@ -190,7 +190,7 @@ line level    source
  156   3                              
  157   3                      }break;
  158   2                      
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 4   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 4   
 
  159   2                      default:{}break;
  160   2              }
@@ -254,7 +254,7 @@ line level    source
  217   1              thread_tipsGetDark(0x0F);
  218   1              beeps_usrActive(3, 40, 2);
  219   1      }
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 5   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 5   
 
  220          
  221          /*led状态指示模式切换至恢复出厂模式*/
@@ -318,7 +318,7 @@ line level    source
                                               
                                                       tips_Type = !tips_Type;
                                                       
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 6   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 6   
 
                                                       switch(devTips_nwkZigb){
                                                       
@@ -382,7 +382,7 @@ line level    source
                                                                               socketTips_B = 0;
                                                                       }
                                                                       
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 7   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 7   
 
                                                               }break;
                                                               
@@ -446,7 +446,7 @@ line level    source
                                                               case nwkZigb_nwkOpen:{
                                                               
                                                                       if(tipsEn_Loop < (3 * 2)){ //周期闪3
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 8   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 8   
 
                                                                       
                                                                               tipsEn_Loop ++;
@@ -510,7 +510,7 @@ line level    source
                                               }
                                               
                                               tipsLED_colorSet(obj_Relay1, socketTips_R, 0, socketTips_B);
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 9   
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 9   
 
                                       }
                                       
@@ -574,7 +574,7 @@ line level    source
  523   4                                      
  524   4                                      relayStatus_tipsTemp = status_Relay;
  525   4                                      
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 10  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 10  
 
  526   4                              }else
  527   3                              if(SWITCH_TYPE == SWITCH_TYPE_dIMMER){ //随触摸
@@ -638,7 +638,7 @@ line level    source
                                                                       
                                                               case 0x03:{
                                                               
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 11  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 11  
 
                                                                       tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.fans_BKlight_Param.fans_BKlightColo
              -rInsert_gear3].colorGray_R, 
@@ -702,7 +702,7 @@ line level    source
              -mer_BKlightColorInsert_brightness100; //亮度为100时弹起色
                                                       else TIPSBKCOLOR_USRDEF_UP = devBackgroundLight_param.dimmer_BKlight_Param.dimmer_BKlightColorInsert_
              -brightness1to99; //亮度为1-99时弹起色
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 12  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 12  
 
                                               
                                                       switch(relayStatus_tipsTemp){ //非占位指示
@@ -766,7 +766,7 @@ line level    source
                                                               tipsFlash_flg = !tipsFlash_flg;
                                                       }
                                               
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 13  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 13  
 
                                                       switch(scenario_ActParam.scenarioKey_currentTrig){
                                                       
@@ -830,7 +830,7 @@ line level    source
              -g].colorGray_B);
                                                                       
                                                                       if(scenario_ActParam.scenarioKeepTrig_timeCounter && scenario_ActParam.scenarioKeepTrig_timeCounter
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 14  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 14  
 
              - != COUNTER_DISENABLE_MASK_SPECIALVAL_U8){
                                                                       
@@ -894,7 +894,7 @@ line level    source
                                                                               
                                                                       }else{
                                                                       
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 15  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 15  
 
                                                                               tipsLED_colorSet(obj_Relay3, color_Tab[devBackgroundLight_param.scenario_BKlight_Param.scenario_BK
              -lightColorInsert_trig].colorGray_R, 
@@ -958,7 +958,7 @@ line level    source
                                                                                                                                color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].col
              -orGray_G, 
                                                                                                                                color_Tab[devBackgroundLight_param.heater_BKlight_Param.heater_BKlightColorInsert_open].col
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 16  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 16  
 
              -orGray_B);
                                                                       
@@ -1022,7 +1022,7 @@ line level    source
  826   6                                                      case 0x04:{
  827   7                                                      
  828   7                                                              tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuerta
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 17  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 17  
 
              -in_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
  829   7                                                                                                                       color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuer
@@ -1086,7 +1086,7 @@ line level    source
  867   5                                                              (tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bi
              -t_BKlight_Param.sw3bit_BKlightColorInsert_close].colorGray_R, 
  868   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 18  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 18  
 
              -t_BKlightColorInsert_close].colorGray_G, 
  869   5                                                                                                                        color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.sw3bit_BKlight_Param.sw3bi
@@ -1150,7 +1150,7 @@ line level    source
  910   5                                              tips_Type = !tips_Type;
  911   5                                              tipsNwk_Counter = 0;
  912   5                                              
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 19  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 19  
 
  913   5                                              switch(devTips_nwkZigb){
  914   6                                              
@@ -1214,7 +1214,7 @@ line level    source
  966   4                              }
  967   3                              
  968   3                      }break;
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 20  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 20  
 
  969   2                      
  970   2                      case status_tipsNwkOpen:{
@@ -1278,7 +1278,7 @@ line level    source
 1028   1                 (devTips_status == status_Night)){
 1029   2                         
 1030   2                      if(devTips_status == status_Night){     //夜间模式，背光亮度调整
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 21  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 21  
 
 1031   3                              
 1032   3                              u8 code bright_coef = 4;
@@ -1342,7 +1342,7 @@ line level    source
 1090   2                      
 1091   2                      case 1:{
 1092   3                      
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 22  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 22  
 
 1093   3                              if(counter_tipsAct){
 1094   4                                      
@@ -1406,7 +1406,7 @@ line level    source
 1151   2                      (tipsStep >= step_period)?(tipsStep = 0):(tipsStep ++);  //步骤中期 切换到下一步骤
 1152   2              }
 1153   1              
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 23  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 23  
 
 1154   1              if(!counter_tipsAct){
 1155   2              
@@ -1470,7 +1470,7 @@ line level    source
 1210   1              
 1211   1              switch(tipsStep){
 1212   2              
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 24  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 24  
 
 1213   2                      case 0:{
 1214   3                              
@@ -1534,7 +1534,7 @@ line level    source
 1272   2              }
 1273   1      }
 1274          
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 25  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 25  
 
 1275          void tips_specified(u8 tips_Type){ //tips类别
 1276   1      
@@ -1598,7 +1598,7 @@ line level    source
 1333   8                                                                      zigbNwk_Tips.colorGray_R = 31;
 1334   8                                                                      zigbNwk_Tips.colorGray_G = 10;
 1335   8                                                                      
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 26  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 26  
 
 1336   8                                                              }else{
 1337   8                                                              
@@ -1662,7 +1662,7 @@ line level    source
 1395   6                                                      
 1396   6                                              }else{ 
 1397   6                                                      
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 27  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 27  
 
 1398   6      //                                              relay1_Tips.colorGray_B = pwmType_D;
 1399   6      //                                              relay2_Tips.colorGray_B = pwmType_C;
@@ -1726,7 +1726,7 @@ line level    source
 1457   1      
 1458   1      //      u8 code timUnit_period = 0;
 1459   1      //      static u8 timUnit_count = 0;
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 28  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 28  
 
 1460   1              
 1461   1              static u8 localTips_Count = 0;
@@ -1790,7 +1790,7 @@ line level    source
 1519   2      //                      relay3_Tips.colorGray_G         = 3 - pwmType_B / 5;
 1520   2      //                      relay2_Tips.colorGray_G         = 3 - pwmType_C / 5;
 1521   2      //                      relay1_Tips.colorGray_G         = 3 - pwmType_D / 5;
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 29  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 29  
 
 1522   2      //                      
 1523   2      //                      zigbNwk_Tips.colorGray_B        = 7 - pwmType_A / 2;
@@ -1854,7 +1854,7 @@ line level    source
 1581   2      //              case 6:{
 1582   2      //              
 1583   2      //                      zigbNwk_Tips.colorGray_B        = pwmType_A;
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 30  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 30  
 
 1584   2      //                      relay3_Tips.colorGray_B         = pwmType_B;
 1585   2      //                      relay2_Tips.colorGray_B         = pwmType_C;
@@ -1918,7 +1918,7 @@ line level    source
 1643   3                      }break;
 1644   2                      
 1645   2                      case 4:{ /*蓝*///红消
-C51 COMPILER V9.54   TIPS                                                                  01/23/2019 16:32:39 PAGE 31  
+C51 COMPILER V9.54   TIPS                                                                  02/15/2019 15:28:04 PAGE 31  
 
 1646   3                      
 1647   3                              zigbNwk_Tips.colorGray_R = 31 - pwmType_A;

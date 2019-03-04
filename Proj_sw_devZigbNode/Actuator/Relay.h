@@ -128,6 +128,7 @@ typedef struct{ //场景开关逻辑业务数据结构
 extern status_ifSave xdata relayStatus_ifSave;
 extern u8 xdata status_Relay;
 extern stt_Curtain_motorAttr xdata curtainAct_Param;
+extern bit idata specialFlg_curtainEachctrlEn;
 extern relay_Command xdata swCommand_fromUsr;
 extern u8 xdata EACHCTRL_realesFLG;
 extern bit		EACHCTRL_reportFLG;

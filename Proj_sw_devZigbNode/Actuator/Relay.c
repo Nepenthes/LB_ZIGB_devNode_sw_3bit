@@ -34,6 +34,7 @@ stt_scenario_attrAct xdata scenario_ActParam = {0};
 stt_heater_attrAct xdata heater_ActParam = {0};
 #else
 stt_Curtain_motorAttr xdata curtainAct_Param = {0, CURTAIN_ORBITAL_PERIOD_INITTIME, cTact_stop}; //当设备定义为窗帘时，对应动作属性，默认轨道时间0s
+bit 				  idata specialFlg_curtainEachctrlEn = 1;	//特殊标识位，窗帘互控同步使能，用于在场景控制下禁止触发互控
 #endif
 
 /*继电器状态更新，硬件执行*/
@@ -118,14 +119,14 @@ void relay_statusReales(void){
 
 		case 0:{
 		
-			PIN_RELAY_1 = 0;
+			PIN_RELAY_1 = PIN_RELAY_2 = 0;
 			heater_ActParam.relayActDelay_counter = HEATER_RELAY_SYNCHRONIZATION_DELAYTIME; //大小继电器滞后时间设定
 			
 		}break;
 		
 		case 1:{
 		
-			PIN_RELAY_1 = 1;
+			PIN_RELAY_1 = PIN_RELAY_2 = 1;
 			heater_ActParam.relayActDelay_counter = HEATER_RELAY_SYNCHRONIZATION_DELAYTIME; //大小继电器滞后时间设定
 		
 		}break;
@@ -135,8 +136,6 @@ void relay_statusReales(void){
 			
 		}break;
 	}
-	
-	PIN_RELAY_3 = 0;
 	
 #else
 	switch(SWITCH_TYPE){
@@ -421,10 +420,19 @@ void thread_Relay(void){
 	}
 	
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
-	if(heater_ActParam.relayActDelay_actEn){
+	if(heater_ActParam.relayActDelay_actEn){ //同步触发标志位响应
 	
 		heater_ActParam.relayActDelay_actEn = 0;
-		PIN_RELAY_2 = PIN_RELAY_1; //热水器继电器电平同步动作触发
+		PIN_RELAY_3 = PIN_RELAY_1; //热水器继电器电平同步动作触发
+	}
+	
+	if(heater_ActParam.heater_currentActMode == heaterActMode_swClose){ //补偿响应，避免有时候指示灯响应了但继电器没响应
+	
+		if((status_Relay & (1 << 0)) != 0){
+		
+			swCommand_fromUsr.objRelay = 0;
+			swCommand_fromUsr.actMethod = relay_OnOff; //开关动作
+		}
 	}
 	
 #else

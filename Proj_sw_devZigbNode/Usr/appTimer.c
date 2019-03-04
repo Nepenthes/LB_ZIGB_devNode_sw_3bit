@@ -257,12 +257,14 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 					
 				case cTact_stop:{
 				
-					if(status_Relay != 2){
+					if((status_Relay & (1 << 1)) != 2){
 					
 						swCommand_fromUsr.objRelay = 2;
 						swCommand_fromUsr.actMethod = relay_OnOff;
 						devActionPush_IF.push_IF = 1; //推送使能
-						EACHCTRL_realesFLG = 1; //有效互控触发
+						
+						(specialFlg_curtainEachctrlEn)?(EACHCTRL_realesFLG = 1):(specialFlg_curtainEachctrlEn = 1); //有效互控触发
+						
 					}
 					
 				}break;
