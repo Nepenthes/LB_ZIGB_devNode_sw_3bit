@@ -1,11 +1,11 @@
-C51 COMPILER V9.54   DEVLOPEDEBUG                                                          02/15/2019 15:28:04 PAGE 1   
+C51 COMPILER V9.54   DEVLOPEDEBUG                                                          05/13/2019 08:24:10 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DEVLOPEDEBUG
 OBJECT MODULE PLACED IN .\Output\devlopeDebug.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\devlopeDebug.c OMF2 OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;
-                    -.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\devlopeDebug.lst) OBJECT(.\Output\devlopeDe
-                    -bug.obj)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\devlopeDebug.c OMF2 OPTIMIZE(9,SIZE) BROWSE INCDIR(.\Usr;.\Usr_lib;.
+                    -\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\devlopeDebug.lst) OBJECT(.\Output\devlopeDeb
+                    -ug.obj)
 
 line level    source
 
@@ -29,65 +29,65 @@ line level    source
   18   1      //      counter_ifTipsFree = TIPS_SWFREELOOP_TIME; //流水灯强关
   19   1      
   20   1      #if(DEBUG_LOGOUT_EN == 1)                               
-  21   1              { //输出打印，谨记 用后注释，否则占用大量代码空间
-  22   2                      
-  23   2                      if(dev_debugInfoLog.debugInfoType != infoType_null){
-  24   3                              
-  25   3                              switch(dev_debugInfoLog.debugInfoType){ //根据打印类型执行打印
-  26   4                              
-  27   4                                      case infoType_frameUart:{ //串口收发帧调试信息打印
-  28   5                                      
-  29   5                                              if(dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG){
-  30   6                                              
-  31   6                                                      dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG = 0;
-  32   6                                                      
-  33   6                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-  34   6                                                      sprintf(log_buf, "F_head:%02X, A_Len(+5):%02X, R_Len:%02X, frame_P:%d.\n",      (int)datsRcv_ZIGB.rcvDat
+                      { //输出打印，谨记 用后注释，否则占用大量代码空间
+                              
+                              if(dev_debugInfoLog.debugInfoType != infoType_null){
+                                      
+                                      switch(dev_debugInfoLog.debugInfoType){ //根据打印类型执行打印
+                                      
+                                              case infoType_frameUart:{ //串口收发帧调试信息打印
+                                              
+                                                      if(dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG){
+                                                      
+                                                              dev_debugInfoLog.debugInfoData.frameInfo.frameIllegal_FLG = 0;
+                                                              
+                                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                                              sprintf(log_buf, "F_head:%02X, A_Len(+5):%02X, R_Len:%02X, frame_P:%d.\n",      (int)datsRcv_ZIGB.rcvDat
              -s[0],
-  35   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_aLength,
-  36   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_rLength,
-  37   6                                                                                                                                                                                                              (int)dev_debugInfoLog.debugInfoData.frameInfo.frameParsing_NUM);
-  38   6                                                      PrintString1_logOut(log_buf);
-  39   6                                              }
-  40   5                                              
-  41   5                                      }break;
-  42   4                                              
-  43   4                                      case infoType_delayUp:{ //延时业务调试信息打印
-  44   5                                      
-  45   5                                              if(dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up){
-  46   6                                              
-  47   6                                                      dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 0;
-  48   6      
-  49   6                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-  50   6                                                      sprintf(log_buf, ">>>>>>>>delayAct opreation up.\n");
-  51   6                                                      PrintString1_logOut(log_buf);                           
-  52   6                                              }
-C51 COMPILER V9.54   DEVLOPEDEBUG                                                          02/15/2019 15:28:04 PAGE 2   
+                                                                                                                                                                                                                      (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_aLength,
+                                                                                                                                                                                                                      (int)dev_debugInfoLog.debugInfoData.frameInfo.frame_rLength,
+                                                                                                                                                                                                                      (int)dev_debugInfoLog.debugInfoData.frameInfo.frameParsing_NUM);
+                                                              PrintString1_logOut(log_buf);
+                                                      }
+                                                      
+                                              }break;
+                                                      
+                                              case infoType_delayUp:{ //延时业务调试信息打印
+                                              
+                                                      if(dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up){
+                                                      
+                                                              dev_debugInfoLog.debugInfoData.delayActInfo.delayAct_Up = 0;
+              
+                                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                                              sprintf(log_buf, ">>>>>>>>delayAct opreation up.\n");
+                                                              PrintString1_logOut(log_buf);                           
+                                                      }
+C51 COMPILER V9.54   DEVLOPEDEBUG                                                          05/13/2019 08:24:10 PAGE 2   
 
-  53   5                                              
-  54   5                                      }break;
-  55   4                                      
-  56   4                                      case infoType_dimmerFreq:{ //窗帘类型开关业务调试信息打印
-  57   5                                              
-  58   5                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-  59   5                                              sprintf(log_buf, ">>>>>>>>dimmer source beat:%dots.\n", (int)dev_debugInfoLog.debugInfoData.dimmerInf
+                                                      
+                                              }break;
+                                              
+                                              case infoType_dimmerFreq:{ //窗帘类型开关业务调试信息打印
+                                                      
+                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                                      sprintf(log_buf, ">>>>>>>>dimmer source beat:%dots.\n", (int)dev_debugInfoLog.debugInfoData.dimmerInf
              -o.soureFreq);
-  60   5                                              PrintString1_logOut(log_buf);   
-  61   5                                      }
-  62   4                                              
-  63   4                                      default:{}break;
-  64   4                              }
-  65   3                              
-  66   3                              dev_debugInfoLog.debugInfoType = infoType_null; //打印类型复位
-  67   3                      }
-  68   2              }
-  69   1      #endif  
+                                                      PrintString1_logOut(log_buf);   
+                                              }
+                                                      
+                                              default:{}break;
+                                      }
+                                      
+                                      dev_debugInfoLog.debugInfoType = infoType_null; //打印类型复位
+                              }
+                      }
+              #endif  
   70   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    159    ----
-   CONSTANT SIZE    =    121    ----
+   CODE SIZE        =      1    ----
+   CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =      4    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----

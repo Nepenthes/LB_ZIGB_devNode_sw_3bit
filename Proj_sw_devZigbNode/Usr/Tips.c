@@ -48,14 +48,29 @@ u8	xdata tipsTimeCount_factoryRecover = 0; //恢复出厂tips倒计时变量
 sound_Attr xdata devTips_beep  	= {0, 0, 0};
 enum_beeps xdata dev_statusBeeps= beepsMode_null; //状态机状态：蜂鸣器状态指示
 
+#if((SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) && (SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)) //英规插座才有数码管
+ enum_segTips xdata dev_segTips = segMode_init; //状态机状态：seg状态指示
+ bit idata tipsSeg_INTFLG = 0; //数码管状态中断切换标志 （当前状态正在进行时被中断切换，再次回到当前状态时使状态及内部变量回到初始值）
+#endif
+
 void tipLED_pinInit(void){
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
-	P5M1 &= ~(0x10);
-	P5M0 |= 0x10;
 	
-	P2M1 &= ~(0x20);
-	P2M0 |= 0x20;
+	//灌电流 --按键
+	P5M1 &= ~(0x10);
+	P5M0 &= ~(0x10);
+	
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+	//推挽 --数码管
+	P2M1	&= ~(0xAF);
+	P2M0	|=   0xAF;
+	
+ #else
+	P2M1	&= ~(0x20);
+	P2M0	|=   0x20;
+	
+ #endif
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 	P2M1 &= ~(0x0C);
@@ -809,7 +824,11 @@ void thread_Tips(void){
 				
 					switch(relayStatus_tipsTemp){ //非占位指示
 					
+					#if(CURTAIN_RELAY_UPSIDE_DOWN)
+						case 0x04:{
+					#else
 						case 0x01:{
+					#endif
 						
 							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_R, 
 														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_bounce].colorGray_G, 
@@ -823,7 +842,11 @@ void thread_Tips(void){
 						
 						}break;
 							
+					#if(CURTAIN_RELAY_UPSIDE_DOWN)
+						case 0x01:{
+					#else
 						case 0x04:{
+					#endif
 						
 							tipsLED_colorSet(obj_Relay1, color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_R, 
 														 color_Tab[devBackgroundLight_param.sw3bitIcurtain_BKlight_Param.cuertain_BKlight_Param.cuertain_BKlightColorInsert_press].colorGray_G, 
@@ -1021,6 +1044,163 @@ void thread_Tips(void){
 	}
 #endif
 }
+		
+#if((SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) && (SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)) //英规插座才有数码管
+void powerTips(float tips_val){
+
+	P2 |= 0x8F;
+	if(tips_val > 15.0F) P20 = 0;
+	if(tips_val > 100.0F)P21 = 0;
+	if(tips_val > 200.0F)P22 = 0;
+	if(tips_val > 300.0F)P23 = 0;
+	if(tips_val > 400.0F)P27 = 0;
+}
+
+void seg_tipsShow(u8 dats){
+
+	(dats & 0x01)?(P20 = 0):(P20 = 1);
+	(dats & 0x02)?(P21 = 0):(P21 = 1);
+	(dats & 0x04)?(P22 = 0):(P22 = 1);
+	(dats & 0x08)?(P23 = 0):(P23 = 1);
+	(dats & 0x10)?(P27 = 0):(P27 = 1);
+}
+
+void segTips_Init(void){
+
+	static xdata u8 tips_data = 0;
+	static xdata u8 loop = 0;
+	static idata bit tips_flg = 0;
+	
+	if(loop > 6){loop = 0; tips_flg = !tips_flg;}
+	else{
+	
+		loop ++;
+		
+		if(!tips_flg)tips_data |= 1;
+
+		seg_tipsShow(tips_data);
+		
+		tips_data <<= 1;
+	}
+}
+
+void segTips_InitCmp(void){
+
+	static xdata u8 loop = 0;
+	static bit tips_flg = 0;
+	
+	if(loop > 16){
+	
+		loop = 0;
+		seg_tipsShow(0x00);
+		dev_segTips = segMode_elecDetect;
+	}
+	else{
+	
+		loop ++;
+		
+		if((loop % 2) == 0)tips_flg = !tips_flg;
+		(tips_flg)?(seg_tipsShow(0x00)):(seg_tipsShow(0xFF));
+	}
+}
+
+void segTips_detectStandBy(void){
+
+	static xdata u8 tips_data = 0;
+	static xdata u8 loop = 0;
+	static idata bit tips_flg = 0;
+	
+	if(tipsSeg_INTFLG){
+	
+		tipsSeg_INTFLG = 0;
+		
+		loop = 0;
+		tips_flg = 0;
+		tips_data = 0;
+	}
+	
+	if(loop > 6){loop = 0; tips_flg = !tips_flg;}
+	else{
+	
+		loop ++;
+		
+		seg_tipsShow(tips_data);
+		
+		if(!tips_flg){
+		
+			tips_data <<= 1;
+			tips_data |= 1;
+			
+		}else{
+			
+			tips_data >>= 1;
+		}
+	}
+}
+
+void segTips_touchOpen(void){
+
+	static xdata u8 tips_data = 0;
+	static xdata u8 loop = 0;
+	
+	if(tipsSeg_INTFLG){
+	
+		tipsSeg_INTFLG = 0;
+		
+		loop = 0;
+		tips_data = 0;
+	}
+	
+	if(loop > 6){
+		
+		loop = 0; 
+		dev_segTips = segMode_elecDetect;
+		seg_tipsShow(0);
+		
+	}
+	else{
+		
+		loop ++;
+		
+		seg_tipsShow(tips_data);
+		tips_data <<= 1;
+		tips_data |= 1;
+	}
+}
+
+void segTips_touchClose(void){
+
+	static xdata u8 tips_data = 0x1f;
+	static xdata u8 loop = 0;
+	
+	if(tipsSeg_INTFLG){
+	
+		tipsSeg_INTFLG = 0;
+		
+		loop = 0;
+		tips_data = 0x1f;
+	}
+	
+	if(loop > 6){
+		
+		loop = 0; 
+		seg_tipsShow(0);
+	}
+	else{
+		
+		loop ++;
+		
+		seg_tipsShow(tips_data);
+		tips_data >>= 1;
+	}
+}
+
+void segTips_allDark(void){
+
+	seg_tipsShow(0);
+}
+
+#endif
 
 void tipsLED_colorSet(tipsLED_Obj obj, u8 gray_R, u8 gray_G, u8 gray_B){
 

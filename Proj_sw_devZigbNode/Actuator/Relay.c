@@ -26,8 +26,16 @@ bit				idata statusRelay_saveEn= 0; //开关值本地存储使能,灵活使用,重复存储
 
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 stt_Dimmer_attrFreq	xdata dimmer_freqParam		= {0};
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)			
+  u16 xdata fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16;
+ #endif
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 stt_eleSocket_attrFreq xdata socket_eleDetParam = {0};
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+  float xdata pinFP_stdby_powerCNT = 1.0F; //功率脉冲预测计数值
+  float xdata pinFP_powerStdby = 1.0F;  //功率 预检测频率值 1秒周期
+ #endif
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
 stt_scenario_attrAct xdata scenario_ActParam = {0};
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
@@ -44,26 +52,57 @@ void relay_statusReales(void){
 	switch(status_Relay){
 	
 		case 0:{
-		
+
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)			
+			fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16; //使延时操作失效
+ #endif
+			
 			PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 0;
 		
 		}break;
 		
 		case 1:{
-		
+
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)
+			if((!PIN_RELAY_1) && !(PIN_RELAY_2)){
+				
+				PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 1;
+			
+				PIN_RELAY_1 = 1;
+				fansInpactTimeCounter = 1500;  //一档进行高档位冲击，冲击时间设定
+				
+			}
+			else
+			{
+				fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16; //使延时操作失效
+				
+				PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 1;
+			}
+			
+ #else	
 			PIN_RELAY_1 = 0;PIN_RELAY_2 = 0;PIN_RELAY_3 = 1;
+			
+ #endif
 			
 		}break;
 			
 		case 2:{
-		
+	
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)						
+			fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16; //使延时操作失效
+ #endif	
+			
 			PIN_RELAY_1 = 0;PIN_RELAY_2 = 1;PIN_RELAY_3 = 0;
 			
 		}break;
 			
 		case 3:
 		default:{
-		
+	
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)						
+			fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16; //使延时操作失效
+ #endif	
+			
 			PIN_RELAY_1 = 1;PIN_RELAY_2 = 0;PIN_RELAY_3 = 0;
 			
 		}break;
@@ -72,6 +111,18 @@ void relay_statusReales(void){
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 	(status_Relay)?(PIN_RELAY_1 = 1):(PIN_RELAY_1 = 0);
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+	if(status_Relay){ //seg提示灯
+	
+		dev_segTips = segMode_touchOpen;
+		tipsSeg_INTFLG = 1;
+		
+	}else{
+	
+		dev_segTips = segMode_touchClose;
+		tipsSeg_INTFLG = 1;
+	}
+ #endif
 	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
 	{
@@ -145,29 +196,42 @@ void relay_statusReales(void){
 			switch(status_Relay){
 			
 				case 1:{
-				
-					PIN_RELAY_2 = 1;
-					PIN_RELAY_1 = PIN_RELAY_3 = 0;
-					curtainAct_Param.act = cTact_open;
 					
+						PIN_RELAY_2 = 1;
+						PIN_RELAY_1 = PIN_RELAY_3 = 0;
+						curtainAct_Param.act = cTact_open;
 				}break;
 					
 				case 4:{
-				
-					PIN_RELAY_1 = 1;
-					PIN_RELAY_2 = PIN_RELAY_3 = 0;
-					curtainAct_Param.act = cTact_close;
-					
+			
+						PIN_RELAY_1 = 1;
+						PIN_RELAY_2 = PIN_RELAY_3 = 0;
+						curtainAct_Param.act = cTact_close;
 				}break;
 					
 				case 2:
 				default:{
+					
+					static u8 xdata curtainActCounter_record = 0;
 				
 					PIN_RELAY_1 = PIN_RELAY_2 = PIN_RELAY_3 = 0;
-					curtainAct_Param.act = cTact_stop;
+					if(curtainAct_Param.act != cTact_stop)curtainAct_Param.act = cTact_stop;
 					
-					if(curtainAct_Param.act != cTact_stop)coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1); //每次窗帘运动停止时，记录当前位置对应的轨道周期计时值
+					if(curtainActCounter_record != curtainAct_Param.act_counter){ //避免重复记忆导致灯光闪烁
 					
+						curtainActCounter_record = curtainAct_Param.act_counter;
+						
+						coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalCnter, &(curtainAct_Param.act_counter), 1); //每次窗帘运动停止时，记录当前位置对应的轨道周期计时值
+					}
+					
+//#if(DEBUG_LOGOUT_EN == 1)
+//					{ //输出打印，谨记 用后注释，否则占用大量代码空间
+//						
+//						memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+//						sprintf(log_buf, ">>>curtain obtCnt count:%d.\n", (int)curtainAct_Param.act_counter);
+//						PrintString1_logOut(log_buf);
+//					}			
+//#endif					
 				}break;
 			}
 		
@@ -304,6 +368,9 @@ void Ext_INT1 (void) interrupt INT1_VECTOR{
 void Ext_INT2 (void) interrupt INT2_VECTOR{ //中断2
 	
 	socket_eleDetParam.eleParamFun_powerPulseCount += 1.0F;
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+	pinFP_stdby_powerCNT += 1.0F;
+ #endif
 }
 
 void Ext_INT3 (void) interrupt INT3_VECTOR{ //中断3

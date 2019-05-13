@@ -137,6 +137,8 @@ extern bit				idata statusRelay_saveEn;
 
 extern stt_Dimmer_attrFreq xdata dimmer_freqParam;
 extern stt_eleSocket_attrFreq xdata socket_eleDetParam;
+extern float xdata pinFP_stdby_powerCNT;
+extern float xdata pinFP_powerStdby;
 extern stt_scenario_attrAct xdata scenario_ActParam;
 extern stt_heater_attrAct xdata heater_ActParam;
 

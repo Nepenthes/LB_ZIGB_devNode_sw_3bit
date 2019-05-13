@@ -19,7 +19,7 @@
 
 /**********************本地文件变量定义区************************/
 datsAttr_datsTrans xdata datsSend_request = {0}; //远端数据传输请求缓存
-datsAttr_dtCtrlEach xdata datsSend_requestEx[3] = {0}; //扩展型远端数据传输请求缓存（持续发送，无需远端响应）
+datsAttr_dtCtrlEach xdata datsSend_requestEx[clusterNum_usr] = {0}; //扩展型远端数据传输请求缓存（持续发送，无需远端响应）
 u16 xdata dtReqEx_counter = 0; //扩展型远端数据传输请求数据发送间隔计时值 单位：ms
 datsAttr_datsTrans xdata datsRcv_respond = {0}; //远端数据传输请求等待响应缓存缓存
 remoteDataReq_method xdata devRemoteDataReqMethod = {0}; //远端数据请求方式
@@ -31,9 +31,9 @@ u8 dtModeKeepAcess_currentCmd = DTMODEKEEPACESS_FRAMECMD_ASR; //数据传输为定时询
 
 //zigbee运行状态切换标志
 stt_statusChange xdata devStatus_switch = {0, status_NULL};
+
 //数据请求完成后是否需要重启网络
 bit reConnectAfterDatsReq_IF = 0; //用于互控通讯簇即刻注册特殊情况下使用
-
 bit coordinatorOnline_IF = 0; //协调器在线标志
 
 //zigb网络动作专用时间计数
@@ -50,6 +50,11 @@ bit heartBeatCycle_FLG 			= 0; //心跳周期触发
 u8 	xdata heartBeatCount		= 0; //心跳周期计数
 u8	xdata heartBeatPeriod		= PERIOD_HEARTBEAT_ASR; //心跳计数周期
 u8	xdata heartBeatHang_timeCnt = 0; //心跳挂起计时(此数据为0时才可以发送心跳，否则心跳挂起，用于通信避让)
+
+//互控对外周期性通知自身地址
+u8	xdata dnCounter_mutualAddrPeriodPingOut = PERIOD_HEARTBEAT_ASR * 2; //周期计时值    单位：s --默认为2倍心跳
+u16 xdata dnCounter_mutAddrsPingLoopPeriod = 0; //三组互控参数连续通知间隔    单位：ms
+bit idata cycleFlg_mutualAddrPeriodPingOut = 0;
 
 //集群受控周期轮询-<包括有互控和场景>
 u8	xdata colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群受控状态周期性询查计时计数值
@@ -800,6 +805,8 @@ void zigB_nwkJoinRequest(bit reJoin_IF){
 		reactionLoop = 0;
 		zigbPin_RESET = 1;
 		
+		dnCounter_mutualAddrPeriodPingOut = 10;	//本地互控组对应设备地址对外通知周期重置至10s
+		
 		sysTimeReales_counter = PERIOD_SYSTIMEREALES; //systime更新周期重置，防止多指令堵塞冲突
 		
 		devRunning_Status = status_passiveDataRcv; //外部状态切换
@@ -1525,7 +1532,7 @@ void dataParing_scenarioCtrl(u8 datsFrame[]){
 	   (curtainAct_Param.act_period)){
 		
 			specialFlg_curtainEachctrlEn = 0; 
-		}
+	}
 	
 #endif
 	
@@ -1821,7 +1828,9 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 						
 						if(!deviceLock_flag){ //设备是否上锁
 							
-							tips_statusChangeToNormal();
+//							tips_statusChangeToNormal();
+							tips_statusChangeToZigbNwkOpen(10); //搜索时也使用开网提示，提示合并
+							
 							if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //触摸释放计时失能
 							
 							paramTX_temp[11] = status_Relay; //开关状态回复填装
@@ -1830,10 +1839,14 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 							paramTX_temp[14] = (u8)((dev_currentPanid & 0xFF00) >> 8); //网络PANID回复填装
 							paramTX_temp[15] = (u8)((dev_currentPanid & 0x00FF) >> 0);
 							
-							sysTimeZone_H = datsParam[12];
-							sysTimeZone_M = datsParam[13];
-							coverEEPROM_write_n(EEPROM_ADDR_timeZone_H, &sysTimeZone_H, 1);
-							coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);
+							if((sysTimeZone_H != datsParam[12]) || //时区不同才进行更新存储
+							   (sysTimeZone_M != datsParam[13])){
+							   
+								sysTimeZone_H = datsParam[12];
+								sysTimeZone_M = datsParam[13];
+								coverEEPROM_write_n(EEPROM_ADDR_timeZone_H, &sysTimeZone_H, 1);
+								coverEEPROM_write_n(EEPROM_ADDR_timeZone_M, &sysTimeZone_M, 1);   
+							}
 							
 							periodDataTrans_momentHang(10); //接收到搜索码后 将其他周期主动发码通信进行避让 为搜索响应清路 10s
 						
@@ -2657,6 +2670,8 @@ void dataParing_Nomal(u8 datsParam[], u16 nwkAddr_from, u8 port_from){
 										
 											coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther + loop, &dev_dataPointTemp.devData_switchBitBind[loop], 1);
 											CTRLEATHER_PORT[loop] = dev_dataPointTemp.devData_switchBitBind[loop];
+											
+											mutualCtrlSysParam_dataReset(1 << loop); //对应互控组相关地址列表清零
 										}
 									}
 									
@@ -2914,7 +2929,7 @@ void thread_dataTrans(void){
 			//--------------------------------主状态业务：数据持续发送机制执行（无视回码）----------------------------//主要用于针对互控业务
 			{
 				
-				u16 code DTREQ_EXATTR_ONCEPERIOD = 251; //单次发送间隔时间定义 单位：ms
+				u16 code DTREQ_EXATTR_ONCEPERIOD = 200; //单次发送间隔时间定义 单位：ms
 				u16 idata constandLoop_reserve = datsSend_requestEx[0].constant_Loop + datsSend_requestEx[1].constant_Loop + datsSend_requestEx[2].constant_Loop;
 				
 				if(constandLoop_reserve){
@@ -2922,6 +2937,8 @@ void thread_dataTrans(void){
 					if(!dtReqEx_counter){
 					
 						u16 idata current_Insert = constandLoop_reserve % 3; //次序轮流
+						
+						dnCounter_mutualAddrPeriodPingOut = 10;
 						
 #if(DEBUG_LOGOUT_EN == 1)
 						if((constandLoop_reserve % 3) == 0){ //输出打印，谨记 用后注释，否则占用大量代码空间(3个loop打印一次)
@@ -2941,12 +2958,83 @@ void thread_dataTrans(void){
 							current_Insert %= 3;
 						}
 						
-						datsSend_requestEx[current_Insert].constant_Loop --;
+						if(datsSend_requestEx[current_Insert].nwkAddr_loopInsert)datsSend_requestEx[current_Insert].nwkAddr_loopInsert --;
+						else{
 						
-						datsSend_requestEx[current_Insert].dats[1] = datsSend_requestEx[current_Insert].constant_Loop; //实时更新持续发送剩余次数值
-						dataSendRemote_straightforward(datsSend_requestEx[current_Insert].nwkAddr, datsSend_requestEx[current_Insert].portPoint, datsSend_requestEx[current_Insert].dats, datsSend_requestEx[current_Insert].datsLen);
+							datsSend_requestEx[current_Insert].nwkAddr_loopInsert = MUTUALCTRL_DEV_NUM_MAX - 1;
+							
+							datsSend_requestEx[current_Insert].constant_Loop --;
+						}
+						
+						if(datsSend_requestEx[current_Insert].nwkAddr[datsSend_requestEx[current_Insert].nwkAddr_loopInsert] != 0xffff){
+						
+							datsSend_requestEx[current_Insert].dats[1] = datsSend_requestEx[current_Insert].constant_Loop; //实时更新持续发送剩余次数值
+							datsSend_requestEx[current_Insert].dats[2] = 0; //
+							dataSendRemote_straightforward(datsSend_requestEx[current_Insert].nwkAddr[datsSend_requestEx[current_Insert].nwkAddr_loopInsert], 
+														   datsSend_requestEx[current_Insert].portPoint, 
+														   datsSend_requestEx[current_Insert].dats, 
+														   datsSend_requestEx[current_Insert].datsLen);	
+						}
 						
 						dtReqEx_counter = DTREQ_EXATTR_ONCEPERIOD;
+					}
+				}
+			}
+			
+			//--------------------------------主状态业务：互控组内地址周期向外广播通知（针对自身可用互控组）--------//主要用于针对互控业务
+			{
+				static u8 xdata devMutualPararmNoticeParam_noticeLoop = clusterNum_usr;				
+				u16 code MUTADDRSPINGLOOPPERIOD = 500;
+#define mutAddrsPingDatsReq_len	3
+				struct stt_mutAddrsPingDatsReq{
+				
+					u8 dats[mutAddrsPingDatsReq_len];
+					
+					u8 	portPoint;
+					u16	nwkAddr;
+					
+				}devMutAddrsPingDatsReq = {0};
+				
+				if(cycleFlg_mutualAddrPeriodPingOut){
+					
+#if(DEBUG_LOGOUT_EN == 1)
+					{
+						static idata bit log_trigFlg = 0;
+						
+						if(log_trigFlg != cycleFlg_mutualAddrPeriodPingOut){
+						
+							log_trigFlg = cycleFlg_mutualAddrPeriodPingOut;
+							
+							if(log_trigFlg)PrintString1_logOut("devMutualCtrlAddr notice trig.\n");
+						}
+					}
+#endif					
+				
+					if(!dnCounter_mutAddrsPingLoopPeriod){ //单组单轮
+					
+						dnCounter_mutAddrsPingLoopPeriod = MUTADDRSPINGLOOPPERIOD;
+						
+						if(devMutualPararmNoticeParam_noticeLoop --){
+							
+							memset(&devMutAddrsPingDatsReq, 0, sizeof(struct stt_mutAddrsPingDatsReq));
+							
+							if(CTRLEATHER_PORT[devMutualPararmNoticeParam_noticeLoop] > CTRLEATHER_PORT_NUMSTART &&
+							   CTRLEATHER_PORT[devMutualPararmNoticeParam_noticeLoop] < CTRLEATHER_PORT_NUMTAIL){
+							   
+								devMutAddrsPingDatsReq.portPoint = CTRLEATHER_PORT[devMutualPararmNoticeParam_noticeLoop];
+								devMutAddrsPingDatsReq.dats[2] = MUTUALCMD_MUTADDRS_NOTICE_OUT;
+								dataSendRemote_straightforward(0xffff, 
+															   devMutAddrsPingDatsReq.portPoint,
+															   devMutAddrsPingDatsReq.dats,
+															   mutAddrsPingDatsReq_len);
+							}
+						
+						}else{
+						
+							devMutualPararmNoticeParam_noticeLoop = clusterNum_usr;
+							
+							cycleFlg_mutualAddrPeriodPingOut = 0;
+						}
 					}
 				}
 			}
@@ -3355,21 +3443,26 @@ void thread_dataTrans(void){
 					if(EACHCTRL_realesFLG == 1){
 						
 						EACHCTRL_realesFLG = 0; //互控有效位清零
-					
+						
+						(swCommand_fromUsr.actMethod != actionNull)?
+							(paramTX_temp[0] = swCommand_fromUsr.objRelay):
+							(paramTX_temp[0] = status_Relay);
 						paramTX_temp[0] = status_Relay; //直接给亮度值
 						colonyCtrlGet_statusLocalEaCtrl[0] = paramTX_temp[0]; //本地互控状态查询值更新
 						localDataRecord_eaCtrl[0] = paramTX_temp[0];  //本地互控记录值更新
 						colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 						
 						/*无视回码，持续性发送*///非常规
-						datsSend_requestEx[0].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+						datsSend_requestEx[0].nwkAddr[0] = mutualCtrlDevList[0][0]; //单播
+						datsSend_requestEx[0].nwkAddr[1] = mutualCtrlDevList[0][1]; 
+						datsSend_requestEx[0].nwkAddr_loopInsert = MUTUALCTRL_DEV_NUM_MAX - 1;
 						datsSend_requestEx[0].portPoint = CTRLEATHER_PORT[0]; //互控位对应绑定端口
 						memset(datsSend_requestEx[0].dats, 0, 10 * sizeof(u8));
 						
 						datsSend_requestEx[0].dats[0] = paramTX_temp[0];
-						datsSend_requestEx[0].dats[1] = 0; //下标2为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
-						datsSend_requestEx[0].datsLen = 2;
-						datsSend_requestEx[0].constant_Loop = 30; //无视回码，发30次		
+						datsSend_requestEx[0].dats[1] = 0; //下标1为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
+						datsSend_requestEx[0].datsLen = 3;
+						datsSend_requestEx[0].constant_Loop = MUTUAL_KEEP_TRIG_LOOPPERIOD_TIME; //无视回码，发30次		
 					}
 							
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
@@ -3392,7 +3485,27 @@ void thread_dataTrans(void){
 								
 									EACHCTRL_realesFLG &= ~(1 << loop); //互控有效位清零
 									
-									paramTX_temp[0] = (status_Relay >> loop) & 0x01; //开关状态填装
+									switch(swCommand_fromUsr.actMethod){
+									
+										case relay_OnOff:{
+										
+											paramTX_temp[0] = (swCommand_fromUsr.objRelay >> loop) & 0x01; //开关状态填装
+										
+										}break;
+										
+										case relay_flip:{
+										
+											paramTX_temp[0] = (swCommand_fromUsr.objRelay >> loop) ^ 0x01; //开关状态填装
+										
+										}break;
+										
+										case actionNull:
+										default:{
+										
+											paramTX_temp[0] = (status_Relay >> loop) & 0x01; //开关状态填装
+										
+										}break;
+									}
 									
 									if((CTRLEATHER_PORT[loop] > CTRLEATHER_PORT_NUMSTART) && CTRLEATHER_PORT[loop] < CTRLEATHER_PORT_NUMTAIL){ //是否为有效互控端口
 										
@@ -3401,14 +3514,16 @@ void thread_dataTrans(void){
 										colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 									
 										/*无视回码，持续性发送*///非常规
-										datsSend_requestEx[loop].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+										datsSend_requestEx[loop].nwkAddr[0] = mutualCtrlDevList[loop][0]; //单播
+										datsSend_requestEx[loop].nwkAddr[1] = mutualCtrlDevList[loop][1]; 
+										datsSend_requestEx[loop].nwkAddr_loopInsert = MUTUALCTRL_DEV_NUM_MAX - 1;
 										datsSend_requestEx[loop].portPoint = CTRLEATHER_PORT[loop]; //互控位对应绑定端口
 										memset(datsSend_requestEx[loop].dats, 0, 10 * sizeof(u8));
 										
 										datsSend_requestEx[loop].dats[0] = paramTX_temp[0];
-										datsSend_requestEx[loop].dats[1] = 0; //下标2为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
-										datsSend_requestEx[loop].datsLen = 2;
-										datsSend_requestEx[loop].constant_Loop = 30; //无视回码，发30次
+										datsSend_requestEx[loop].dats[1] = 0; //下标1为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
+										datsSend_requestEx[loop].datsLen = 3;
+										datsSend_requestEx[loop].constant_Loop = MUTUAL_KEEP_TRIG_LOOPPERIOD_TIME; //无视回码，发30次
 										
 //										/*常规发送，收到协议栈回码响应就停止发送，且有超时*///常规
 //										datsSend_request.nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
@@ -3439,20 +3554,25 @@ void thread_dataTrans(void){
 								
 								if((CTRLEATHER_PORT[0] > CTRLEATHER_PORT_NUMSTART) && CTRLEATHER_PORT[0] < CTRLEATHER_PORT_NUMTAIL){ //有效端口判断
 								
-									paramTX_temp[0] = status_Relay; //直接给操作值[1:关, 2:停, 4:开]
+									(swCommand_fromUsr.actMethod != actionNull)?
+										(paramTX_temp[0] = swCommand_fromUsr.objRelay):  //直接给操作值[1:关, 2:停, 4:开]
+										(paramTX_temp[0] = status_Relay);  //直接给操作值[1:关, 2:停, 4:开]
+									paramTX_temp[0] = status_Relay;
 									colonyCtrlGet_statusLocalEaCtrl[0] = paramTX_temp[0]; //本地互控状态查询值更新
 									localDataRecord_eaCtrl[0] = paramTX_temp[0];  //本地互控记录值更新
 									colonyCtrlGet_queryCounter = COLONYCTRLGET_QUERYPERIOD; //集群信息查询主动滞后，以防与主机集群信息未更新，导致与本地信息冲突
 									
 									/*无视回码，持续性发送*///非常规
-									datsSend_requestEx[0].nwkAddr = 0xffff; //间接组播（对互控专用端口进行广播）
+									datsSend_requestEx[0].nwkAddr[0] = mutualCtrlDevList[0][0]; //单播
+									datsSend_requestEx[0].nwkAddr[1] = mutualCtrlDevList[0][1]; 
+									datsSend_requestEx[0].nwkAddr_loopInsert = MUTUALCTRL_DEV_NUM_MAX - 1;
 									datsSend_requestEx[0].portPoint = CTRLEATHER_PORT[0]; //互控位对应绑定端口
 									memset(datsSend_requestEx[0].dats, 0, 10 * sizeof(u8));
 									
 									datsSend_requestEx[0].dats[0] = paramTX_temp[0];
-									datsSend_requestEx[0].dats[1] = 0; //下标2为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
-									datsSend_requestEx[0].datsLen = 2;
-									datsSend_requestEx[0].constant_Loop = 30; //无视回码，发30次
+									datsSend_requestEx[0].dats[1] = 0; //下标1为持续发送剩余次数，用来确定最后发送互控数据的对象（最后发送的互控数据才是有效数据），在发送时实时更新，初始赋值为0
+									datsSend_requestEx[0].datsLen = 3;
+									datsSend_requestEx[0].constant_Loop = MUTUAL_KEEP_TRIG_LOOPPERIOD_TIME; //无视回码，发30次
 								}
 							}
 							
@@ -3565,8 +3685,15 @@ void thread_dataTrans(void){
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER) //调光开关的互控直接放在互控组一内，互控数据为状态值
 						if((srcPoint == CTRLEATHER_PORT[0]) && (0 != CTRLEATHER_PORT[0])){ //互控组一 对应组号核对（组号即端口号）
-						
+
+							if(paramRX_temp[2] == MUTUALCMD_MUTADDRS_NOTICE_OUT){
+							
+								mutualCtrlSysParam_checkAndStore(localActLoop, datsFrom_addr);//点对点互控地址判断存储
+								
+							}else							
 							if(paramRX_temp[1] > datsSend_requestEx[0].constant_Loop){ //loop值大于本地才有效
+								
+								dnCounter_mutualAddrPeriodPingOut = 10;
 
 								swCommand_fromUsr.objRelay = paramRX_temp[0]; //亮度值加载并进行硬件响应
 								swCommand_fromUsr.actMethod = relay_OnOff;
@@ -3594,8 +3721,15 @@ void thread_dataTrans(void){
 								for(localActLoop = 0; localActLoop < clusterNum_usr; localActLoop ++){
 								
 									if((srcPoint == CTRLEATHER_PORT[localActLoop]) && (0 != CTRLEATHER_PORT[localActLoop])){ //开关位x 互控绑定判断
-									
-										if(paramRX_temp[1] > datsSend_requestEx[localActLoop].constant_Loop){ //loop值大于本地才有效
+										
+										if(paramRX_temp[2] == MUTUALCMD_MUTADDRS_NOTICE_OUT){
+										
+											mutualCtrlSysParam_checkAndStore(localActLoop, datsFrom_addr);//点对点互控地址判断存储
+											
+										}else
+										if(paramRX_temp[1] > datsSend_requestEx[localActLoop].constant_Loop){ //loop值大于本地才有效，防止两边同时按，产生回弹
+											
+											dnCounter_mutualAddrPeriodPingOut = 10;
 										
 											statusRelay_temp &= ~(1 << localActLoop); //动作位缓存清零
 											swCommand_fromUsr.objRelay = statusRelay_temp | (paramRX_temp[0] << localActLoop); //bit对应 开关位动作加载
@@ -3617,7 +3751,14 @@ void thread_dataTrans(void){
 							
 								if((srcPoint == CTRLEATHER_PORT[0]) && (0 != CTRLEATHER_PORT[0])){ //互控组一 对应组号核对（组号即端口号）
 								
+									if(paramRX_temp[2] == MUTUALCMD_MUTADDRS_NOTICE_OUT){
+									
+										mutualCtrlSysParam_checkAndStore(localActLoop, datsFrom_addr);//点对点互控地址判断存储
+										
+									}else
 									if(paramRX_temp[1] > datsSend_requestEx[0].constant_Loop){ //loop值大于本地才有效
+										
+										dnCounter_mutualAddrPeriodPingOut = 10;
 
 										swCommand_fromUsr.objRelay = paramRX_temp[0]; //动作值加载并进行硬件响应
 										swCommand_fromUsr.actMethod = relay_OnOff;

@@ -117,6 +117,19 @@ typedef union{
 	
 }bkLightColorInsert_paramAttr;
 
+#if((SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) && (SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)) //英规插座才有数码管
+ typedef enum seg_tipsMode{
+
+	segMode_null = 0,
+	segMode_init,
+	segMode_initCmp,
+	segMode_touchOpen,
+	segMode_touchClose,
+	segMode_elecDetectStandby,
+	segMode_elecDetect,
+ }enum_segTips;
+#endif
+
 typedef enum{
 
 	obj_Relay1 = 0,
@@ -184,6 +197,11 @@ extern u8 xdata tipsTimeCount_factoryRecover;
 extern enum_beeps xdata dev_statusBeeps;
 extern sound_Attr xdata devTips_beep;
 
+#if((SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) && (SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH))
+ extern bit idata tipsSeg_INTFLG;
+ extern enum_segTips xdata dev_segTips;
+#endif
+
 extern tips_Status devTips_status;
 extern tips_nwkZigbStatus devTips_nwkZigb;
 
@@ -210,6 +228,15 @@ void tips_breath(void);
 void tips_sysButtonReales(void);
 void tips_sysTouchReset(void);
 void tips_sysStandBy(void);
+
+void segTips_Init(void);
+void segTips_InitCmp(void);
+void segTips_detectStandBy(void);
+void segTips_touchOpen(void);
+void segTips_touchClose(void);
+void segTips_allDark(void);
+
+void powerTips(float tips_val);
 
 void thread_Tips(void);
 

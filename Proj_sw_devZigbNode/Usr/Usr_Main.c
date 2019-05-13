@@ -40,6 +40,7 @@ void bsp_datsReales(void){
 
 	MAC_ID_Relaes();
 	portCtrlEachOther_Reales();
+	mutualCtrlSysParam_dataRecover();
 	ledBKGColorSw_Reales();
 	devLockInfo_Reales();
 	timeZone_Reales();

@@ -1,11 +1,11 @@
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 1   
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE DATAMANAGE
 OBJECT MODULE PLACED IN .\Output\dataManage.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\dataManage.c OMF2 OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib;.\
-                    -std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\dataManage.lst) OBJECT(.\Output\dataManage.ob
-                    -j)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Usr\dataManage.c OMF2 OPTIMIZE(9,SIZE) BROWSE INCDIR(.\Usr;.\Usr_lib;.\s
+                    -td_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\dataManage.lst) OBJECT(.\Output\dataManage.obj
+                    -)
 
 line level    source
 
@@ -44,72 +44,74 @@ line level    source
   33          
   34          //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
   35          u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
-  36          
-  37          u16 dev_currentPanid = 0;
-  38          
-  39          #if(DEBUG_LOGOUT_EN == 1)       
-  40           u8 idata log_buf[LOGBUFF_LEN] = {0};
-  41          #endif          
-  42          
-  43          /********************±¾µØÎÄ¼þ±äÁ¿´´½¨Çø******************/
-  44          unsigned char xdata MAC_ID[6]           = {0}; 
-  45          unsigned char xdata MAC_ID_DST[6]       = {1,1,1,1,1,1};  //Ô¶¶ËMACµØÖ·Ä¬ÈÏÈ«ÊÇ1£¬È«ÊÇ0µÄ»°Ó°Ïì·þÎñÆ÷½âÎö
-  46          
-  47          #if(DATASAVE_INTLESS_ENABLEIF)
-  48           u8 xdata loopInsert_relayStatusRealTime_record = 0; //¼ÌµçÆ÷×´Ì¬ÊµÊ±¼ÇÂ¼ÓÎ±ê
-  49          #endif
-  50          
-  51          //Éè±¸Ëø±êÖ¾
-  52          bit     deviceLock_flag = false;
-  53          
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 2   
+  36          u16 idata mutualCtrlDevList[clusterNum_usr][MUTUALCTRL_DEV_NUM_MAX - 1] = {0}; //»¥¿Ø×éÄÚÉè±¸ÁÐ±í,<±ØÐëÊ¹Ó
+             -Ãidata »ò data ÄÚ´æ£¬xdataÄÚ´æÓÐÈ±ÏÝ,»áµ¼ÖÂµÚÒ»¸ö8 bitÄÚ´æÎÞ¹Ê±»ÇåÁã>
+  37          
+  38          u16 dev_currentPanid = 0;
+  39          
+  40          #if(DEBUG_LOGOUT_EN == 1)       
+               u8 xdata log_buf[LOGBUFF_LEN] = {0};
+              #endif          
+  43          
+  44          /********************±¾µØÎÄ¼þ±äÁ¿´´½¨Çø******************/
+  45          unsigned char xdata MAC_ID[6]           = {0}; 
+  46          unsigned char xdata MAC_ID_DST[6]       = {1,1,1,1,1,1};  //Ô¶¶ËMACµØÖ·Ä¬ÈÏÈ«ÊÇ1£¬È«ÊÇ0µÄ»°Ó°Ïì·þÎñÆ÷½âÎö
+  47          
+  48          #if(DATASAVE_INTLESS_ENABLEIF)
+  49           u8 xdata loopInsert_relayStatusRealTime_record = 0; //¼ÌµçÆ÷×´Ì¬ÊµÊ±¼ÇÂ¼ÓÎ±ê
+  50          #endif
+  51          
+  52          //Éè±¸Ëø±êÖ¾
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 2   
 
-  54          //zigbÍøÂç´æÔÚ±êÖ¾
-  55          bit zigbNwk_exist_FLG = 0;
-  56          
-  57          /*MAC¸üÐÂ*/
-  58          void MAC_ID_Relaes(void){
-  59   1              
-  60   1              u8 code *id_ptr = ROMADDR_ROM_STC_ID;
-  61   1      
-  62   1              memcpy(MAC_ID, id_ptr - 5, 6); //ÆðµãÔÚÇ°£¬Ïòºó¶Á£¬Ö»È¡ºóÁùÎ»
-  63   1              
-  64   1      #if(DEBUG_LOGOUT_EN == 1)       
-  65   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
-  66   2      
-  67   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-  68   2                      
-  69   2                      sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
-  70   2                      PrintString1_logOut(log_buf);
-  71   2                      sprintf(log_buf, "%02X %02X %02X.\n", (int)MAC_ID[3], (int)MAC_ID[4], (int)MAC_ID[5]);
-  72   2                      PrintString1_logOut(log_buf);
-  73   2              }
-  74   1      #endif
-  75   1      
-  76   1      //      memcpy(MAC_ID, id_ptr - 5, 6); 
-  77   1      //      memcpy(MAC_ID, MACID_test, 6); 
-  78   1      }
-  79          
-  80          void portCtrlEachOther_Reales(void){
-  81   1      
-  82   1              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, CTRLEATHER_PORT, 3);
-  83   1      }
-  84          
-  85          void devLockInfo_Reales(void){
-  86   1      
-  87   1              u8 xdata deviceLock_IF = 0;
-  88   1      
-  89   1              EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
-  90   1              
-  91   1              (deviceLock_IF)?(deviceLock_flag = 1):(deviceLock_flag = 0);
-  92   1      }
-  93          
-  94          /*»ñÈ¡µ±Ç°¿ª¹ØÀàÐÍ¶ÔÓ¦ÓÐÐ§²Ù×÷Î»*/
-  95          u8 switchTypeReserve_GET(void){
-  96   1      
-  97   1              u8 act_Reserve = 0x07;
-  98   1      
-  99   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+  53          bit     deviceLock_flag = false;
+  54          
+  55          //zigbÍøÂç´æÔÚ±êÖ¾
+  56          bit zigbNwk_exist_FLG = 0;
+  57          
+  58          /*MAC¸üÐÂ*/
+  59          void MAC_ID_Relaes(void){
+  60   1              
+  61   1              u8 code *id_ptr = ROMADDR_ROM_STC_ID;
+  62   1      
+  63   1              memcpy(MAC_ID, id_ptr - 5, 6); //ÆðµãÔÚÇ°£¬Ïòºó¶Á£¬Ö»È¡ºóÁùÎ»
+  64   1              
+  65   1      #if(DEBUG_LOGOUT_EN == 1)       
+                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                              
+                              sprintf(log_buf, "mac_reales:%02X %02X %02X ", (int)MAC_ID[0], (int)MAC_ID[1], (int)MAC_ID[2]);
+                              PrintString1_logOut(log_buf);
+                              sprintf(log_buf, "%02X %02X %02X.\n", (int)MAC_ID[3], (int)MAC_ID[4], (int)MAC_ID[5]);
+                              PrintString1_logOut(log_buf);
+                      }
+              #endif
+  76   1      
+  77   1      //      memcpy(MAC_ID, id_ptr - 5, 6); 
+  78   1      //      memcpy(MAC_ID, MACID_test, 6); 
+  79   1      }
+  80          
+  81          void portCtrlEachOther_Reales(void){
+  82   1      
+  83   1              EEPROM_read_n(EEPROM_ADDR_portCtrlEachOther, CTRLEATHER_PORT, 3);
+  84   1      }
+  85          
+  86          void devLockInfo_Reales(void){
+  87   1      
+  88   1              u8 xdata deviceLock_IF = 0;
+  89   1      
+  90   1              EEPROM_read_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1);
+  91   1              
+  92   1              (deviceLock_IF)?(deviceLock_flag = 1):(deviceLock_flag = 0);
+  93   1      }
+  94          
+  95          /*»ñÈ¡µ±Ç°¿ª¹ØÀàÐÍ¶ÔÓ¦ÓÐÐ§²Ù×÷Î»*/
+  96          u8 switchTypeReserve_GET(void){
+  97   1      
+  98   1              u8 act_Reserve = 0x07;
+  99   1      
+ 100   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
                       act_Reserve = 0x01;
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
                       act_Reserve = 0x01;
@@ -120,240 +122,332 @@ line level    source
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
                       act_Reserve = 0x07;
               #else
- 110   1              switch(SWITCH_TYPE){
- 111   2              
- 112   2                      case SWITCH_TYPE_HEATER:
- 113   2                      case SWITCH_TYPE_SWBIT1:{
- 114   3                      
- 115   3                              act_Reserve = 0x02;
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 3   
+ 111   1              switch(SWITCH_TYPE){
+ 112   2              
+ 113   2                      case SWITCH_TYPE_HEATER:
+ 114   2                      case SWITCH_TYPE_SWBIT1:{
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 3   
 
- 116   3                      
- 117   3                      }break;
- 118   2                      
- 119   2                      case SWITCH_TYPE_SWBIT2:{
- 120   3                      
- 121   3                              act_Reserve = 0x05;
- 122   3                      
- 123   3                      }break;
- 124   2                      
- 125   2                      case SWITCH_TYPE_SWBIT3:
- 126   2                      case SWITCH_TYPE_CURTAIN:{
- 127   3                      
- 128   3                              act_Reserve = 0x07;
- 129   3                      
- 130   3                      }break;
- 131   2              }
- 132   1              
- 133   1      #endif
- 134   1              
- 135   1              return act_Reserve;
- 136   1      }
- 137          
- 138          void statusSave_zigbNwk_nwkExistIF(bit nwkExistIF){
- 139   1              
- 140   1              u8 idata dataTemp = 0;
- 141   1      
- 142   1              zigbNwk_exist_FLG = nwkExistIF;
- 143   1              
- 144   1              (nwkExistIF)?(dataTemp = DATASAVE_MASK_ZIGBNWK_EXIST):(dataTemp = DATASAVE_MASK_ZIGBNWK_EXISTNOT);
- 145   1              
- 146   1              coverEEPROM_write_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
- 147   1              
- 148   1      #if(DEBUG_LOGOUT_EN == 1)       
- 149   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 150   2      
- 151   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 152   2                      
- 153   2                      sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
- 154   2                      PrintString1_logOut(log_buf);
- 155   2              }
- 156   1      #endif
- 157   1      
- 158   1      }
- 159          
- 160          bit statusGet_zigbNwk_nwkExistIF(void){
- 161   1      
- 162   1              u8 idata dataTemp = 0;
- 163   1              
- 164   1              EEPROM_read_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
- 165   1              
- 166   1              if(dataTemp == DATASAVE_MASK_ZIGBNWK_EXIST)return 1;
- 167   1              else return 0;
- 168   1      }
- 169          
- 170          void zigbNwkExist_detectReales(void){
- 171   1      
- 172   1              zigbNwk_exist_FLG = statusGet_zigbNwk_nwkExistIF();
- 173   1              
- 174   1      #if(DEBUG_LOGOUT_EN == 1)       
- 175   1              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 176   2      
- 177   2                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 4   
+ 115   3                      
+ 116   3                              act_Reserve = 0x02;
+ 117   3                      
+ 118   3                      }break;
+ 119   2                      
+ 120   2                      case SWITCH_TYPE_SWBIT2:{
+ 121   3                      
+ 122   3                              act_Reserve = 0x05;
+ 123   3                      
+ 124   3                      }break;
+ 125   2                      
+ 126   2                      case SWITCH_TYPE_SWBIT3:
+ 127   2                      case SWITCH_TYPE_CURTAIN:{
+ 128   3                      
+ 129   3                              act_Reserve = 0x07;
+ 130   3                      
+ 131   3                      }break;
+ 132   2              }
+ 133   1              
+ 134   1      #endif
+ 135   1              
+ 136   1              return act_Reserve;
+ 137   1      }
+ 138          
+ 139          void statusSave_zigbNwk_nwkExistIF(bit nwkExistIF){
+ 140   1              
+ 141   1              u8 idata dataTemp = 0;
+ 142   1      
+ 143   1              zigbNwk_exist_FLG = nwkExistIF;
+ 144   1              
+ 145   1              (nwkExistIF)?(dataTemp = DATASAVE_MASK_ZIGBNWK_EXIST):(dataTemp = DATASAVE_MASK_ZIGBNWK_EXISTNOT);
+ 146   1              
+ 147   1              coverEEPROM_write_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
+ 148   1              
+ 149   1      #if(DEBUG_LOGOUT_EN == 1)       
+                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                              
+                              sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
+                              PrintString1_logOut(log_buf);
+                      }
+              #endif
+ 158   1      
+ 159   1      }
+ 160          
+ 161          bit statusGet_zigbNwk_nwkExistIF(void){
+ 162   1      
+ 163   1              u8 idata dataTemp = 0;
+ 164   1              
+ 165   1              EEPROM_read_n(EEPROM_ADDR_zigbNwkExistIF, &dataTemp, 1);
+ 166   1              
+ 167   1              if(dataTemp == DATASAVE_MASK_ZIGBNWK_EXIST)return 1;
+ 168   1              else return 0;
+ 169   1      }
+ 170          
+ 171          void zigbNwkExist_detectReales(void){
+ 172   1      
+ 173   1              zigbNwk_exist_FLG = statusGet_zigbNwk_nwkExistIF();
+ 174   1              
+ 175   1      #if(DEBUG_LOGOUT_EN == 1)       
+                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 4   
 
- 178   2                      
- 179   2                      sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
- 180   2                      PrintString1_logOut(log_buf);
- 181   2              }
- 182   1      #endif
- 183   1      }
- 184          
- 185          ///*³¡¾°ºÅ¶ÔÓ¦EEPROM´æ´¢Ë÷ÒýºÅ²éÕÒ*/
- 186          //u8 swScenarioNum_findFromEEPROM(bit vacancyFind_IF, u8 scenarioNum){ //ÊÇ·ñÎª¿ÕÎ»²éÕÒ ·ñÔòÖ¸¶¨³¡¾°ºÅ²éÕÒ
- 187          
- 188          //      u8 loop = 0;
- 189          //      u8 xdata datsTemp[SW_SCENCRAIO_LEN] = {0};
- 190          //      
- 191          //      EEPROM_read_n(EEPROM_ADDR_swScenarioNum, datsTemp, SW_SCENCRAIO_LEN);
- 192          //      for(loop = 0; loop < SW_SCENCRAIO_LEN; loop ++){
- 193          //      
- 194          //              if(vacancyFind_IF){ //²éÕÒ¿ÕÎ»
- 195          //              
- 196          //                      if(0 == datsTemp[loop] || 0xff == datsTemp[loop])break;
- 197          //              
- 198          //              }else{  //²éÕÒÖ¸¶¨³¡¾°±àºÅ
- 199          //              
- 200          //                      if(scenarioNum == datsTemp[loop])break;
- 201          //              }
- 202          //      }
- 203          //      
- 204          //      if(loop < SW_SCENCRAIO_LEN){
- 205          //      
- 206          //              return loop; //Ë÷Òý¿É²é ·µ»ØË÷Òý
- 207          //              
- 208          //      }else{
- 209          //      
- 210          //              return SW_SCENCRAIO_INSERTINVALID; //Ë÷Òý²»¿É²é ·µ»ØÎÞÐ§Öµ
- 211          //      }
- 212          //}
- 213          
- 214          ///*³¡¾°´æ´¢*/
- 215          //bit swScenario_oprateSave(u8 scenarioNum, u8 swAct){
- 216          
- 217          //      u8 datsTemp = 0;
- 218          //      u8 insert = 0;
- 219          //      
- 220          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
- 221          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½Ôò¸ü¸Ä¶ÔÓ¦ÏìÓ¦×´Ì¬
- 222          //      
- 223          //              datsTemp = swAct;
- 224          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 225          //              
- 226          //      }else{ //³¡¾°±àºÅ²»¿É²éµ½ÔòÐÂÔö
- 227          //              
- 228          //              insert = swScenarioNum_findFromEEPROM(1, 0); //²é¿ÕÎ»
- 229          //              if(SW_SCENCRAIO_INSERTINVALID != insert){ //ÓÐ¿ÕÎ»ÔòÐÂÔö
- 230          //              
- 231          //                      datsTemp = swAct;
- 232          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
- 233          //                      datsTemp = scenarioNum;
- 234          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 235          //              
- 236          //              }else{ //ÎÞ¿ÕÎ»·µ»ØÊ§°Ü
- 237          //              
- 238          //                      return 0;
- 239          //              }
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 5   
+              
+                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                              
+                              sprintf(log_buf, "zigbNwk exsitFLG reales:%d.\n", (int)zigbNwk_exist_FLG);
+                              PrintString1_logOut(log_buf);
+                      }
+              #endif
+ 184   1      }
+ 185          
+ 186          void mutualCtrlSysParam_checkAndStore(u8 mutualCtrlGroup_insert, u16 devAddr){
+ 187   1      
+ 188   1              u8 xdata        loop = 0;
+ 189   1              bit idata       devAddrExist_IF = 0;
+ 190   1              
+ 191   1              if(mutualCtrlGroup_insert > (clusterNum_usr - 1))return;
+ 192   1              
+ 193   1              for(loop = 0; loop < (MUTUALCTRL_DEV_NUM_MAX - 1); loop ++){
+ 194   2                      
+ 195   2      #if(DEBUG_LOGOUT_EN == 1)       
+                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                      
+                                      sprintf(log_buf, "addr_t:%04X, addr_s:%04X.\n", (int)devAddr, (int)mutualCtrlDevList[mutualCtrlGroup_in
+             -sert][loop]);
+                                      PrintString1_logOut(log_buf);
+                              }
+              #endif
+ 204   2              
+ 205   2                      if(devAddr == mutualCtrlDevList[mutualCtrlGroup_insert][loop]){
+ 206   3                      
+ 207   3                              devAddrExist_IF = 1;
+ 208   3                              break;
+ 209   3                      }
+ 210   2              }
+ 211   1              
+ 212   1              if(devAddrExist_IF){
+ 213   2              
+ 214   2      #if(DEBUG_LOGOUT_EN == 1)       
+                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                      
+                                      sprintf(log_buf, "devAddr:%04X exist in mutualGroup:%d.\n", (int)devAddr, (int)mutualCtrlGroup_insert);
+                                      PrintString1_logOut(log_buf);
+                              }
+              #endif
+ 223   2              
+ 224   2              }else{
+ 225   2                      
+ 226   2                      memcpy((u8 *)&(mutualCtrlDevList[mutualCtrlGroup_insert][0]), (u8 *)&(mutualCtrlDevList[mutualCtrlGroup_
+             -insert][1]), sizeof(u16) * (MUTUALCTRL_DEV_NUM_MAX - 2));
+ 227   2                      mutualCtrlDevList[mutualCtrlGroup_insert][MUTUALCTRL_DEV_NUM_MAX - 2] = devAddr;
+ 228   2                      coverEEPROM_write_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr *
+             - (MUTUALCTRL_DEV_NUM_MAX - 1));
+ 229   2              
+ 230   2      #if(DEBUG_LOGOUT_EN == 1)       
+                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                      
+                                      sprintf(log_buf, "devAddr:%04X add to mutualGroup:%d.\n", (int)devAddr, (int)mutualCtrlGroup_insert);
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 5   
 
- 240          //      }
- 241          //      
- 242          //      return 1;
- 243          //}
- 244          
- 245          ///*³¡¾°É¾³ý*/
- 246          //bit swScenario_oprateDele(u8 scenarioNum){
- 247          
- 248          //      u8 datsTemp = 0;
- 249          //      u8 insert = 0;
- 250          //      
- 251          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
- 252          //      
- 253          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½ÔòÖ´ÐÐÉ¾³ý
- 254          //      
- 255          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
- 256          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
- 257          //              
- 258          //              return 1;
- 259          //              
- 260          //      }else{
- 261          //      
- 262          //              return 0;
- 263          //      }
- 264          //}
- 265          
- 266          ///*³¡¾°¶ÔÓ¦ÏìÓ¦¶¯×÷²éÑ¯*/
- 267          //u8 swScenario_oprateCheck(u8 scenarioNum){
- 268          
- 269          //      u8 datsTemp = 0;
- 270          //      u8 insert = 0;
- 271          //      
- 272          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
+                                      PrintString1_logOut(log_buf);
+                              }
+                              
+              //              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+              //                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+              //                      
+              //                      sprintf(log_buf, "devAddrList[0]:%04X %04X.\n", (int)mutualCtrlDevList[mutualCtrlGroup_insert][0],
+              //                                                                                                                      (int)mutualCtrlDevList[mutualCtrlGroup_insert][1]);
+              //                      PrintString1_logOut(log_buf);
+              //              }
+              #endif
+ 248   2              }
+ 249   1      }
+ 250          
+ 251          void mutualCtrlSysParam_dataReset(u8 opreatBit){
+ 252   1      
+ 253   1              u8 idata loop = 0;
+ 254   1              
+ 255   1              for(loop = 0; loop < clusterNum_usr; loop ++){
+ 256   2              
+ 257   2                      if(opreatBit & (1 << loop))memset(mutualCtrlDevList[loop], 0xff, sizeof(u16) * (MUTUALCTRL_DEV_NUM_MAX -
+             - 1));
+ 258   2              }
+ 259   1              
+ 260   1              coverEEPROM_write_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr * 
+             -(MUTUALCTRL_DEV_NUM_MAX - 1));
+ 261   1      }
+ 262          
+ 263          void mutualCtrlSysParam_dataRecover(void){
+ 264   1      
+ 265   1              EEPROM_read_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr * (MUTUA
+             -LCTRL_DEV_NUM_MAX - 1));
+ 266   1      }
+ 267          
+ 268          ///*³¡¾°ºÅ¶ÔÓ¦EEPROM´æ´¢Ë÷ÒýºÅ²éÕÒ*/
+ 269          //u8 swScenarioNum_findFromEEPROM(bit vacancyFind_IF, u8 scenarioNum){ //ÊÇ·ñÎª¿ÕÎ»²éÕÒ ·ñÔòÖ¸¶¨³¡¾°ºÅ²éÕÒ
+ 270          
+ 271          //      u8 loop = 0;
+ 272          //      u8 xdata datsTemp[SW_SCENCRAIO_LEN] = {0};
  273          //      
- 274          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½ÔòÖ´ÐÐÉ¾³ý
- 275          //              
- 276          //              EEPROM_read_n(EEPROM_ADDR_swScenarioAct, &datsTemp, 1); //¶ÁÈ¡³¡¾°¶ÔÓ¦¶¯×÷²¢·µ»Ø
- 277          //              return datsTemp;
+ 274          //      EEPROM_read_n(EEPROM_ADDR_swScenarioNum, datsTemp, SW_SCENCRAIO_LEN);
+ 275          //      for(loop = 0; loop < SW_SCENCRAIO_LEN; loop ++){
+ 276          //      
+ 277          //              if(vacancyFind_IF){ //²éÕÒ¿ÕÎ»
  278          //              
- 279          //      }else{
- 280          //      
- 281          //              return SW_SCENCRAIO_ACTINVALID; //³¡¾°ºÅÎÞÐ§²»¿É²é ·µ»ØÎÞÐ§ÏìÓ¦¶¯×÷Öµ
- 282          //      }
- 283          //}
- 284          
- 285          void Factory_recover(void){
- 286   1              
- 287   1              u8 xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
- 288   1              
- 289   1              coverEEPROM_write_n(EEPROM_ADDR_START_USRDATA, datsTemp, EEPROM_USE_OF_NUMBER); //Ê×´ÎÆô¶¯EEPROM²Á³ý
- 290   1              datsTemp[0] = BIRTHDAY_FLAG;
- 291   1              coverEEPROM_write_n(EEPROM_ADDR_BirthdayMark, &datsTemp[0], 1); //´ò³öÉú±ê¼Ç
- 292   1              
- 293   1              memset(datsTemp, 0xff, sizeof(bkLightColorInsert_paramAttr)); //±³¹âµÆ²ÎÊý³ö³§»¯ --³ö³§»¯0xffÌîÂú£¬´ÙÊ¹±³
-             -¹âµÆ³õÊ¼»¯Ê±²ÎÊý»Ö¸´ÖÁÄ¬ÈÏÖµ
- 294   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, datsTemp, sizeof(bkLightColorInsert_paramAttr));
- 295   1              
- 296   1              datsTemp[0] = 0;
- 297   1              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &datsTemp[0], 1); //ÖØÐÂ½âËø
- 298   1              
- 299   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
-              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 6   
+ 279          //                      if(0 == datsTemp[loop] || 0xff == datsTemp[loop])break;
+ 280          //              
+ 281          //              }else{  //²éÕÒÖ¸¶¨³¡¾°±àºÅ
+ 282          //              
+ 283          //                      if(scenarioNum == datsTemp[loop])break;
+ 284          //              }
+ 285          //      }
+ 286          //      
+ 287          //      if(loop < SW_SCENCRAIO_LEN){
+ 288          //      
+ 289          //              return loop; //Ë÷Òý¿É²é ·µ»ØË÷Òý
+ 290          //              
+ 291          //      }else{
+ 292          //      
+ 293          //              return SW_SCENCRAIO_INSERTINVALID; //Ë÷Òý²»¿É²é ·µ»ØÎÞÐ§Öµ
+ 294          //      }
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 6   
 
+ 295          //}
+ 296          
+ 297          ///*³¡¾°´æ´¢*/
+ 298          //bit swScenario_oprateSave(u8 scenarioNum, u8 swAct){
+ 299          
+ 300          //      u8 datsTemp = 0;
+ 301          //      u8 insert = 0;
+ 302          //      
+ 303          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
+ 304          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½Ôò¸ü¸Ä¶ÔÓ¦ÏìÓ¦×´Ì¬
+ 305          //      
+ 306          //              datsTemp = swAct;
+ 307          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 308          //              
+ 309          //      }else{ //³¡¾°±àºÅ²»¿É²éµ½ÔòÐÂÔö
+ 310          //              
+ 311          //              insert = swScenarioNum_findFromEEPROM(1, 0); //²é¿ÕÎ»
+ 312          //              if(SW_SCENCRAIO_INSERTINVALID != insert){ //ÓÐ¿ÕÎ»ÔòÐÂÔö
+ 313          //              
+ 314          //                      datsTemp = swAct;
+ 315          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
+ 316          //                      datsTemp = scenarioNum;
+ 317          //                      coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 318          //              
+ 319          //              }else{ //ÎÞ¿ÕÎ»·µ»ØÊ§°Ü
+ 320          //              
+ 321          //                      return 0;
+ 322          //              }
+ 323          //      }
+ 324          //      
+ 325          //      return 1;
+ 326          //}
+ 327          
+ 328          ///*³¡¾°É¾³ý*/
+ 329          //bit swScenario_oprateDele(u8 scenarioNum){
+ 330          
+ 331          //      u8 datsTemp = 0;
+ 332          //      u8 insert = 0;
+ 333          //      
+ 334          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
+ 335          //      
+ 336          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½ÔòÖ´ÐÐÉ¾³ý
+ 337          //      
+ 338          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioNum + insert, &datsTemp, 1);
+ 339          //              coverEEPROM_write_n(EEPROM_ADDR_swScenarioAct + insert, &datsTemp, 1);
+ 340          //              
+ 341          //              return 1;
+ 342          //              
+ 343          //      }else{
+ 344          //      
+ 345          //              return 0;
+ 346          //      }
+ 347          //}
+ 348          
+ 349          ///*³¡¾°¶ÔÓ¦ÏìÓ¦¶¯×÷²éÑ¯*/
+ 350          //u8 swScenario_oprateCheck(u8 scenarioNum){
+ 351          
+ 352          //      u8 datsTemp = 0;
+ 353          //      u8 insert = 0;
+ 354          //      
+ 355          //      insert = swScenarioNum_findFromEEPROM(0, scenarioNum); //²é³¡¾°±àºÅ
+ 356          //      
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 7   
+
+ 357          //      if(SW_SCENCRAIO_INSERTINVALID != insert){ //³¡¾°±àºÅ¿É²éµ½ÔòÖ´ÐÐÉ¾³ý
+ 358          //              
+ 359          //              EEPROM_read_n(EEPROM_ADDR_swScenarioAct, &datsTemp, 1); //¶ÁÈ¡³¡¾°¶ÔÓ¦¶¯×÷²¢·µ»Ø
+ 360          //              return datsTemp;
+ 361          //              
+ 362          //      }else{
+ 363          //      
+ 364          //              return SW_SCENCRAIO_ACTINVALID; //³¡¾°ºÅÎÞÐ§²»¿É²é ·µ»ØÎÞÐ§ÏìÓ¦¶¯×÷Öµ
+ 365          //      }
+ 366          //}
+ 367          
+ 368          void Factory_recover(void){
+ 369   1              
+ 370   1              u8 xdata datsTemp[EEPROM_USE_OF_NUMBER] = {0};
+ 371   1              
+ 372   1              coverEEPROM_write_n(EEPROM_ADDR_START_USRDATA, datsTemp, EEPROM_USE_OF_NUMBER); //Ê×´ÎÆô¶¯EEPROM²Á³ý
+ 373   1              datsTemp[0] = BIRTHDAY_FLAG;
+ 374   1              coverEEPROM_write_n(EEPROM_ADDR_BirthdayMark, &datsTemp[0], 1); //´ò³öÉú±ê¼Ç
+ 375   1              
+ 376   1              memset(datsTemp, 0xff, sizeof(bkLightColorInsert_paramAttr)); //±³¹âµÆ²ÎÊý³ö³§»¯ --³ö³§»¯0xffÌîÂú£¬´ÙÊ¹±³
+             -¹âµÆ³õÊ¼»¯Ê±²ÎÊý»Ö¸´ÖÁÄ¬ÈÏÖµ
+ 377   1              coverEEPROM_write_n(EEPROM_ADDR_ledSWBackGround, datsTemp, sizeof(bkLightColorInsert_paramAttr));
+ 378   1              
+ 379   1              datsTemp[0] = 0;
+ 380   1              coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &datsTemp[0], 1); //ÖØÐÂ½âËø
+ 381   1              
+ 382   1      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+              #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
               #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
               #else
- 306   1              datsTemp[0] = CURTAIN_ORBITAL_PERIOD_INITTIME; //´°Á±¹ìµÀÊ±¼ä ¸³³õÊ¼Öµ
- 307   1              coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalPeriod, &datsTemp[0], 1);
- 308   1              
- 309   1      #endif  
- 310   1      
- 311   1              datsTemp[0] = 0;
- 312   1              coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
- 313   1              
- 314   1              memset(CTRLEATHER_PORT, 0, clusterNum_usr); //ÔËÐÐ»º´æÇå¿Õ
- 315   1              
- 316   1              delayMs(10);
- 317   1              
- 318   1              ((void(code *)(void))0x0000)(); //ÖØÆô
- 319   1      }
- 320          
- 321          void birthDay_Judge(void){
- 322   1      
- 323   1              u8 xdata datsTemp = 0;
- 324   1              
- 325   1              EEPROM_read_n(EEPROM_ADDR_BirthdayMark, &datsTemp, 1);
- 326   1              if(datsTemp != BIRTHDAY_FLAG){
- 327   2              
- 328   2                      Factory_recover(); //Ê×´ÎÆô¶¯EEPROM²Á³ý
- 329   2              }
- 330   1      }
- 331          
- 332          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //ºìÍâÊý¾Ý´æ´¢£¬Ò»¸öÉÈÇøÒ»ÌõÊý¾Ý
+ 389   1              datsTemp[0] = CURTAIN_ORBITAL_PERIOD_INITTIME; //´°Á±¹ìµÀÊ±¼ä ¸³³õÊ¼Öµ
+ 390   1              coverEEPROM_write_n(EEPROM_ADDR_curtainOrbitalPeriod, &datsTemp[0], 1);
+ 391   1              
+ 392   1      #endif  
+ 393   1      
+ 394   1              datsTemp[0] = 0;
+ 395   1              coverEEPROM_write_n(EEPROM_ADDR_portCtrlEachOther, &datsTemp[0], clusterNum_usr);
+ 396   1              
+ 397   1              memset(CTRLEATHER_PORT, 0, clusterNum_usr); //ÔËÐÐ»º´æÇå¿Õ
+ 398   1              
+ 399   1              delayMs(10);
+ 400   1              
+ 401   1              ((void(code *)(void))0x0000)(); //ÖØÆô
+ 402   1      }
+ 403          
+ 404          void birthDay_Judge(void){
+ 405   1      
+ 406   1              u8 xdata datsTemp = 0;
+ 407   1              
+ 408   1              EEPROM_read_n(EEPROM_ADDR_BirthdayMark, &datsTemp, 1);
+ 409   1              if(datsTemp != BIRTHDAY_FLAG){
+ 410   2              
+ 411   2                      Factory_recover(); //Ê×´ÎÆô¶¯EEPROM²Á³ý
+ 412   2              }
+ 413   1      }
+ 414          
+ 415          #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED) //ºìÍâÊý¾Ý´æ´¢£¬Ò»¸öÉÈÇøÒ»ÌõÊý¾Ý
               void infrared_eeprom_dataSave(u8 insertNum, u8 dats[], u8 datsLen){
                       
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 8   
+
                       //Ò»¸öÉÈÇøÎª512 Bytes£¬Ò»¸öºìÍâÖ¸ÁîÎª232 Bytes£¬¹ÊÒ»¸öÉÈÇø¿ÉÒÔ´æÁ½¸öºìÍâÖ¸Áî
               
                       u16 code EEPROM_SECTOR_HALFSIZE = EEPROM_SECTOR_SIZE / 2;
@@ -382,8 +476,6 @@ line level    source
               void infrared_eeprom_dataRead(u8 insertNum, u8 dats[], u8 datsLen){
                       
                       //Ò»¸öÉÈÇøÎª512 Bytes£¬Ò»¸öºìÍâÖ¸ÁîÎª232 Bytes£¬¹ÊÒ»¸öÉÈÇø¿ÉÒÔ´æÁ½¸öºìÍâÖ¸Áî
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 7   
-
                       
                       u16 code EEPROM_SECTOR_HALFSIZE = EEPROM_SECTOR_SIZE / 2;
               
@@ -402,67 +494,67 @@ line level    source
                       EEPROM_read_n(EEadress_Insert, dats, datsLen);
               }
               #else
- 379           #if(DATASAVE_INTLESS_ENABLEIF) //¼ÌµçÆ÷×´Ì¬EEPROM¶ÀÁ¢´æ´¢Ïà¹Øº¯Êý¶¨Òå
- 380          void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
- 381   1              
- 382   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
- 383   1              
- 384   1              if(loopInsert_relayStatusRealTime_record >= RECORDPERIOD_OPREATION_LOOP){
- 385   2              
- 386   2                      loopInsert_relayStatusRealTime_record = 0;
- 387   2                      EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //²ÁÉÈÇø
- 388   2              }
- 389   1              
- 390   1              dataRead_temp[loopInsert_relayStatusRealTime_record ++] = currentRelayStatus;
- 391   1              
- 392   1              EEPROM_write_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
- 393   1      }
- 394          
- 395          u8 devDataRecovery_relayStatus(void){
- 396   1      
- 397   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
- 398   1              u8 xdata loop = 0;
- 399   1              u8 xdata res = 0;
- 400   1              
- 401   1              EEPROM_read_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
- 402   1              
- 403   1              for(loop = 0; loop < RECORDPERIOD_OPREATION_LOOP; loop ++){
- 404   2              
- 405   2                      if(dataRead_temp[loop] == 0xff){
- 406   3                      
- 407   3                              (!loop)?(res = 0):(res = dataRead_temp[loop - 1]);
- 408   3        #if(DEBUG_LOGOUT_EN == 1)     
- 409   3                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 410   4      
- 411   4                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 412   4                                      
- 413   4                                      sprintf(log_buf, "insert catch: %d, val:%02X.\n", (int)loop, (int)res);
- 414   4                                      PrintString1_logOut(log_buf);
- 415   4                              }
- 416   3        #endif
- 417   3                              break;
- 418   3                      }
- 419   2              }
- 420   1              
- 421   1              EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //²ÁÉÈÇø
- 422   1              
-C51 COMPILER V9.54   DATAMANAGE                                                            02/15/2019 15:28:04 PAGE 8   
+ 462           #if(DATASAVE_INTLESS_ENABLEIF) //¼ÌµçÆ÷×´Ì¬EEPROM¶ÀÁ¢´æ´¢Ïà¹Øº¯Êý¶¨Òå
+ 463          void devParamDtaaSave_relayStatusRealTime(u8 currentRelayStatus){
+ 464   1              
+ 465   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+ 466   1              
+ 467   1              if(loopInsert_relayStatusRealTime_record >= RECORDPERIOD_OPREATION_LOOP){
+ 468   2              
+ 469   2                      loopInsert_relayStatusRealTime_record = 0;
+ 470   2                      EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //²ÁÉÈÇø
+ 471   2              }
+ 472   1              
+ 473   1              dataRead_temp[loopInsert_relayStatusRealTime_record ++] = currentRelayStatus;
+ 474   1              
+ 475   1              EEPROM_write_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, loopInsert_relayStatusRealTime_record);
+ 476   1      }
+ 477          
+C51 COMPILER V9.54   DATAMANAGE                                                            05/13/2019 08:24:10 PAGE 9   
 
- 423   1              return res;
- 424   1      }
- 425           #endif
- 426          
- 427          #endif
+ 478          u8 devDataRecovery_relayStatus(void){
+ 479   1      
+ 480   1              u8 xdata dataRead_temp[RECORDPERIOD_OPREATION_LOOP] = {0};
+ 481   1              u8 xdata loop = 0;
+ 482   1              u8 xdata res = 0;
+ 483   1              
+ 484   1              EEPROM_read_n(EEPROM_ADDR_START_STATUSRELAY, dataRead_temp, RECORDPERIOD_OPREATION_LOOP);
+ 485   1              
+ 486   1              for(loop = 0; loop < RECORDPERIOD_OPREATION_LOOP; loop ++){
+ 487   2              
+ 488   2                      if(dataRead_temp[loop] == 0xff){
+ 489   3                      
+ 490   3                              (!loop)?(res = 0):(res = dataRead_temp[loop - 1]);
+ 491   3        #if(DEBUG_LOGOUT_EN == 1)     
+                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+              
+                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                              
+                                              sprintf(log_buf, "insert catch: %d, val:%02X.\n", (int)loop, (int)res);
+                                              PrintString1_logOut(log_buf);
+                                      }
+                #endif
+ 500   3                              break;
+ 501   3                      }
+ 502   2              }
+ 503   1              
+ 504   1              EEPROM_SectorErase(EEPROM_ADDR_START_STATUSRELAY); //²ÁÉÈÇø
+ 505   1              
+ 506   1              return res;
+ 507   1      }
+ 508           #endif
+ 509          
+ 510          #endif
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    791    ----
-   CONSTANT SIZE    =    430    ----
-   XDATA SIZE       =     13     332
+   CODE SIZE        =    833    ----
+   CONSTANT SIZE    =    328    ----
+   XDATA SIZE       =     13     333
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =      7       2
-   IDATA SIZE       =     64       2
-   BIT SIZE         =      2       1
+   DATA SIZE        =      7       6
+   IDATA SIZE       =     12       3
+   BIT SIZE         =      3       1
    EDATA SIZE       =   ----    ----
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----

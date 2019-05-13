@@ -1,11 +1,10 @@
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 1   
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 1   
 
 
 C51 COMPILER V9.54, COMPILATION OF MODULE TIMERACT
 OBJECT MODULE PLACED IN .\Output\timerAct.obj
-COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\timerAct.c OMF2 OPTIMIZE(9,SPEED) BROWSE INCDIR(.\Usr;.\Usr_lib
-                    -;.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\timerAct.lst) OBJECT(.\Output\timerAct.obj
-                    -)
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE Actuator\timerAct.c OMF2 OPTIMIZE(9,SIZE) BROWSE INCDIR(.\Usr;.\Usr_lib;
+                    -.\std_Lib;.\dataTrans;.\Actuator;.\Sensor;.\hwDriver) DEBUG PRINT(.\Listings\timerAct.lst) OBJECT(.\Output\timerAct.obj)
 
 line level    source
 
@@ -62,9 +61,9 @@ line level    source
   46          
   47          void datsTiming_read_eeprom(timing_Dats timDats_tab[TIMEER_TABLENGTH]){
   48   1      
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 2   
-
   49   1              u8 dats_Temp[TIMEER_TABLENGTH * 3] = {0};
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 2   
+
   50   1              u8 loop = 0;
   51   1              
   52   1              EEPROM_read_n(EEPROM_ADDR_swTimeTab, dats_Temp, TIMEER_TABLENGTH * 3);
@@ -125,59 +124,59 @@ line level    source
  106   1      }
  107          
  108          #if(DEBUG_LOGOUT_EN == 1)
- 109          void time_Logout(stt_Time code timeDats){
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 3   
+              void time_Logout(stt_Time code timeDats){
+              
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 3   
 
- 110   1      
- 111   1              u8 xdata Log[80]        = {0};
- 112   1              
- 113   1              /*»º´æ²»×ãÊ±£¬·Ö´Î´òÓ¡*/
- 114   1              
- 115   1      //      sprintf(Log, 
- 116   1      //      "\n>>===Ê±¼ä´Á===<<\n    20%d/%02d/%02d-W%01d\n        %02d:%02d:%02d\n", 
- 117   1      //                      (int)timeDats.time_Year,
- 118   1      //                      (int)timeDats.time_Month,
- 119   1      //                      (int)timeDats.time_Day,
- 120   1      //                      (int)timeDats.time_Week,
- 121   1      //                      (int)timeDats.time_Hour,
- 122   1      //                      (int)timeDats.time_Minute,
- 123   1      //                      (int)timeDats.time_Second);
- 124   1      //                      
- 125   1      ////    LogDats(Log, strlen(Log));
- 126   1      //      PrintString1_logOut(Log);
- 127   1              
- 128   1              sprintf(Log, 
- 129   1              "\n>>===Ê±¼ä´Á===<<\n    20%02d/%02d/%02d-W%01d\n", 
- 130   1                              (int)timeDats.time_Year,
- 131   1                              (int)timeDats.time_Month,
- 132   1                              (int)timeDats.time_Day,
- 133   1                              (int)timeDats.time_Week);
- 134   1                              
- 135   1      //      LogDats(Log, strlen(Log));
- 136   1              PrintString1_logOut(Log);
- 137   1                              
- 138   1              sprintf(Log, 
- 139   1              "        %02d:%02d:%02d\n", 
- 140   1                              (int)timeDats.time_Hour,
- 141   1                              (int)timeDats.time_Minute,
- 142   1                              (int)timeDats.time_Second);
- 143   1                              
- 144   1      //      LogDats(Log, strlen(Log));
- 145   1              PrintString1_logOut(Log);
- 146   1                              
- 147   1              sprintf(Log, 
- 148   1                              "timeZone_H:%02d.\n", 
- 149   1                              (int)sysTimeZone_H);
- 150   1                              
- 151   1              PrintString1_logOut(Log);
- 152   1                              
- 153   1              sprintf(Log, 
- 154   1                              "current PANID:%d.\n", 
- 155   1                              (int)dev_currentPanid);
- 156   1                              
- 157   1              PrintString1_logOut(Log);
- 158   1      }
- 159          #endif
+                      u8 xdata Log[80]        = {0};
+                      
+                      /*»º´æ²»×ãÊ±£¬·Ö´Î´òÓ¡*/
+                      
+              //      sprintf(Log, 
+              //      "\n>>===Ê±¼ä´Á===<<\n    20%d/%02d/%02d-W%01d\n        %02d:%02d:%02d\n", 
+              //                      (int)timeDats.time_Year,
+              //                      (int)timeDats.time_Month,
+              //                      (int)timeDats.time_Day,
+              //                      (int)timeDats.time_Week,
+              //                      (int)timeDats.time_Hour,
+              //                      (int)timeDats.time_Minute,
+              //                      (int)timeDats.time_Second);
+              //                      
+              ////    LogDats(Log, strlen(Log));
+              //      PrintString1_logOut(Log);
+                      
+                      sprintf(Log, 
+                      "\n>>===Ê±¼ä´Á===<<\n    20%02d/%02d/%02d-W%01d\n", 
+                                      (int)timeDats.time_Year,
+                                      (int)timeDats.time_Month,
+                                      (int)timeDats.time_Day,
+                                      (int)timeDats.time_Week);
+                                      
+              //      LogDats(Log, strlen(Log));
+                      PrintString1_logOut(Log);
+                                      
+                      sprintf(Log, 
+                      "        %02d:%02d:%02d\n", 
+                                      (int)timeDats.time_Hour,
+                                      (int)timeDats.time_Minute,
+                                      (int)timeDats.time_Second);
+                                      
+              //      LogDats(Log, strlen(Log));
+                      PrintString1_logOut(Log);
+                                      
+                      sprintf(Log, 
+                                      "timeZone_H:%02d.\n", 
+                                      (int)sysTimeZone_H);
+                                      
+                      PrintString1_logOut(Log);
+                                      
+                      sprintf(Log, 
+                                      "current PANID:%d.\n", 
+                                      (int)dev_currentPanid);
+                                      
+                      PrintString1_logOut(Log);
+              }
+              #endif
  160          
  161          void timerActionDone_FLG_RESET(void){
  162   1      
@@ -189,22 +188,22 @@ line level    source
  168   1              u8 loop = 0;
  169   1      
  170   1      #if(DEBUG_LOGOUT_EN == 1)       
- 171   1              { //µ÷ÊÔlog´úÂë-µ±Ç°Ê±¼äÊä³ö
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 4   
+                      { //µ÷ÊÔlog´úÂë-µ±Ç°Ê±¼äÊä³ö
+                              
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 4   
 
- 172   2                      
- 173   2                      u16 code log_period = 10000;
- 174   2                      static u16 xdata log_Count = 0;
- 175   2                      
- 176   2                      if(log_Count < log_period)log_Count ++;
- 177   2                      else{
- 178   3                      
- 179   3                              log_Count = 0;
- 180   3                              
- 181   3                              time_Logout(systemTime_current);
- 182   3                      }
- 183   2              }
- 184   1      #endif
+                              u16 code log_period = 10000;
+                              static u16 xdata log_Count = 0;
+                              
+                              if(log_Count < log_period)log_Count ++;
+                              else{
+                              
+                                      log_Count = 0;
+                                      
+                                      time_Logout(systemTime_current);
+                              }
+                      }
+              #endif
  185   1      
  186   1              /*ÑÓÊ±ÒµÎñ¼°×Ô¶¯Ñ­»·ÒµÎñµôµç´æ´¢Êý¾Ý¶ÁÈ¡*///¿ª»ú¶ÁÒ»´Î¸üÐÂ¼´¿É
  187   1              {
@@ -225,167 +224,174 @@ line level    source
  202   1              
  203   1              /*ÏµÍ³Ê±¼äÎ¬³Ö¸üÐÂ*///zigb²éÑ¯sysTimeÖÜÆÚÖ®Íâ ±¾µØ×ÔÐÐÃ¿Ãë¸üÐÂ
  204   1              {
- 205   2                      
- 206   2                      systemTime_current.time_Minute = sysTimeKeep_counter / 60;
- 207   2                      systemTime_current.time_Second = sysTimeKeep_counter % 60;
- 208   2                      
- 209   2                      if(sysTimeKeep_counter < 3600){
- 210   3                              
- 211   3                      }else{
- 212   3                      
- 213   3                              sysTimeKeep_counter = 0;
- 214   3                              (systemTime_current.time_Hour >= 24)?(systemTime_current.time_Hour = 0):(systemTime_current.time_Hour +
-             -+);
- 215   3                              (systemTime_current.time_Week >   7)?(systemTime_current.time_Week = 1):(systemTime_current.time_Week +
-             -+);
- 216   3                      }
- 217   2                      
- 218   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //²å×ùµçÁ¿Ã¿Ð¡Ê±¶¨µãÇåÁã
+ 205   2                              
+ 206   2                      if(sysTimeKeep_counter < 3600){
+ 207   3      
+ 208   3                      }else{ 
+ 209   3                      
+ 210   3                              sysTimeKeep_counter = 0;
+ 211   3      
+ 212   3                              if(systemTime_current.time_Hour >= 23){
+ 213   4      
+ 214   4                                      systemTime_current.time_Hour = 0;
+ 215   4                                      (systemTime_current.time_Week > 7)?(systemTime_current.time_Week = 1):(systemTime_current.time_Week ++
+             -);
+ 216   4                              
+ 217   4                              }else{
+ 218   4      
+ 219   4                                      systemTime_current.time_Hour ++;
+ 220   4                              }
+ 221   3                      }
+ 222   2      
+ 223   2                      systemTime_current.time_Minute = sysTimeKeep_counter / 60;
+ 224   2                      systemTime_current.time_Second = sysTimeKeep_counter % 60;
+ 225   2                      
+ 226   2      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //²å×ùµçÁ¿Ã¿Ð¡Ê±¶¨µãÇåÁã
                               
                               if(!(systemTime_current.time_Minute) && !(systemTime_current.time_Second))socket_eleDetParam.ele_Consum 
              -= 0.0F;
               #endif
- 222   2              }
- 223   1              
- 224   1              /*ÅÐ¶ÏÊÇ·ñÎªÒ¹¼äÄ£Ê½*/
- 225   1              if((nightDatsTemp_CalibrateTab[0].Week_Num & 0x7F) == 0x7F){ //È«ÌìÅÐ¶Ï£¬Èç¹ûµÚÒ»¶ÎÖÜÕ¼Î»È«ÂúÔòÎªÈ«Ìì
- 226   2              
- 227   2                      ifNightMode_sw_running_FLAG = 1;
- 228   2                      
- 229   2              }else{
- 230   2                      
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 5   
+ 230   2              }
+ 231   1              
+ 232   1              /*ÅÐ¶ÏÊÇ·ñÎªÒ¹¼äÄ£Ê½*/
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 5   
 
- 231   2                      bit idata timeTab_reserveFLG = 0;
- 232   2                      u16 xdata minutesTemp_CalibrateTab_A    = ((u16)nightDatsTemp_CalibrateTab[0].Hour * 60 + (u16)nightDatsTe
+ 233   1              if((nightDatsTemp_CalibrateTab[0].Week_Num & 0x7F) == 0x7F){ //È«ÌìÅÐ¶Ï£¬Èç¹ûµÚÒ»¶ÎÖÜÕ¼Î»È«ÂúÔòÎªÈ«Ìì
+ 234   2              
+ 235   2                      ifNightMode_sw_running_FLAG = 1;
+ 236   2                      
+ 237   2              }else{
+ 238   2                      
+ 239   2                      bit idata timeTab_reserveFLG = 0;
+ 240   2                      u16 xdata minutesTemp_CalibrateTab_A    = ((u16)nightDatsTemp_CalibrateTab[0].Hour * 60 + (u16)nightDatsTe
              -mp_CalibrateTab[0].Minute),
- 233   2                                        minutesTemp_CalibrateTab_B    = ((u16)nightDatsTemp_CalibrateTab[1].Hour * 60 + (u16)nightDatsTemp_Cal
+ 241   2                                        minutesTemp_CalibrateTab_B    = ((u16)nightDatsTemp_CalibrateTab[1].Hour * 60 + (u16)nightDatsTemp_Cal
              -ibrateTab[1].Minute),
- 234   2                                        minutesTemp_CalibrateTab_cur  = ((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.tim
+ 242   2                                        minutesTemp_CalibrateTab_cur  = ((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.tim
              -e_Minute);
- 235   2                      
- 236   2                      (minutesTemp_CalibrateTab_A < minutesTemp_CalibrateTab_B)?(timeTab_reserveFLG = 0):(timeTab_reserveFLG =
+ 243   2                      
+ 244   2                      (minutesTemp_CalibrateTab_A < minutesTemp_CalibrateTab_B)?(timeTab_reserveFLG = 0):(timeTab_reserveFLG =
              - 1); //Ê±¼ä±íÊÇ·ñ·´Ðò¶¨Òå
- 237   2                      
- 238   2                      if(nightDatsTemp_CalibrateTab[0].if_Timing){ //Ê¹ÄÜÅÐ¶Ï
- 239   3                              
- 240   3                              if(!timeTab_reserveFLG){ //Ê±¶Î·´ÐòÅÐ¶Ï -Ë³Ðò
- 241   4                              
- 242   4                                      ((minutesTemp_CalibrateTab_cur >=       minutesTemp_CalibrateTab_A)&&\
- 243   4                                   (minutesTemp_CalibrateTab_cur <    minutesTemp_CalibrateTab_B))?\
- 244   4                                              (ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
- 245   4                              
- 246   4                              }else{ //Ê±¶Î·´ÐòÅÐ¶Ï -·´Ðò
- 247   4                              
- 248   4                                      ((minutesTemp_CalibrateTab_cur >=       minutesTemp_CalibrateTab_A)||\
- 249   4                                   (minutesTemp_CalibrateTab_cur <    minutesTemp_CalibrateTab_B))?\
- 250   4                                              (ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
- 251   4                              }
- 252   3                              
- 253   3                      }else{
- 254   3                      
- 255   3                              ifNightMode_sw_running_FLAG = 0;
- 256   3                      }
- 257   2              }
- 258   1              
- 259   1              for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
- 260   2              
- 261   2                      if(timDatsTemp_CalibrateTab[loop].if_Timing){ //ÅÐ¶ÏÊÇ·ñÓÐ¶¨Ê±¶Î¿ªÆô
+ 245   2                      
+ 246   2                      if(nightDatsTemp_CalibrateTab[0].if_Timing){ //Ê¹ÄÜÅÐ¶Ï
+ 247   3                              
+ 248   3                              if(!timeTab_reserveFLG){ //Ê±¶Î·´ÐòÅÐ¶Ï -Ë³Ðò
+ 249   4                              
+ 250   4                                      ((minutesTemp_CalibrateTab_cur >=       minutesTemp_CalibrateTab_A)&&\
+ 251   4                                   (minutesTemp_CalibrateTab_cur <    minutesTemp_CalibrateTab_B))?\
+ 252   4                                              (ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
+ 253   4                              
+ 254   4                              }else{ //Ê±¶Î·´ÐòÅÐ¶Ï -·´Ðò
+ 255   4                              
+ 256   4                                      ((minutesTemp_CalibrateTab_cur >=       minutesTemp_CalibrateTab_A)||\
+ 257   4                                   (minutesTemp_CalibrateTab_cur <    minutesTemp_CalibrateTab_B))?\
+ 258   4                                              (ifNightMode_sw_running_FLAG = 1):(ifNightMode_sw_running_FLAG = 0);
+ 259   4                              }
+ 260   3                              
+ 261   3                      }else{
  262   3                      
- 263   3                              ifTim_sw_running_FLAG = 1; //Ö»ÒªÓÐÒ»¸ö¶¨Ê±¶Î¿ªÆôÔò¶¨Ê±ÔËÐÐ±êÖ¾ÖÃÎ»
- 264   3                              break;
- 265   3                              
- 266   3                      }else{
- 267   3                      
- 268   3                              ifTim_sw_running_FLAG = 0;
- 269   3                      }
- 270   2              }
- 271   1              
- 272   1              /*ÅÐ¶ÏÊÇ·ñËùÓÐÆÕÍ¨¿ª¹Ø¶¨Ê±¶¼Îª¹Ø*/
- 273   1              if(ifTim_sw_running_FLAG){      //·ÇÈ«¹Ø£¬ÖÃ±êÖ¾Î»£¬²¢Ö´ÐÐ¶¨Ê±Âß¼­
- 274   2              
- 275   2                      for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
- 276   3                              
- 277   3                              if(weekend_judge(systemTime_current.time_Week, timDatsTemp_CalibrateTab[loop].Week_Num)){       //ÖÜÕ¼Î»±È¶Ô£
+ 263   3                              ifNightMode_sw_running_FLAG = 0;
+ 264   3                      }
+ 265   2              }
+ 266   1              
+ 267   1              for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
+ 268   2              
+ 269   2                      if(timDatsTemp_CalibrateTab[loop].if_Timing){ //ÅÐ¶ÏÊÇ·ñÓÐ¶¨Ê±¶Î¿ªÆô
+ 270   3                      
+ 271   3                              ifTim_sw_running_FLAG = 1; //Ö»ÒªÓÐÒ»¸ö¶¨Ê±¶Î¿ªÆôÔò¶¨Ê±ÔËÐÐ±êÖ¾ÖÃÎ»
+ 272   3                              break;
+ 273   3                              
+ 274   3                      }else{
+ 275   3                      
+ 276   3                              ifTim_sw_running_FLAG = 0;
+ 277   3                      }
+ 278   2              }
+ 279   1              
+ 280   1              /*ÅÐ¶ÏÊÇ·ñËùÓÐÆÕÍ¨¿ª¹Ø¶¨Ê±¶¼Îª¹Ø*/
+ 281   1              if(ifTim_sw_running_FLAG){      //·ÇÈ«¹Ø£¬ÖÃ±êÖ¾Î»£¬²¢Ö´ÐÐ¶¨Ê±Âß¼­
+ 282   2              
+ 283   2                      for(loop = 0; loop < TIMEER_TABLENGTH; loop ++){
+ 284   3                              
+ 285   3                              if(weekend_judge(systemTime_current.time_Week, timDatsTemp_CalibrateTab[loop].Week_Num)){       //ÖÜÕ¼Î»±È¶Ô£
              -¬³É¹¦²Å½øÐÐÏÂÒ»²½
- 278   4                              
- 279   4                                      if(timCount_ENABLE == timDatsTemp_CalibrateTab[loop].if_Timing){        //ÊÇ·ñ¿ªÆô¶¨Ê±
- 280   5      //#if(DEBUG_LOGOUT_EN == 1)                                     
- 281   5      //                                      { //µ÷ÊÔlog´úÂë-µ±Ç°ÓÐÐ§¶¨Ê±ÐÅÏ¢Êä³ö
- 282   5      //                                              
- 283   5      //                                              u16 code log_period = 3000;
- 284   5      //                                              static u16 log_Count = 0;
- 285   5      //                                              
- 286   5      //                                              if(log_Count < log_period)log_Count ++;
- 287   5      //                                              else{
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 6   
+ 286   4                              
+ 287   4                                      if(timCount_ENABLE == timDatsTemp_CalibrateTab[loop].if_Timing){        //ÊÇ·ñ¿ªÆô¶¨Ê±
+ 288   5      //#if(DEBUG_LOGOUT_EN == 1)                                     
+ 289   5      //                                      { //µ÷ÊÔlog´úÂë-µ±Ç°ÓÐÐ§¶¨Ê±ÐÅÏ¢Êä³ö
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 6   
 
- 288   5      //                                              
- 289   5      //                                                      log_Count = 0;
- 290   5      //              
- 291   5      //                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 292   5      //                                                      sprintf(log_buf, 
- 293   5      //                                                                      "timer_%d is running, up time: %02dhour-%02dminute.\n", 
- 294   5      //                                                                      (int)loop, 
- 295   5      //                                                                      (int)timDatsTemp_CalibrateTab[loop].Hour, 
- 296   5      //                                                                      (int)timDatsTemp_CalibrateTab[loop].Minute);
- 297   5      //                                                      /*logµ÷ÊÔ´òÓ¡*///ÆÕÍ¨¶¨Ê±¶¨Ê±ÐÅÏ¢
- 298   5      //                                                      PrintString1_logOut(log_buf);
- 299   5      //                                              }
- 300   5      //                                      }
- 301   5      //#endif
- 302   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) !=  \
- 303   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //
+ 290   5      //                                              
+ 291   5      //                                              u16 code log_period = 3000;
+ 292   5      //                                              static u16 log_Count = 0;
+ 293   5      //                                              
+ 294   5      //                                              if(log_Count < log_period)log_Count ++;
+ 295   5      //                                              else{
+ 296   5      //                                              
+ 297   5      //                                                      log_Count = 0;
+ 298   5      //              
+ 299   5      //                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+ 300   5      //                                                      sprintf(log_buf, 
+ 301   5      //                                                                      "timer_%d is running, up time: %02dhour-%02dminute.\n", 
+ 302   5      //                                                                      (int)loop, 
+ 303   5      //                                                                      (int)timDatsTemp_CalibrateTab[loop].Hour, 
+ 304   5      //                                                                      (int)timDatsTemp_CalibrateTab[loop].Minute);
+ 305   5      //                                                      /*logµ÷ÊÔ´òÓ¡*///ÆÕÍ¨¶¨Ê±¶¨Ê±ÐÅÏ¢
+ 306   5      //                                                      PrintString1_logOut(log_buf);
+ 307   5      //                                              }
+ 308   5      //                                      }
+ 309   5      //#endif
+ 310   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) !=  \
+ 311   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //
              -Ê±¿Ì±È¶Ô,²»¶ÔÔò¶¯×÷Íê³É±êÖ¾¸´Î»
- 304   5                                                 (timeUp_actionDone_flg & (1 << loop))){
- 305   6                                                 
- 306   6                                                      timeUp_actionDone_flg &= ~(1 << loop);
- 307   6                                              }                               
- 308   5                                              
- 309   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
- 310   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //
+ 312   5                                                 (timeUp_actionDone_flg & (1 << loop))){
+ 313   6                                                 
+ 314   6                                                      timeUp_actionDone_flg &= ~(1 << loop);
+ 315   6                                              }                               
+ 316   5                                              
+ 317   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) ==  \
+ 318   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute) && //
              -Ê±¿Ì±È¶Ô,Õû·ÖÖÓ¶¼ÊÇÏìÓ¦ÆÚ
- 311   5                                                 !(timeUp_actionDone_flg & (1 << loop))){      //Ê±¿Ì±È¶ÔÊ±¼ä
- 312   6      #if(DEBUG_LOGOUT_EN == 1)                                                          
- 313   6                                                      { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
- 314   7                                                              memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
- 315   7                                                              sprintf(log_buf, ">>>>>>>>timer-%02d_UP!!!.\n", (int)loop);
- 316   7                                                              PrintString1_logOut(log_buf);
- 317   7                                                      }       
- 318   6      #endif                                             
- 319   6                                                      timeUp_actionDone_flg |= (1 << loop); //¶¯×÷Íê³É±êÖ¾ÖÃÎ»
- 320   6                                                      
- 321   6                                                      //Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï
- 322   6                                                      if(swTim_oneShoot_FLAG & (1 << loop)){  //ÊÇ·ñÎªÒ»´ÎÐÔ¶¨Ê±£¬ÊÇÔòÇå¿Õ±¾¶Î¶¨Ê±ÐÅÏ¢
- 323   7                                                              
- 324   7                                                              u8 code dats_Temp = 0;
- 325   7                                                              
- 326   7                                                              swTim_oneShoot_FLAG &= ~(1 << loop);
- 327   7                                                              coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //¶¨Ê±ÐÅÏ¢Çå¿Õ£¬Ö»Çå¿ÕÈý×Ö½ÚÖ
+ 319   5                                                 !(timeUp_actionDone_flg & (1 << loop))){      //Ê±¿Ì±È¶ÔÊ±¼ä
+ 320   6      #if(DEBUG_LOGOUT_EN == 1)                                                          
+                                                              { //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
+                                                                      memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+                                                                      sprintf(log_buf, ">>>>>>>>timer-%02d_UP!!!.\n", (int)loop);
+                                                                      PrintString1_logOut(log_buf);
+                                                              }       
+              #endif                                             
+ 327   6                                                      timeUp_actionDone_flg |= (1 << loop); //¶¯×÷Íê³É±êÖ¾ÖÃÎ»
+ 328   6                                                      
+ 329   6                                                      //Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï
+ 330   6                                                      if(swTim_oneShoot_FLAG & (1 << loop)){  //ÊÇ·ñÎªÒ»´ÎÐÔ¶¨Ê±£¬ÊÇÔòÇå¿Õ±¾¶Î¶¨Ê±ÐÅÏ¢
+ 331   7                                                              
+ 332   7                                                              u8 code dats_Temp = 0;
+ 333   7                                                              
+ 334   7                                                              swTim_oneShoot_FLAG &= ~(1 << loop);
+ 335   7                                                              coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //¶¨Ê±ÐÅÏ¢Çå¿Õ£¬Ö»Çå¿ÕÈý×Ö½ÚÖ
              -ÐµÄµÚÒ»×Ö½Ú£¬ÖÜÕ¼Î»×Ö½ÚÇå¿Õ£¬ºóÃæµÄÊ±¼äÊý¾Ý±£Áô²»Çå
- 328   7                                                              itrf_datsTiming_read_eeprom(); //ÔËÐÐ»º´æ¸üÐÂ
- 329   7                                                      }
- 330   6                                                      
- 331   6      /*³£¹æ¶¯×÷*/                                            
- 332   6      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
+ 336   7                                                              itrf_datsTiming_read_eeprom(); //ÔËÐÐ»º´æ¸üÐÂ
+ 337   7                                                      }
+ 338   6                                                      
+ 339   6      /*³£¹æ¶¯×÷*/                                            
+ 340   6      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
                                                               //ºìÍâ×ª·¢Æ÷¿ª¹ØÔò½øÐÐ¶ÔÓ¦ºìÍâÖ¸ÁîÐòºÅ½øÐÐ¿ØÖÆ²Ù×÷
                                                               EEPROM_read_n(EEPROM_ADDR_swTypeForceInfrared_timeUpActNum + loop, &(swCommand_fromUsr.objRelay), 1)
              -;
                                                               infraredOpreatAct_remoteControlStart(swCommand_fromUsr.objRelay);
                                                               
               #else           
- 338   6                                                      //ÆÕÍ¨¿ª¹Ø¶¯×÷ÏìÓ¦
- 339   6                                                      swCommand_fromUsr.actMethod = relay_OnOff; //¿ª¹Ø¶¯×÷
- 340   6                                                      swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
- 341   6                                                      devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ -Ö÷¶¯ÉÏ´«
- 342   6                                                      dev_agingCmd_sndInitative.agingCmd_timerSetOpreat = 1; //¶ÔÓ¦Ö÷¶¯ÉÏ´«Ê±Ð§Õ¼Î»ÖÃÒ»
- 343   6                                                      
- 344   6      #endif  
- 345   6      
-C51 COMPILER V9.54   TIMERACT                                                              02/15/2019 15:28:06 PAGE 7   
+ 346   6                                                      //ÆÕÍ¨¿ª¹Ø¶¯×÷ÏìÓ¦
+ 347   6                                                      swCommand_fromUsr.actMethod = relay_OnOff; //¿ª¹Ø¶¯×÷
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 7   
 
- 346   6      /*²¹³ä¶¯×÷*/                                            
- 347   6      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ 348   6                                                      swCommand_fromUsr.objRelay = timDatsTemp_CalibrateTab[loop].Status_Act;
+ 349   6                                                      devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ -Ö÷¶¯ÉÏ´«
+ 350   6                                                      dev_agingCmd_sndInitative.agingCmd_timerSetOpreat = 1; //¶ÔÓ¦Ö÷¶¯ÉÏ´«Ê±Ð§Õ¼Î»ÖÃÒ»
+ 351   6                                                      
+ 352   6      #endif  
+ 353   6      
+ 354   6      /*²¹³ä¶¯×÷*/                                            
+ 355   6      #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
                                                               if(swCommand_fromUsr.objRelay == 4)swCommand_fromUsr.objRelay = 3; //·çÉÈÏìÓ¦ÖµÎª1¡¢2¡¢4£»Êµ¼ÊÖµÎª1¡
              -¢2¡¢3 --×ª»»
                                                               
@@ -403,43 +409,45 @@ line level    source
                                                               devHeater_actOpeartionExecute(heater_ActParam.heater_currentActMode); //¶¯×÷Ö´ÐÐ
               
               #else
- 363   6                                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_T
+ 371   6                                                      if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_T
              -YPE_SWBIT3)EACHCTRL_realesFLG |= (status_Relay ^ swCommand_fromUsr.objRelay); //ÓÐÐ§»¥¿Ø´¥·¢
- 364   6                                                      else
- 365   6                                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢
- 366   6                                                      
- 367   6      #endif                                                                  
- 368   6                                              }else
- 369   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >     //µ±Ç°Ê±¼ä´óÓÚ¶¨Ê
+ 372   6                                                      else
+ 373   6                                                      if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢
+ 374   6                                                      
+ 375   6      #endif                                                                  
+ 376   6                                              }else
+ 377   5                                              if(((u16)systemTime_current.time_Hour * 60 + (u16)systemTime_current.time_Minute) >     //µ±Ç°Ê±¼ä´óÓÚ¶¨Ê
              -±Ê±¼ä£¬Ö±½ÓÇå³ýÒ»´ÎÐÔ±êÖ¾
- 370   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){
- 371   6                                                         
- 372   6                                                      //Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï
- 373   6                                                      if(swTim_oneShoot_FLAG & (1 << loop)){  //ÊÇ·ñÎªÒ»´ÎÐÔ¶¨Ê±£¬ÊÇÔòÇå¿Õ±¾¶Î¶¨Ê±ÐÅÏ¢
- 374   7                                                              
- 375   7                                                              u8 code dats_Temp = 0;
- 376   7                                                              
- 377   7                                                              swTim_oneShoot_FLAG &= ~(1 << loop);
- 378   7                                                              coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //¶¨Ê±ÐÅÏ¢Çå¿Õ£¬Ö»Çå¿ÕµÚÒ»×Ö½
+ 378   5                                                 ((u16)timDatsTemp_CalibrateTab[loop].Hour * 60 + (u16)timDatsTemp_CalibrateTab[loop].Minute)){
+ 379   6                                                         
+ 380   6                                                      //Ò»´ÎÐÔ¶¨Ê±ÅÐ¶Ï
+ 381   6                                                      if(swTim_oneShoot_FLAG & (1 << loop)){  //ÊÇ·ñÎªÒ»´ÎÐÔ¶¨Ê±£¬ÊÇÔòÇå¿Õ±¾¶Î¶¨Ê±ÐÅÏ¢
+ 382   7                                                              
+ 383   7                                                              u8 code dats_Temp = 0;
+ 384   7                                                              
+ 385   7                                                              swTim_oneShoot_FLAG &= ~(1 << loop);
+ 386   7                                                              coverEEPROM_write_n(EEPROM_ADDR_swTimeTab + loop * 3, &dats_Temp, 1); //¶¨Ê±ÐÅÏ¢Çå¿Õ£¬Ö»Çå¿ÕµÚÒ»×Ö½
              -ÚÊôÐÔÐÅÏ¢£¬ºóÁ½×Ö½ÚÊ±¼äÐÅÏ¢±£Áô
- 379   7                                                      }
- 380   6                                              }
- 381   5                                      }
- 382   4                              }
- 383   3                      }
- 384   2              }
- 385   1      }
+ 387   7                                                      }
+ 388   6                                              }
+ 389   5                                      }
+ 390   4                              }
+ 391   3                      }
+ 392   2              }
+ 393   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1630    ----
-   CONSTANT SIZE    =    248    ----
-   XDATA SIZE       =     42      86
+   CODE SIZE        =   1333    ----
+   CONSTANT SIZE    =     32    ----
+   XDATA SIZE       =     40       6
    PDATA SIZE       =   ----    ----
-   DATA SIZE        =   ----      46
+   DATA SIZE        =   ----      39
    IDATA SIZE       =     13    ----
    BIT SIZE         =      4    ----
    EDATA SIZE       =   ----    ----
+C51 COMPILER V9.54   TIMERACT                                                              05/13/2019 08:24:11 PAGE 8   
+
    HDATA SIZE       =   ----    ----
    XDATA CONST SIZE =   ----    ----
    FAR CONST SIZE   =   ----    ----

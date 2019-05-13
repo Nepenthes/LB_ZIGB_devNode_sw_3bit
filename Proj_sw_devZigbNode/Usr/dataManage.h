@@ -3,10 +3,11 @@
 
 #include "STC15Fxxxx.H"
 
-#define 	DEBUG_LOGOUT_EN					1 //log打印输出使能（失能后将归还大量代码空间）
-#define 	LOGBUFF_LEN						64 //log打印缓存长度	
+#define 	DEBUG_LOGOUT_EN					0 //log打印输出使能（失能后将归还大量代码空间）
+#define 	LOGBUFF_LEN						56 //log打印缓存长度	
 
 #define		clusterNum_usr					3 //自定义通讯簇数量（互控）
+#define 	MUTUALCTRL_DEV_NUM_MAX			3 //单组互控内设备最大数量
 
 #define 	DATASAVE_INTLESS_ENABLEIF	 	1	//是否将继电器状态进行独立实时记录<在开关状态记忆使能的情况下，开启此功能可有效避免触摸时闪烁>
 
@@ -29,29 +30,63 @@
 
 #define 	SWITCH_TYPE_FORCEDEF			 0 //强制定义开关类型,硬件不同,写 0 时则是非强制定义(根据拨码定义)
 
-/*二次宏处理*///根据强制设备类型定义开关 将对应的宏进行二次处理
+/*开关类型为插座时，相关宏定义*///规格说明
+#define 	SOCKETS_SPECIFICATION_AMERICA	0x0A //美规
+#define 	SOCKETS_SPECIFICATION_BRITISH	0x0B //英规
+#define 	SOCKETS_SPECIFICATION_GENERAL	0x0C //通用
+#define 	SOCKETS_SPECIFICATION_SAFRICA	0x0D //南非
+/*开关类型为插座时，相关宏定义*///规格定义
+#define	SWITCH_TYPE_SOCKETS_SPECIFICATION	SOCKETS_SPECIFICATION_BRITISH  //-------定义插座规格
+
+/*二次宏处理 --普通三位*///根据强制设备类型定义开关 将对应的宏进行二次处理
 #if(SWITCH_TYPE_FORCEDEF == 0)
+ #define 	CURTAIN_RELAY_UPSIDE_DOWN		 1 				//窗帘开关 按键/继电器 是否倒置
+ 
+/*二次宏处理 --插座*/
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
-// #define 	COEFFICIENT_POW					4.411065F		//功率系数 --L6 英美
-// #define	COEFFICIENT_COMPENSATION_POW	0.000001F		//功率系数补偿 --L6 英美
 
- #define 	COEFFICIENT_POW					3.780465F		//功率系数 --L7 通用 (通用底板 -20181214) //test L7-HMP
- #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 通用 (通用底板 -20181214) //test L7-HMP
-
-// #define 	COEFFICIENT_POW					4.287465F		//功率系数 --L7 南非 (南非底板 -20181214) //test L7-HMA
-// #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 南非 (南非底板 -20181214) //test L7-HMA
+ //规格对应测量系数判断
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_AMERICA)
+ 
+  #define 	COEFFICIENT_POW					4.411065F		//功率系数 --L7 美规
+  #define	COEFFICIENT_COMPENSATION_POW	0.000001F		//功率系数补偿 --L7 美规
+ 
+ #elif(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+ 
+  #define 	COEFFICIENT_POW					3.396465F		//功率系数 --L7 英规
+  #define	COEFFICIENT_COMPENSATION_POW	0.000001F		//功率系数补偿 --L7 英规
+ 
+ #elif(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_GENERAL)
+ 
+  #define 	COEFFICIENT_POW					3.780465F		//功率系数 --L7 通用 (通用底板 -20181214) //test L7-HMP
+  #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 通用 (通用底板 -20181214) //test L7-HMP
+ 
+ #elif(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_SAFRICA)
+ 
+  #define 	COEFFICIENT_POW					4.287465F		//功率系数 --L7 南非 (南非底板 -20181214) //test L7-HMA
+  #define 	COEFFICIENT_COMPENSATION_POW	0.000013F		//功率系数补偿 --L7 南非 (南非底板 -20181214) //test L7-HMA
+ 
+ #endif
 
  #if(DEBUG_LOGOUT_EN == 1)
   #undef	DEBUG_LOGOUT_EN
   #define	DEBUG_LOGOUT_EN	0
   #warning	插座设备不支持log打印，因为硬件冲突，已将对应宏失能
  #endif
+ 
+/*二次宏处理 --调光*/
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
  #if(DATASAVE_INTLESS_ENABLEIF == 0)
   #undef	DATASAVE_INTLESS_ENABLEIF
   #define	DATASAVE_INTLESS_ENABLEIF	1
   #warning	调光设备需要进行独立式继电器状态存储，否则存储当前亮度时会造成灯光闪烁，已将对应宏使能
  #endif
+ 
+/*二次宏处理 --风扇*/
+#elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ #define	SWITCHFANS_SPECIAL_VERSION_IMPACT	0 //低档位冲击特别版
+ 
+/*二次宏处理 --红外转发器*/
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
  #if(DATASAVE_INTLESS_ENABLEIF == 1)
   #undef	DATASAVE_INTLESS_ENABLEIF
@@ -74,7 +109,7 @@
 #define		EEPROM_ADDR_START_STATUSRELAY	 EEPROM_ADDR_START_USRDATA + (0x0200 * 1)	//继电器状态独立记录起始扇区地址
 #define		EEPROM_ADDR_START_IRDATA	 	 EEPROM_ADDR_START_USRDATA + (0x0200 * 2)	//IR红外数据存储起始地址，此地址后都是IR数据，一个扇区一条IR数据
 
-#define 	EEPROM_USE_OF_NUMBER 			 0x0080	
+#define 	EEPROM_USE_OF_NUMBER 			 0x0080		//存储地址范围上限
 	
 #define		BIRTHDAY_FLAG					 0xA1		//产品出生标记
 		
@@ -94,10 +129,11 @@
 #define 	EEPROM_ADDR_ledSWBackGround		 0x0038		//38H - 39H	开关背景灯色索引						02_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define		EEPROM_ADDR_swScenarioNum		 0x0040		//40H - 4FH 场景编号								31_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 #define		EEPROM_ADDR_swScenarioAct	     0x0050		//50H - 5FH 场景响应动作							31_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
+#define		EEPROM_ADDR_mutualCtrlAddrs		 0x0060		//60h - 6FH	互控组内地址列表					   <15_byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER) 
 
 //EEPROM地址复用段
-#define		EEPROM_ADDR_swTypeForceScenario_scencarioNumKeyBind	0x0060 //60H - 62H 开关类型强制为场景开关时	 	按键绑定场景号数据				03_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
-#define		EEPROM_ADDR_swTypeForceInfrared_timeUpActNum		0x0060 //60H - 67H 开关类型强制为红外转发器时	定时完成时响应发送的红外指令号	08_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
+#define		EEPROM_ADDR_swTypeForceScenario_scencarioNumKeyBind	0x0070 //70H - 72H 开关类型强制为场景开关时	 	按键绑定场景号数据				03_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
+#define		EEPROM_ADDR_swTypeForceInfrared_timeUpActNum		0x0070 //70H - 77H 开关类型强制为红外转发器时	定时完成时响应发送的红外指令号	08_Byte -(存储地址范围：0x0000 - EEPROM_USE_OF_NUMBER)
 //--------------------------------------------------------------↑↑↑↑↑↑↑限定值小于 EEPROM_USE_OF_NUMBER//
 #define		EEPROM_ADDR_unDefine05           0x0000
 #define		EEPROM_ADDR_unDefine06           0x0000
@@ -212,13 +248,15 @@ typedef struct dataPonit{ //数据结构_数据点
 #endif
 
 #if(DEBUG_LOGOUT_EN == 1)	
- extern u8 idata log_buf[LOGBUFF_LEN];
+ extern u8 xdata log_buf[LOGBUFF_LEN];
 #endif		
 
 extern u8 	SWITCH_TYPE;
 extern u8 	DEV_actReserve;
 extern u8 	CTRLEATHER_PORT[3];
 extern u16 	dev_currentPanid;
+
+extern u16 idata mutualCtrlDevList[clusterNum_usr][MUTUALCTRL_DEV_NUM_MAX - 1];
 
 extern unsigned char xdata MAC_ID[6];
 extern unsigned char xdata MAC_ID_DST[6];
@@ -241,6 +279,10 @@ void birthDay_Judge(void);
 void statusSave_zigbNwk_nwkExistIF(bit nwkExistIF);
 bit statusGet_zigbNwk_nwkExistIF(void);
 void zigbNwkExist_detectReales(void);
+
+void mutualCtrlSysParam_checkAndStore(u8 mutualCtrlGroup_insert, u16 devAddr);
+void mutualCtrlSysParam_dataReset(u8 opreatBit);
+void mutualCtrlSysParam_dataRecover(void);
 
 void infrared_eeprom_dataSave(u8 insertNum, u8 dats[], u8 datsLen);
 void infrared_eeprom_dataRead(u8 insertNum, u8 dats[], u8 datsLen);

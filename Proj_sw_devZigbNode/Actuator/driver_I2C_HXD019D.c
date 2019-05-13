@@ -28,8 +28,8 @@ static u8 xdata IR_opToutLoop = 0; //红外转发操作超时次数
 
 void infrared_pinInit(void){
 
-	P3M1 |= 0x20;	//P35 -infrared_REST
-	P3M0 &= ~0x20;
+	P3M1 &= ~0x20;	//P35 -infrared_REST
+	P3M0 |= 0x20;
 	
 	hxd019d_pinREST = !hxd019d_resetLevel;
 	
@@ -558,7 +558,7 @@ void thread_infraredSM(void){
 			
 			}else{ //学习态超时
 			
-				beeps_usrActive(3, 253, 2);
+				beeps_usrActive(3, 100, 3);
 				infraredOpreatAct_Stop(); //操作终止调用
 			}
 			

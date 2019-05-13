@@ -35,12 +35,16 @@ extern u8 xdata			heartBeatCount;	//心跳计数
 extern u8 xdata			heartBeatPeriod; //心跳周期
 extern u8 xdata 		heartBeatHang_timeCnt;
 
+extern u8 xdata 		dnCounter_mutualAddrPeriodPingOut;
+extern u16 xdata 		dnCounter_mutAddrsPingLoopPeriod;
+extern bit idata 		cycleFlg_mutualAddrPeriodPingOut;
+
 extern u8 xdata 		colonyCtrlGet_queryCounter; 
 extern u8 xdata 		colonyCtrlGetHang_timeCnt;
 
 //***************按键输入变量引用区***************************/
 extern bit		 		usrKeyCount_EN;
-extern u16		 		usrKeyCount;
+extern u16 idata	 	usrKeyCount;
 
 extern u16 xdata 		touchPadActCounter;
 extern u16 xdata 		touchPadContinueCnt;
@@ -181,8 +185,17 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 	static u8 counter_1ms 	= 0; 
 	
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+	extern u16 xdata fansInpactTimeCounter;
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+	u16 code tipsInit_Period 		= 1000;		//延时检测计数周期
+	static xdata u16 tipsInit_Cnt 	= 0;	
+	
+	u16 code  fpDetectPeriod_stdBy	= 1000;		//负载检测tips_standBy
+	static xdata u16 fpDetectCount_stdBy = 0;
+ #endif
+	
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
@@ -207,6 +220,61 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+	//*******************tips数码管流水灯计时计数业务**************************/
+	if(tipsInit_Cnt < tipsInit_Period)tipsInit_Cnt ++;
+	else{
+	
+		tipsInit_Cnt  = 0;
+		
+		switch(dev_segTips){ //状态机
+		
+			case segMode_init:{
+			
+				segTips_Init();
+				
+			}break;
+			
+			case segMode_initCmp:{
+			
+				segTips_InitCmp();
+				
+			}break;
+			
+			case segMode_touchOpen:{
+			
+				segTips_touchOpen();
+				
+			}break;
+			
+			case segMode_touchClose:{
+			
+				segTips_touchClose();
+				
+			}break;
+			
+			case segMode_elecDetectStandby:{
+			
+				segTips_detectStandBy();
+				
+			}break;
+			
+			case segMode_elecDetect:{
+			
+				powerTips(socket_eleDetParam.eleParam_power);	//功率Tips显示
+				
+			}break;
+				
+			default:{
+			
+				segTips_allDark();
+				
+			}break;
+		}
+	}
+	
+ #endif
+
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
@@ -284,12 +352,55 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 		counter_1ms = 0;
 		
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_FANS)
+ #if(SWITCHFANS_SPECIAL_VERSION_IMPACT == 1)	
+		if(fansInpactTimeCounter != COUNTER_DISENABLE_MASK_SPECIALVAL_U16){
+		
+			if(fansInpactTimeCounter)fansInpactTimeCounter --;
+			else{
+			
+				fansInpactTimeCounter = COUNTER_DISENABLE_MASK_SPECIALVAL_U16;
+				PIN_RELAY_1 = 0;
+			}
+		}
+ #endif
+		
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_dIMMER)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 		/*红外转发状态机专用动作时间计数*/
 		if(infraredAct_timeCounter)infraredAct_timeCounter --;
 		
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
+ #if(SWITCH_TYPE_SOCKETS_SPECIFICATION == SOCKETS_SPECIFICATION_BRITISH)
+		/*HLW8012测频Tips-standBy*///预检测
+		if(fpDetectCount_stdBy < fpDetectPeriod_stdBy)fpDetectCount_stdBy ++;
+		else{
+			
+			fpDetectCount_stdBy = 0;
+			
+			pinFP_powerStdby = pinFP_stdby_powerCNT / 1.0F;
+			pinFP_stdby_powerCNT = 0.0F;
+			if(status_Relay == actRelay_ON){
+				
+				if((pinFP_powerStdby - socket_eleDetParam.eleParamFun_powerFreqVal) > 15.0F){ //升差 ---预测对比差值提高，对比确认读度提高
+				
+					dev_segTips = segMode_elecDetectStandby;
+					tipsSeg_INTFLG = 1;
+				}
+				else
+				if((socket_eleDetParam.eleParamFun_powerFreqVal - pinFP_powerStdby) > 15.0F){ //落差
+				
+					dev_segTips = segMode_elecDetect;
+					tipsSeg_INTFLG = 1;
+				}else
+				if((pinFP_powerStdby - socket_eleDetParam.eleParamFun_powerFreqVal) < 10.0F && (pinFP_powerStdby - socket_eleDetParam.eleParamFun_powerFreqVal) > -10.0F){ //无差
+				
+					dev_segTips = segMode_elecDetect;
+					tipsSeg_INTFLG = 1;
+				}
+			}
+		}
+ #endif 
+		
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SCENARIO)
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_HEATER)
 		/*热水器继电器滞后同步计时计数*/
@@ -324,6 +435,9 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 		
 		/*扩展性(持续性)数据发送动作间隔时间计数*/
 		if(dtReqEx_counter)dtReqEx_counter --;
+		
+		/*互控组内地址向外广播通知不同组连续通知间隔*/
+		if(dnCounter_mutAddrsPingLoopPeriod)dnCounter_mutAddrsPingLoopPeriod --;
 		
 		/*特殊组合动作按键触发 预标志衔接时间计数*/
 		if(combinationFunFLG_3S5S_cancel_counter)combinationFunFLG_3S5S_cancel_counter --;
@@ -392,6 +506,18 @@ void timer4_Rountine (void) interrupt TIMER4_VECTOR{
 			
 				heartBeatCount = 0;
 				heartBeatCycle_FLG = 1;
+			}
+		}
+		
+		/*互控组定时参数周期向外通知业务*/
+		if(!cycleFlg_mutualAddrPeriodPingOut){
+		
+			if(dnCounter_mutualAddrPeriodPingOut)dnCounter_mutualAddrPeriodPingOut --;
+			else{
+			
+				dnCounter_mutualAddrPeriodPingOut = PERIOD_HEARTBEAT_ASR * 2;
+				
+				cycleFlg_mutualAddrPeriodPingOut = 1;
 			}
 		}
 		

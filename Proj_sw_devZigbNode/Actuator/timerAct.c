@@ -202,18 +202,26 @@ void thread_Timing(void){
 	
 	/*系统时间维持更新*///zigb查询sysTime周期之外 本地自行每秒更新
 	{
-		
-		systemTime_current.time_Minute = sysTimeKeep_counter / 60;
-		systemTime_current.time_Second = sysTimeKeep_counter % 60;
-		
-		if(sysTimeKeep_counter < 3600){
 			
-		}else{
+		if(sysTimeKeep_counter < 3600){
+
+		}else{ 
 		
 			sysTimeKeep_counter = 0;
-			(systemTime_current.time_Hour >= 24)?(systemTime_current.time_Hour = 0):(systemTime_current.time_Hour ++);
-			(systemTime_current.time_Week >   7)?(systemTime_current.time_Week = 1):(systemTime_current.time_Week ++);
+
+			if(systemTime_current.time_Hour >= 23){
+
+				systemTime_current.time_Hour = 0;
+				(systemTime_current.time_Week > 7)?(systemTime_current.time_Week = 1):(systemTime_current.time_Week ++);
+			
+			}else{
+
+				systemTime_current.time_Hour ++;
+			}
 		}
+
+		systemTime_current.time_Minute = sysTimeKeep_counter / 60;
+		systemTime_current.time_Second = sysTimeKeep_counter % 60;
 		
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS) //插座电量每小时定点清零
 		

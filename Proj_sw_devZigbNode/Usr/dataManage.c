@@ -33,11 +33,12 @@ u8 DEV_actReserve = 0x01;
 
 //u8 CTRLEATHER_PORT[clusterNum_usr] = {0x1A, 0x1B, 0x1C};
 u8 CTRLEATHER_PORT[clusterNum_usr] = {0, 0, 0};
+u16 idata mutualCtrlDevList[clusterNum_usr][MUTUALCTRL_DEV_NUM_MAX - 1] = {0}; //互控组内设备列表,<必须使用idata 或 data 内存，xdata内存有缺陷,会导致第一个8 bit内存无故被清零>
 
 u16 dev_currentPanid = 0;
 
 #if(DEBUG_LOGOUT_EN == 1)	
- u8 idata log_buf[LOGBUFF_LEN] = {0};
+ u8 xdata log_buf[LOGBUFF_LEN] = {0};
 #endif		
 
 /********************本地文件变量创建区******************/
@@ -180,6 +181,88 @@ void zigbNwkExist_detectReales(void){
 		PrintString1_logOut(log_buf);
 	}
 #endif
+}
+
+void mutualCtrlSysParam_checkAndStore(u8 mutualCtrlGroup_insert, u16 devAddr){
+
+	u8 xdata 	loop = 0;
+	bit idata 	devAddrExist_IF = 0;
+	
+	if(mutualCtrlGroup_insert > (clusterNum_usr - 1))return;
+	
+	for(loop = 0; loop < (MUTUALCTRL_DEV_NUM_MAX - 1); loop ++){
+		
+#if(DEBUG_LOGOUT_EN == 1)	
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+
+			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+			
+			sprintf(log_buf, "addr_t:%04X, addr_s:%04X.\n", (int)devAddr, (int)mutualCtrlDevList[mutualCtrlGroup_insert][loop]);
+			PrintString1_logOut(log_buf);
+		}
+#endif
+	
+		if(devAddr == mutualCtrlDevList[mutualCtrlGroup_insert][loop]){
+		
+			devAddrExist_IF = 1;
+			break;
+		}
+	}
+	
+	if(devAddrExist_IF){
+	
+#if(DEBUG_LOGOUT_EN == 1)	
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+
+			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+			
+			sprintf(log_buf, "devAddr:%04X exist in mutualGroup:%d.\n", (int)devAddr, (int)mutualCtrlGroup_insert);
+			PrintString1_logOut(log_buf);
+		}
+#endif
+	
+	}else{
+		
+		memcpy((u8 *)&(mutualCtrlDevList[mutualCtrlGroup_insert][0]), (u8 *)&(mutualCtrlDevList[mutualCtrlGroup_insert][1]), sizeof(u16) * (MUTUALCTRL_DEV_NUM_MAX - 2));
+		mutualCtrlDevList[mutualCtrlGroup_insert][MUTUALCTRL_DEV_NUM_MAX - 2] = devAddr;
+		coverEEPROM_write_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr * (MUTUALCTRL_DEV_NUM_MAX - 1));
+	
+#if(DEBUG_LOGOUT_EN == 1)	
+		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+
+			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+			
+			sprintf(log_buf, "devAddr:%04X add to mutualGroup:%d.\n", (int)devAddr, (int)mutualCtrlGroup_insert);
+			PrintString1_logOut(log_buf);
+		}
+		
+//		{ //输出打印，谨记 用后注释，否则占用大量代码空间
+
+//			memset(log_buf, 0, LOGBUFF_LEN * sizeof(u8));
+//			
+//			sprintf(log_buf, "devAddrList[0]:%04X %04X.\n", (int)mutualCtrlDevList[mutualCtrlGroup_insert][0],
+//															(int)mutualCtrlDevList[mutualCtrlGroup_insert][1]);
+//			PrintString1_logOut(log_buf);
+//		}
+#endif
+	}
+}
+
+void mutualCtrlSysParam_dataReset(u8 opreatBit){
+
+	u8 idata loop = 0;
+	
+	for(loop = 0; loop < clusterNum_usr; loop ++){
+	
+		if(opreatBit & (1 << loop))memset(mutualCtrlDevList[loop], 0xff, sizeof(u16) * (MUTUALCTRL_DEV_NUM_MAX - 1));
+	}
+	
+	coverEEPROM_write_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr * (MUTUALCTRL_DEV_NUM_MAX - 1));
+}
+
+void mutualCtrlSysParam_dataRecover(void){
+
+	EEPROM_read_n(EEPROM_ADDR_mutualCtrlAddrs, (u8 *)mutualCtrlDevList, sizeof(u16) * clusterNum_usr * (MUTUALCTRL_DEV_NUM_MAX - 1));
 }
 
 ///*场景号对应EEPROM存储索引号查找*/

@@ -100,6 +100,9 @@
 #define STATUSLOCALEACTRL_VALMASKRESERVE_ON		0x0A //互控本地轮询更新值，操作状态掩码 - 开
 #define STATUSLOCALEACTRL_VALMASKRESERVE_OFF	0x0B //互控本地轮询更新值，操作状态掩码 - 关
 
+#define MUTUAL_KEEP_TRIG_LOOPPERIOD_TIME		15	 //互控触发后持续发码次数
+#define MUTUALCMD_MUTADDRS_NOTICE_OUT			0x78 //互控相关指令：本组互控地址通知
+
 #define CTRLSECENARIO_RESPCMD_SPECIAL			0xCE //场景控制回复专用数据
 
 #define ZIGB_ENDPOINT_CTRLSECENARIO		12 //场景集群控制专用端口
@@ -209,7 +212,9 @@ typedef struct{
 	u8  datsLen;
 	
 	u8 	portPoint;
-	u16	nwkAddr;
+	u16	nwkAddr[MUTUALCTRL_DEV_NUM_MAX - 1];
+	
+	u8  nwkAddr_loopInsert;
 	
 	u8 constant_Loop; //重复次数
 	

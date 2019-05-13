@@ -7,6 +7,7 @@
 #include "dataManage.h"
 #include "Relay.h"
 #include "touchPad.h"
+#include "eeprom.h"
 
 #include "delay.h"
 #include "USART.h"
@@ -18,11 +19,11 @@
 extern tips_Status devTips_status;
 
 /**********************±¾µØÎÄ¼þ±äÁ¿¶¨ÒåÇø**********************/
-u8 idata val_DcodeCfm 			= 0;  //²¦ÂëÖµ
-bit		 ledBackground_method	= 1;  //±³¾°µÆÑÕÉ«·½°¸ //Îª1Ê±£º¿ª-ÂÌ ¹Ø-À¶   Îª0Ê±£º¿ª-À¶ ¹Ø-ÂÌ
+u8 idata  val_DcodeCfm 			= 0;  //²¦ÂëÖµ
+bit		  ledBackground_method	= 1;  //±³¾°µÆÑÕÉ«·½°¸ //Îª1Ê±£º¿ª-ÂÌ ¹Ø-À¶   Îª0Ê±£º¿ª-À¶ ¹Ø-ÂÌ
 
-bit		 usrKeyCount_EN			= 0;  //ÓÃ»§°´¼ü¼ÆÊý
-u16		 usrKeyCount			= 0;
+bit		  usrKeyCount_EN		= 0;  //ÓÃ»§°´¼ü¼ÆÊý
+u16	idata usrKeyCount			= 0;
 
 u16	xdata touchPadActCounter	= 0;  //´¥ÃþÅÌ°´¼ü¼ÆÊ±
 u16	xdata touchPadContinueCnt	= 0;  //´¥ÃþÅÌÁ¬°´¼ÆÊ±
@@ -31,8 +32,8 @@ u8	xdata touchKeepCnt_record	= 1;  //Á¬°´ÕýÔÚ½øÐÐÊ±¼ÆÊý±äÁ¿£¬Á¬°´±Ø¶¨´ÓÒ»¿ªÊ¼£¬·
 
 u16 xdata combinationFunFLG_3S5S_cancel_counter  = 0;  //Èý¶ÌÎå¶ÌÔ¤´¥·¢±êÖ¾_ÏÎ½ÓÊ±³¤È¡Ïû¼ÆÊý£¬ÏÎ½ÓÊ±¼ä¹ý³¤Ê±£¬½«Ô¤´¥·¢±êÖ¾È¡Ïû
 
-static param_combinationFunPreTrig param_combinationFunTrigger_3S1L = {0};
-static param_combinationFunPreTrig param_combinationFunTrigger_3S5S = {0};
+static param_combinationFunPreTrig idata param_combinationFunTrigger_3S1L = {0};
+static param_combinationFunPreTrig idata param_combinationFunTrigger_3S5S = {0};
 
 /*------------------------------------------------------------------------------------------------------------*/
 ///*°´¼ü»Øµ÷º¯Êý»º´æ*///Îª¼õÉÙ´úÂëÈßÓà£¬´Ë¶ÎÆúÓÃ
@@ -189,6 +190,8 @@ void usrKin_pinInit(void){
 #if(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_SOCKETS)
 	P2M1 |= 0x10;
 	P2M0 &= ~(0x10);
+//	P2M1 &= ~(0x10);
+//	P2M0 &= ~(0x10);
 
 #elif(SWITCH_TYPE_FORCEDEF == SWITCH_TYPE_INFRARED)
 	P5M1 &= ~ 0x10;
@@ -634,7 +637,9 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 		default:{}break;
 	}
 	
-	if(!shortPressCnt_IF)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢£¨·ÇÁ¬°´²Å´¥·¢»¥¿Ø£©
+//	if(!shortPressCnt_IF)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢£¨·ÇÁ¬°´²Å´¥·¢»¥¿Ø£©
+	shortPressCnt_IF = shortPressCnt_IF; //È¥¾¯¸æ ^.^
+	EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢£¨»¥¿Ø·½Ê½ÒÑ¸Ä±ä£¬¿ÉÒÔ½øÐÐÁ¬Ðø´¥·¢£©
 	
  #if(DEBUG_LOGOUT_EN == 1)
 	{ //Êä³ö´òÓ¡£¬½÷¼Ç ÓÃºó×¢ÊÍ£¬·ñÔòÕ¼ÓÃ´óÁ¿´úÂë¿Õ¼ä
@@ -713,7 +718,12 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 			}
 			else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
 			
+			#if(CURTAIN_RELAY_UPSIDE_DOWN)
+				swCommand_fromUsr.objRelay = 1;
+			#else
 				swCommand_fromUsr.objRelay = 4;
+			#endif
+				
 			}
 			else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
 			
@@ -763,7 +773,11 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 			}
 			else if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN){
 			
+			#if(CURTAIN_RELAY_UPSIDE_DOWN)
+				swCommand_fromUsr.objRelay = 4;
+			#else
 				swCommand_fromUsr.objRelay = 1;
+			#endif
 			}
 			else if(SWITCH_TYPE == SWITCH_TYPE_FANS){
 			
@@ -827,12 +841,18 @@ static void normalBussiness_shortTouchTrig(u8 statusPad, bit shortPressCnt_IF){
 		swCommand_fromUsr.actMethod = relay_OnOff;
 	}
 	
-	if(!shortPressCnt_IF){ //·ÇÁ¬°´²Å´¥·¢»¥¿Ø
+//	if(!shortPressCnt_IF){ //·ÇÁ¬°´²Å´¥·¢»¥¿Ø
+//	
+//		if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //ÓÐÐ§»¥¿Ø´¥·¢(Ö±½Ó´¥·¢´¥Ãþ¶ÔÓ¦¼ü»¥¿Ø)
+//		else
+//		if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢
+//	}
 	
-		if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //ÓÐÐ§»¥¿Ø´¥·¢(Ö±½Ó´¥·¢´¥Ãþ¶ÔÓ¦¼ü»¥¿Ø)
-		else
-		if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢
-	}
+	//ÓÐÐ§»¥¿Ø´¥·¢£¨»¥¿Ø·½Ê½ÒÑ¸Ä±ä£¬¿ÉÒÔ½øÐÐÁ¬Ðø´¥·¢£©
+	shortPressCnt_IF = shortPressCnt_IF; //È¥¾¯¸æ ^.^
+	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; 
+	else
+	if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; 
 	
 	if(swCommand_fromUsr.objRelay)devActionPush_IF.push_IF = 1; //ÍÆËÍÊ¹ÄÜ
 	if(tipsBeep_IF)beeps_usrActive(3, 50, 1); //´¥Ãþ¿ÉÓÃ²Åtips
@@ -971,9 +991,12 @@ void touchPad_functionTrigNormal(u8 statusPad, keyCfrm_Type statusCfm){ //ÆÕÍ¨´¥
 
 void touchPad_functionTrigContinue(u8 statusPad, u8 loopCount){	//´¥ÃþÁ¬°´´¥·¢
 	
-	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //ÓÐÐ§»¥¿Ø´¥·¢£¬×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
-	else
-	if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢£¬×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
+	//£¨»¥¿Ø·½Ê½ÒÑ¸Ä±ä£¬¿ÉÒÔ½øÐÐÁ¬Ðø´¥·¢£©
+	
+//	if(SWITCH_TYPE == SWITCH_TYPE_SWBIT1 || SWITCH_TYPE == SWITCH_TYPE_SWBIT2 || SWITCH_TYPE == SWITCH_TYPE_SWBIT3)EACHCTRL_realesFLG = swCommand_fromUsr.objRelay; //ÓÐÐ§»¥¿Ø´¥·¢£¬×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
+//	else
+//	if(SWITCH_TYPE == SWITCH_TYPE_CURTAIN)EACHCTRL_realesFLG = 1; //ÓÐÐ§»¥¿Ø´¥·¢£¬×îºóÒ»´ÎÁ¬°´´¥·¢»¥¿ØÍ¬²½
+	
 	devActionPush_IF.push_IF = 1; //×îºóÒ»´ÎÁ¬°´´¥·¢ÍÆËÍÊ¹ÄÜ
 	
 #if(DEBUG_LOGOUT_EN == 1)				
@@ -1158,6 +1181,12 @@ void usrKeyFun_relayOpreation(void){
 }
 
 void usrKeyFun_zigbNwkRejoin(void){
+	
+	u8 deviceLock_IF = 0; //²Ù×÷×Ö½Ú»º´æ
+	
+	//ÖØÐÂÈëÍøÇé¿öÏÂ£¬¿ª¹Ø½âËø
+	deviceLock_flag = deviceLock_IF = 0; //ÔËÐÐ»º´æ¸üÐÂ£¬½âËø
+	coverEEPROM_write_n(EEPROM_ADDR_deviceLockFLAG, &deviceLock_IF, 1); //Ö±½Ó¸üÐÂeepromÊý¾Ý£¬½âËø
 	
 	if(countEN_ifTipsFree)countEN_ifTipsFree = 0; //´¥ÃþÊÍ·Å¼ÆÊ±Ê§ÄÜ
 
